@@ -26,7 +26,7 @@ class SimpleJdbcTemplateTests {
 
     private static final Logger log = LoggerFactory.getLogger(SimpleJdbcTemplateTests.class);
 
-    final DataSource dataSource;
+    private static final DataSource dataSource;
 
     String[] cStruct = {
             "id",
@@ -37,26 +37,28 @@ class SimpleJdbcTemplateTests {
             "status"
     };
 
-    SimpleJdbcTemplateTests() {
+    static {
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:postgresql://localhost:5432/plusone");
+        config.setJdbcUrl("jdbc:postgresql://localhost:5432/jdbctest");
         config.setUsername("postgres");
         config.setPassword("zhouxy108");
-        this.dataSource = new HikariDataSource(config);
+        config.setMaximumPoolSize(800);
+        config.setConnectionTimeout(1000000);
+        dataSource = new HikariDataSource(config);
     }
 
     @Test
     void testQuery() throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            Object[] params = buildParams("501533", "501554", "544599");
+        try (Connection conn = dataSource.getConnection()) {
+            Object[] ids = buildParams("501533", "501554", "544599");
             String sql = SQL.newJdbcSql()
                     .SELECT("*")
                     .FROM("test_table")
-                    .WHERE(IN("id", params))
+                    .WHERE(IN("id", ids))
                     .toString();
             log.info(sql);
             List<DbRecord> rs = SimpleJdbcTemplate.connect(conn)
-                    .queryToRecordList(sql, params);
+                    .queryToRecordList(sql, ids);
             assertNotNull(rs);
             for (DbRecord baseEntity : rs) {
                 // log.info("id: {}", baseEntity.getValueAsString("id"));
@@ -73,12 +75,13 @@ class SimpleJdbcTemplateTests {
                 .tx(() -> {
                     SimpleJdbcTemplate.connect(conn)
                         .update("INSERT INTO base_table (created_by, create_time, status) VALUES (?, now(), 0)", 585757);
-                    Optional<Map<String,Object>> first = SimpleJdbcTemplate.connect(conn)
+                    Optional<Map<String, Object>> first = SimpleJdbcTemplate.connect(conn)
                         .queryFirst("SELECT * FROM base_table WHERE created_by = ?", 585757);
                     log.info("first: {}", first);
                     throw new NullPointerException();
                 });
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error(e.getMessage(), e);
         }
     }

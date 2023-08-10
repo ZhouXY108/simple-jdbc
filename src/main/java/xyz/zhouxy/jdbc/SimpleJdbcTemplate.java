@@ -138,26 +138,26 @@ public class SimpleJdbcTemplate {
         }
 
         public Optional<String> queryToString(String sql, Object... params) throws SQLException {
-            return queryFirst(sql, params, (ResultSet rs, int rowNumber) -> rs.getString(1));
+            return queryFirst(sql, params, (rs, rowNumber) -> rs.getString(1));
         }
 
         public OptionalInt queryToInt(String sql, Object... params) throws SQLException {
-            Optional<Integer> result = queryFirst(sql, params, (ResultSet rs, int rowNumber) -> rs.getInt(1));
+            Optional<Integer> result = queryFirst(sql, params, (rs, rowNumber) -> rs.getInt(1));
             return OptionalUtil.toOptionalInt(result);
         }
 
         public OptionalLong queryToLong(String sql, Object... params) throws SQLException {
-            Optional<Long> result = queryFirst(sql, params, (ResultSet rs, int rowNumber) -> rs.getLong(1));
+            Optional<Long> result = queryFirst(sql, params, (rs, rowNumber) -> rs.getLong(1));
             return OptionalUtil.toOptionalLong(result);
         }
 
         public OptionalDouble queryToDouble(String sql, Object... params) throws SQLException {
-            Optional<Double> result = queryFirst(sql, params, (ResultSet rs, int rowNumber) -> rs.getDouble(1));
+            Optional<Double> result = queryFirst(sql, params, (rs, rowNumber) -> rs.getDouble(1));
             return OptionalUtil.toOptionalDouble(result);
         }
 
         public Optional<BigDecimal> queryToBigDecimal(String sql, Object... params) throws SQLException {
-            return queryFirst(sql, params, (ResultSet rs, int rowNumber) -> rs.getBigDecimal(1));
+            return queryFirst(sql, params, (rs, rowNumber) -> rs.getBigDecimal(1));
         }
 
         public int update(String sql, Object... params) throws SQLException {
@@ -201,7 +201,8 @@ public class SimpleJdbcTemplate {
                 atom.execute();
                 conn.commit();
                 conn.setAutoCommit(true);
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 conn.rollback();
                 conn.setAutoCommit(true);
                 throw e;
@@ -240,13 +241,13 @@ public class SimpleJdbcTemplate {
                     .toArray();
         }
 
-        public static <T> List<Object[]> buildBatchParams(final Collection<T> c, final Function<T, Object[]> function) {
+        public static <T> List<Object[]> buildBatchParams(final Collection<T> c, final Function<T, Object[]> func) {
             Preconditions.checkNotNull(c, "The collection can not be null.");
-            Preconditions.checkNotNull(function, "The function can not be null.");
+            Preconditions.checkNotNull(func, "The func can not be null.");
             if (MoreCollections.isEmpty(c)) {
                 return Collections.emptyList();
             }
-            return c.stream().map(function).collect(Collectors.toList());
+            return c.stream().map(func).collect(Collectors.toList());
         }
 
         private ParamBuilder() {

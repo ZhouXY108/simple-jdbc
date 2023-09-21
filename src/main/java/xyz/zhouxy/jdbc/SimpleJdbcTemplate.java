@@ -16,19 +16,35 @@
 
 package xyz.zhouxy.jdbc;
 
+import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.ArrayUtils;
+
 import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import org.apache.commons.lang3.ArrayUtils;
+
 import xyz.zhouxy.plusone.commons.util.MoreArrays;
 import xyz.zhouxy.plusone.commons.util.MoreCollections;
 import xyz.zhouxy.plusone.commons.util.OptionalUtil;
-
-import java.math.BigDecimal;
-import java.sql.*;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Beta
 public class SimpleJdbcTemplate {
@@ -77,11 +93,7 @@ public class SimpleJdbcTemplate {
 
         public <T> List<T> query(String sql, Object[] params, ResultMap<T> resultMap) throws SQLException {
             try (PreparedStatement stmt = this.conn.prepareStatement(sql)) {
-                if (params != null && params.length > 0) {
-                    for (int i = 0; i < params.length; i++) {
-                        stmt.setObject(i + 1, params[i]);
-                    }
-                }
+                fillStatement(stmt, params);
                 try (ResultSet rs = stmt.executeQuery()) {
                     List<T> result = new ArrayList<>();
                     int rowNumber = 0;
@@ -162,11 +174,7 @@ public class SimpleJdbcTemplate {
 
         public int update(String sql, Object... params) throws SQLException {
             try (PreparedStatement stmt = this.conn.prepareStatement(sql)) {
-                if (params != null && params.length > 0) {
-                    for (int i = 0; i < params.length; i++) {
-                        stmt.setObject(i + 1, params[i]);
-                    }
-                }
+                fillStatement(stmt, params);
                 return stmt.executeUpdate();
             }
         }
@@ -213,6 +221,27 @@ public class SimpleJdbcTemplate {
         public interface IAtom<T extends Exception> {
             @SuppressWarnings("all")
             void execute() throws SQLException, T;
+        }
+
+        private static void fillStatement(PreparedStatement stmt, Object[] params) throws SQLException {
+            if (params != null && params.length > 0) {
+                Object param;
+                for (int i = 0; i < params.length; i++) {
+                    param = params[i];
+                    if (param instanceof java.sql.Date) {
+                        stmt.setDate(i + 1, (java.sql.Date) param);
+                    }
+                    else if (param instanceof java.sql.Time) {
+                        stmt.setTime(i + 1, (java.sql.Time) param);
+                    }
+                    else if (param instanceof java.sql.Timestamp) {
+                        stmt.setTimestamp(i + 1, (java.sql.Timestamp) param);
+                    }
+                    else {
+                        stmt.setObject(i + 1, param);
+                    }
+                }
+            }
         }
     }
 

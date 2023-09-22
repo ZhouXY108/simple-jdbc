@@ -68,8 +68,10 @@ public class DbRecord extends AbstractMapWrapper<String, Object, DbRecord> {
         return this;
     }
 
+    private static final String STR_PREFIX = DbRecord.class.getName() + '@';
+
     @Override
     public String toString() {
-        return "xyz.zhouxy.plusone.commons.jdbc.DbRecord@" + super.toString();
+        return STR_PREFIX + super.toString();
     }
 }

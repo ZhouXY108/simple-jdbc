@@ -2,11 +2,13 @@ package xyz.zhouxy.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static xyz.zhouxy.jdbc.SimpleJdbcTemplate.ParamBuilder.*;
 import static xyz.zhouxy.plusone.commons.sql.JdbcSql.IN;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,7 +22,10 @@ import org.slf4j.LoggerFactory;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
+import xyz.zhouxy.jdbc.SimpleJdbcTemplate.JdbcExecutor;
 import xyz.zhouxy.plusone.commons.sql.SQL;
+import xyz.zhouxy.plusone.commons.util.IdGenerator;
+import xyz.zhouxy.plusone.commons.util.IdWorker;
 
 class SimpleJdbcTemplateTests {
 
@@ -39,7 +44,7 @@ class SimpleJdbcTemplateTests {
 
     static {
         HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:postgresql://localhost:5432/jdbctest");
+        config.setJdbcUrl("jdbc:postgresql://localhost:5432/plusone");
         config.setUsername("postgres");
         config.setPassword("zhouxy108");
         config.setMaximumPoolSize(800);
@@ -68,21 +73,52 @@ class SimpleJdbcTemplateTests {
         }
     }
 
+    final IdWorker idGenerator = IdGenerator.getSnowflakeIdGenerator(0);
+
     @Test
-    void testTransaction() {
+    void testTransaction() throws SQLException {
         try (Connection conn = dataSource.getConnection()) {
-            SimpleJdbcTemplate.connect(conn)
-                .tx(() -> {
-                    SimpleJdbcTemplate.connect(conn)
-                        .update("INSERT INTO base_table (created_by, create_time, status) VALUES (?, now(), 0)", 585757);
-                    Optional<Map<String, Object>> first = SimpleJdbcTemplate.connect(conn)
-                        .queryFirst("SELECT * FROM base_table WHERE created_by = ?", 585757);
-                    log.info("first: {}", first);
+            long id = this.idGenerator.nextId();
+            JdbcExecutor jdbcExecutor = SimpleJdbcTemplate.connect(conn);
+            try {
+                jdbcExecutor.tx(jdbc -> {
+                    jdbc.update("INSERT INTO base_table (id, created_by, create_time, status) VALUES (?, ?, ?, ?)",
+                            buildParams(id, 585757, LocalDateTime.now(), 0));
                     throw new NullPointerException();
                 });
+            }
+            catch (NullPointerException e) {
+                // ignore
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+            Optional<Map<String, Object>> first = jdbcExecutor
+                    .queryFirst("SELECT * FROM base_table WHERE id = ?", id);
+            log.info("first: {}", first);
+            assertTrue(!first.isPresent());
         }
-        catch (Exception e) {
-            log.error(e.getMessage(), e);
+
+        try (Connection conn = dataSource.getConnection()) {
+            long id = this.idGenerator.nextId();
+            JdbcExecutor jdbcExecutor = SimpleJdbcTemplate.connect(conn);
+            try {
+                jdbcExecutor.tx(jdbc -> {
+                    jdbc.update("INSERT INTO base_table (id, created_by, create_time, status) VALUES (?, ?, ?, ?)",
+                            buildParams(id, 585757, LocalDateTime.now(), 0));
+                    // throw new NullPointerException();
+                });
+            }
+            catch (NullPointerException e) {
+                // ignore
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+            Optional<Map<String, Object>> first = jdbcExecutor
+                    .queryFirst("SELECT * FROM base_table WHERE id = ?", id);
+            log.info("first: {}", first);
+            assertTrue(first.isPresent());
         }
     }
 }

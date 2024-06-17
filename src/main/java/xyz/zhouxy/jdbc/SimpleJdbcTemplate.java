@@ -42,8 +42,8 @@ import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import xyz.zhouxy.plusone.commons.util.MoreArrays;
-import xyz.zhouxy.plusone.commons.util.MoreCollections;
+import xyz.zhouxy.plusone.commons.collection.CollectionTools;
+import xyz.zhouxy.plusone.commons.util.ArrayTools;
 import xyz.zhouxy.plusone.commons.util.OptionalUtil;
 
 @Beta
@@ -107,8 +107,7 @@ public class SimpleJdbcTemplate {
         }
 
         public <T> Optional<T> queryFirst(String sql, Object[] params, ResultMap<T> resultMap) throws SQLException {
-            List<T> list = query(sql, params, resultMap);
-            return (list.isEmpty()) ? Optional.empty() : Optional.ofNullable(list.get(0));
+            return query(sql, params, resultMap).stream().findFirst();
         }
 
         public static final ResultMap<Map<String, Object>> mapResultMap = (rs, rowNumber) -> {
@@ -198,29 +197,30 @@ public class SimpleJdbcTemplate {
                         stmt.clearBatch();
                     }
                 }
-                return MoreArrays.concatIntArray(result);
+                return ArrayTools.concatIntArray(result);
             }
         }
 
-        public <T extends Exception> void tx(final IAtom<T> atom) throws SQLException, T {
+        public <E extends Exception> void tx(final IAtom<E> atom) throws SQLException, E {
             Preconditions.checkNotNull(atom, "Atom can not be null.");
+            final boolean autoCommit = this.conn.getAutoCommit();
             try {
                 this.conn.setAutoCommit(false);
-                atom.execute();
-                conn.commit();
-                conn.setAutoCommit(true);
+                atom.execute(this);
+                this.conn.commit();
             }
             catch (Exception e) {
-                conn.rollback();
-                conn.setAutoCommit(true);
+                this.conn.rollback();
                 throw e;
+            }
+            finally {
+                this.conn.setAutoCommit(autoCommit);
             }
         }
 
         @FunctionalInterface
-        public interface IAtom<T extends Exception> {
-            @SuppressWarnings("all")
-            void execute() throws SQLException, T;
+        public interface IAtom<E extends Exception> {
+            void execute(JdbcExecutor jdbcExecutor) throws SQLException, E;
         }
 
         private static void fillStatement(PreparedStatement stmt, Object[] params) throws SQLException {
@@ -273,7 +273,7 @@ public class SimpleJdbcTemplate {
         public static <T> List<Object[]> buildBatchParams(final Collection<T> c, final Function<T, Object[]> func) {
             Preconditions.checkNotNull(c, "The collection can not be null.");
             Preconditions.checkNotNull(func, "The func can not be null.");
-            if (MoreCollections.isEmpty(c)) {
+            if (CollectionTools.isEmpty(c)) {
                 return Collections.emptyList();
             }
             return c.stream().map(func).collect(Collectors.toList());

@@ -44,7 +44,7 @@ import com.google.common.collect.Lists;
 
 import xyz.zhouxy.plusone.commons.collection.CollectionTools;
 import xyz.zhouxy.plusone.commons.util.ArrayTools;
-import xyz.zhouxy.plusone.commons.util.OptionalUtil;
+import xyz.zhouxy.plusone.commons.util.OptionalTools;
 
 @Beta
 public class SimpleJdbcTemplate {
@@ -154,17 +154,17 @@ public class SimpleJdbcTemplate {
 
         public OptionalInt queryToInt(String sql, Object... params) throws SQLException {
             Optional<Integer> result = queryFirst(sql, params, (rs, rowNumber) -> rs.getInt(1));
-            return OptionalUtil.toOptionalInt(result);
+            return OptionalTools.toOptionalInt(result);
         }
 
         public OptionalLong queryToLong(String sql, Object... params) throws SQLException {
             Optional<Long> result = queryFirst(sql, params, (rs, rowNumber) -> rs.getLong(1));
-            return OptionalUtil.toOptionalLong(result);
+            return OptionalTools.toOptionalLong(result);
         }
 
         public OptionalDouble queryToDouble(String sql, Object... params) throws SQLException {
             Optional<Double> result = queryFirst(sql, params, (rs, rowNumber) -> rs.getDouble(1));
-            return OptionalUtil.toOptionalDouble(result);
+            return OptionalTools.toOptionalDouble(result);
         }
 
         public Optional<BigDecimal> queryToBigDecimal(String sql, Object... params) throws SQLException {
@@ -254,16 +254,16 @@ public class SimpleJdbcTemplate {
             return Arrays.stream(params)
                     .map(param -> {
                         if (param instanceof Optional) {
-                            return OptionalUtil.orElseNull((Optional<?>) param);
+                            return OptionalTools.orElseNull((Optional<?>) param);
                         }
                         if (param instanceof OptionalInt) {
-                            return OptionalUtil.toInteger(((OptionalInt) param));
+                            return OptionalTools.toInteger(((OptionalInt) param));
                         }
                         if (param instanceof OptionalLong) {
-                            return OptionalUtil.toLong(((OptionalLong) param));
+                            return OptionalTools.toLong(((OptionalLong) param));
                         }
                         if (param instanceof OptionalDouble) {
-                            return OptionalUtil.toDouble(((OptionalDouble) param));
+                            return OptionalTools.toDouble(((OptionalDouble) param));
                         }
                         return param;
                     })

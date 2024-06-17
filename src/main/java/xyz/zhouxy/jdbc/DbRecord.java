@@ -20,7 +20,7 @@ import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang3.StringUtils;
 import xyz.zhouxy.plusone.commons.collection.AbstractMapWrapper;
-import xyz.zhouxy.plusone.commons.util.OptionalUtil;
+import xyz.zhouxy.plusone.commons.util.OptionalTools;
 
 import java.util.*;
 
@@ -52,15 +52,15 @@ public class DbRecord extends AbstractMapWrapper<String, Object, DbRecord> {
     }
 
     public OptionalInt getValueAsInt(String key) {
-        return OptionalUtil.toOptionalInt(this.getAndConvert(key));
+        return OptionalTools.toOptionalInt(this.getAndConvert(key));
     }
 
     public OptionalLong getValueAsLong(String key) {
-        return OptionalUtil.toOptionalLong(this.getAndConvert(key));
+        return OptionalTools.toOptionalLong(this.getAndConvert(key));
     }
 
     public OptionalDouble getValueAsDouble(String key) {
-        return OptionalUtil.toOptionalDouble(this.getAndConvert(key));
+        return OptionalTools.toOptionalDouble(this.getAndConvert(key));
     }
 
     @Override

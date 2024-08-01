@@ -20,13 +20,12 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,7 +35,7 @@ import java.util.OptionalLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.ArrayUtils;
+import javax.annotation.Nonnull;
 
 import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
@@ -110,42 +109,20 @@ public class SimpleJdbcTemplate {
             return query(sql, params, resultMap).stream().findFirst();
         }
 
-        public static final ResultMap<Map<String, Object>> mapResultMap = (rs, rowNumber) -> {
-            Map<String, Object> result = new HashMap<>();
-            ResultSetMetaData metaData = rs.getMetaData();
-            int columnCount = metaData.getColumnCount();
-            for (int i = 1; i <= columnCount; i++) {
-                String colName = metaData.getColumnName(i);
-                result.put(colName, rs.getObject(colName));
-            }
-            return result;
-        };
-
         public List<Map<String, Object>> query(String sql, Object... params) throws SQLException {
-            return query(sql, params, mapResultMap);
+            return query(sql, params, ResultMap.mapResultMap);
         }
 
         public Optional<Map<String, Object>> queryFirst(String sql, Object... params) throws SQLException {
-            return queryFirst(sql, params, mapResultMap);
+            return queryFirst(sql, params, ResultMap.mapResultMap);
         }
 
-        public static final ResultMap<DbRecord> recordResultMap = (rs, rowNumber) -> {
-            DbRecord result = new DbRecord();
-            ResultSetMetaData metaData = rs.getMetaData();
-            int columnCount = metaData.getColumnCount();
-            for (int i = 1; i <= columnCount; i++) {
-                String colName = metaData.getColumnName(i);
-                result.put(colName, rs.getObject(colName));
-            }
-            return result;
-        };
-
         public List<DbRecord> queryToRecordList(String sql, Object... params) throws SQLException {
-            return query(sql, params, recordResultMap);
+            return query(sql, params, ResultMap.recordResultMap);
         }
 
         public Optional<DbRecord> queryFirstRecord(String sql, Object... params) throws SQLException {
-            return queryFirst(sql, params, recordResultMap);
+            return queryFirst(sql, params, ResultMap.recordResultMap);
         }
 
         public Optional<String> queryToString(String sql, Object... params) throws SQLException {
@@ -175,6 +152,36 @@ public class SimpleJdbcTemplate {
             try (PreparedStatement stmt = this.conn.prepareStatement(sql)) {
                 fillStatement(stmt, params);
                 return stmt.executeUpdate();
+            }
+        }
+
+        /**
+         * 执行 SQL 并更新后的数据
+         * 
+         * @param sql       要执行的 SQL 语句
+         * @param params    参数
+         * @param resultMap 结果映射规则
+         * 
+         * @return 更新的数据
+         * @throws SQLException 执行 SQL 遇到异常情况将抛出
+         */
+        public <T> List<T> update(@Nonnull String sql, @Nonnull Object[] params, ResultMap<T> resultMap)
+                throws SQLException {
+            Preconditions.checkNotNull(sql, "The sql could not be null.");
+            Preconditions.checkNotNull(params, "The params could not be null.");
+            Preconditions.checkNotNull(resultMap, "The resultMap could not be null.");
+            final List<T> result = new ArrayList<>();
+            try (PreparedStatement stmt = this.conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                fillStatement(stmt, params);
+                stmt.executeUpdate();
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys();) {
+                    int rowNumber = 0;
+                    while (generatedKeys.next()) {
+                        T e = resultMap.map(generatedKeys, rowNumber++);
+                        result.add(e);
+                    }
+                }
+                return result;
             }
         }
 
@@ -247,9 +254,11 @@ public class SimpleJdbcTemplate {
 
     public static class ParamBuilder {
 
+        public static final Object[] EMPTY_OBJECT_ARRAY = {};
+
         public static Object[] buildParams(final Object... params) {
-            if (ArrayUtils.isEmpty(params)) {
-                return ArrayUtils.EMPTY_OBJECT_ARRAY;
+            if (ArrayTools.isNullOrEmpty(params)) {
+                return EMPTY_OBJECT_ARRAY;
             }
             return Arrays.stream(params)
                     .map(param -> {

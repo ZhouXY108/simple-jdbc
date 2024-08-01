@@ -9,6 +9,7 @@ import static xyz.zhouxy.plusone.commons.sql.JdbcSql.IN;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -70,6 +71,26 @@ class SimpleJdbcTemplateTests {
                 log.info(baseEntity.toString());
                 assertEquals(Optional.empty(), baseEntity.getValueAsString("updated_by"));
             }
+        }
+    }
+
+    @Test
+    void testInsert() throws SQLException {
+        try (Connection conn = dataSource.getConnection()) {
+            List<Map<String, Object>> keys = new ArrayList<>();
+            SimpleJdbcTemplate.connect(conn).update("INSERT INTO base_table(status, created_by) VALUES (?, ?)",
+                    buildParams(1, 886), keys);
+            log.info("keys: {}", keys);
+        }
+    }
+
+    @Test
+    void testUpdate() throws SQLException {
+        try (Connection conn = dataSource.getConnection()) {
+            List<Map<String, Object>> keys = new ArrayList<>();
+            SimpleJdbcTemplate.connect(conn).update("UPDATE base_table SET status = ?, version = version + 1, update_time = now(), updated_by = ? WHERE id = ?",
+                    buildParams(2, 886, 9), keys);
+            log.info("keys: {}", keys);
         }
     }
 

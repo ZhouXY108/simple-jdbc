@@ -19,10 +19,36 @@ package xyz.zhouxy.jdbc;
 import com.google.common.annotations.Beta;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 @Beta
 @FunctionalInterface
 public interface ResultMap<T> {
     T map(ResultSet rs, int rowNumber) throws SQLException;
+
+    public static final ResultMap<Map<String, Object>> mapResultMap = (rs, rowNumber) -> {
+        Map<String, Object> result = new HashMap<>();
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        for (int i = 1; i <= columnCount; i++) {
+            String colName = metaData.getColumnName(i);
+            result.put(colName, rs.getObject(colName));
+        }
+        return result;
+    };
+
+
+    public static final ResultMap<DbRecord> recordResultMap = (rs, rowNumber) -> {
+        DbRecord result = new DbRecord();
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        for (int i = 1; i <= columnCount; i++) {
+            String colName = metaData.getColumnName(i);
+            result.put(colName, rs.getObject(colName));
+        }
+        return result;
+    };
 }

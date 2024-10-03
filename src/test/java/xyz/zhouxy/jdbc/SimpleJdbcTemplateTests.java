@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static xyz.zhouxy.jdbc.ParamBuilder.*;
 import static xyz.zhouxy.plusone.commons.sql.JdbcSql.IN;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -39,14 +38,7 @@ class SimpleJdbcTemplateTests {
 
     private static final DataSource dataSource;
 
-    String[] cStruct = {
-            "id",
-            "created_by",
-            "create_time",
-            "updated_by",
-            "update_time",
-            "status"
-    };
+    private static final SimpleJdbcTemplate jdbcTemplate;
 
     static {
         HikariConfig config = new HikariConfig();
@@ -56,6 +48,7 @@ class SimpleJdbcTemplateTests {
         config.setMaximumPoolSize(8);
         config.setConnectionTimeout(1000000);
         dataSource = new HikariDataSource(config);
+        jdbcTemplate = new SimpleJdbcTemplate(dataSource);
     }
 
     @Test
@@ -67,114 +60,120 @@ class SimpleJdbcTemplateTests {
                 .WHERE(IN("id", ids))
                 .toString();
         log.info(sql);
-        try (Connection conn = dataSource.getConnection()) {
-            List<DbRecord> rs = SimpleJdbcTemplate.connect(conn)
-                    .queryToRecordList(sql, ids);
-            assertNotNull(rs);
-            for (DbRecord baseEntity : rs) {
-                // log.info("id: {}", baseEntity.getValueAsString("id")); // NOSONAR
-                log.info(baseEntity.toString());
-                assertEquals(Optional.empty(), baseEntity.getValueAsString("updated_by"));
-            }
+        List<DbRecord> rs = jdbcTemplate
+                .queryToRecordList(sql, ids);
+        assertNotNull(rs);
+        for (DbRecord baseEntity : rs) {
+            // log.info("id: {}", baseEntity.getValueAsString("id")); // NOSONAR
+            log.info(baseEntity.toString());
+            assertEquals(Optional.empty(), baseEntity.getValueAsString("updated_by"));
         }
     }
 
     @Test
     void testInsert() throws SQLException {
-        try (Connection conn = dataSource.getConnection()) {
-            List<DbRecord> keys = SimpleJdbcTemplate.connect(conn).update(
-                    "INSERT INTO base_table(status, created_by) VALUES (?, ?)",
-                    buildParams(1, 886L),
-                    ResultMap.recordResultMap);
-            log.info("keys: {}", keys);
-            assertEquals(1, keys.size());
-            DbRecord result = keys.get(0);
-            assertEquals(1, result.getValueAsInt("status").getAsInt());
-            assertEquals(886L, result.getValueAsLong("created_by").getAsLong());
-            assertTrue(result.get("id").isPresent());
-        }
+        List<DbRecord> keys = jdbcTemplate.update(
+                "INSERT INTO base_table(status, created_by) VALUES (?, ?)",
+                buildParams(1, 886L),
+                ResultMap.recordResultMap);
+        log.info("keys: {}", keys);
+        assertEquals(1, keys.size());
+        DbRecord result = keys.get(0);
+        assertEquals(1, result.getValueAsInt("status").getAsInt());
+        assertEquals(886L, result.getValueAsLong("created_by").getAsLong());
+        assertTrue(result.get("id").isPresent());
     }
 
     @Test
     void testUpdate() throws SQLException {
-        try (Connection conn = dataSource.getConnection()) {
-            List<DbRecord> keys = SimpleJdbcTemplate.connect(conn).update(
-                    "UPDATE base_table SET status = ?, version = version + 1, update_time = now(), updated_by = ? WHERE id = ? AND version = ?",
-                    buildParams(2, 886, 9, 0),
-                    ResultMap.recordResultMap);
-            log.info("keys: {}", keys);
-        }
+        List<DbRecord> keys = jdbcTemplate.update(
+                "UPDATE base_table SET status = ?, version = version + 1, update_time = now(), updated_by = ? WHERE id = ? AND version = ?",
+                buildParams(2, 886, 571328822575109L, 0),
+                ResultMap.recordResultMap);
+        log.info("keys: {}", keys);
     }
 
     final IdWorker idGenerator = IdGenerator.getSnowflakeIdGenerator(0);
 
     @Test
     void testTransaction() throws SQLException {
-        try (Connection conn = dataSource.getConnection()) {
+        // 抛异常，回滚
+        {
             long id = this.idGenerator.nextId();
-            JdbcExecutor jdbcExecutor = SimpleJdbcTemplate.connect(conn);
-            jdbcExecutor.executeTransaction(jdbc -> {
-                jdbc.update("INSERT INTO base_table (id, created_by, create_time, status) VALUES (?, ?, ?, ?)",
-                        buildParams(id, 585757, LocalDateTime.now(), 0));
-                throw new NullPointerException();
-            });
-            Optional<Map<String, Object>> first = jdbcExecutor
+            try {
+                jdbcTemplate.executeTransaction((JdbcExecutor jdbc) -> {
+                    jdbc.update("INSERT INTO base_table (id, created_by, create_time, status) VALUES (?, ?, ?, ?)",
+                            buildParams(id, 100, LocalDateTime.now(), 0));
+                    throw new NullPointerException();
+                });
+            }
+            catch (NullPointerException e) {
+                // ignore
+            }
+            Optional<Map<String, Object>> first = jdbcTemplate
                     .queryFirst("SELECT * FROM base_table WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
             assertTrue(!first.isPresent());
         }
 
-        try (Connection conn = dataSource.getConnection()) {
+        // 没有异常，提交事务
+        {
             long id = this.idGenerator.nextId();
-            JdbcExecutor jdbcExecutor = SimpleJdbcTemplate.connect(conn);
-            jdbcExecutor.executeTransaction(jdbc -> {
+            jdbcTemplate.executeTransaction(jdbc -> {
                 jdbc.update("INSERT INTO base_table (id, created_by, create_time, status) VALUES (?, ?, ?, ?)",
-                        buildParams(id, 585757, LocalDateTime.now(), 0));
-                // throw new NullPointerException(); // NOSONAR
+                        buildParams(id, 101, LocalDateTime.now(), 0));
             });
-            Optional<Map<String, Object>> first = jdbcExecutor
+
+            Optional<Map<String, Object>> first = jdbcTemplate
                     .queryFirst("SELECT * FROM base_table WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
             assertTrue(first.isPresent());
         }
 
-        try (Connection conn = dataSource.getConnection()) {
+        // 抛异常，回滚
+        {
             long id = this.idGenerator.nextId();
-            JdbcExecutor jdbcExecutor = SimpleJdbcTemplate.connect(conn);
-            jdbcExecutor.commitIfTrue(jdbc -> {
-                jdbc.update("INSERT INTO base_table (id, created_by, create_time, status) VALUES (?, ?, ?, ?)",
-                        buildParams(id, 585757, LocalDateTime.now(), 0));
-                throw new NullPointerException();
-            });
-            Optional<Map<String, Object>> first = jdbcExecutor
+            try {
+                jdbcTemplate.commitIfTrue(jdbc -> {
+                    jdbc.update("INSERT INTO base_table (id, created_by, create_time, status) VALUES (?, ?, ?, ?)",
+                            buildParams(id, 102, LocalDateTime.now(), 0));
+                    throw new NullPointerException();
+                });
+            }
+            catch (NullPointerException e) {
+                // ignore
+            }
+            Optional<Map<String, Object>> first = jdbcTemplate
                     .queryFirst("SELECT * FROM base_table WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
             assertTrue(!first.isPresent());
         }
 
-        try (Connection conn = dataSource.getConnection()) {
+        // 返回 false，回滚
+        {
             long id = this.idGenerator.nextId();
-            JdbcExecutor jdbcExecutor = SimpleJdbcTemplate.connect(conn);
-            jdbcExecutor.commitIfTrue(jdbc -> {
+            jdbcTemplate.commitIfTrue(jdbc -> {
                 jdbc.update("INSERT INTO base_table (id, created_by, create_time, status) VALUES (?, ?, ?, ?)",
-                        buildParams(id, 585757, LocalDateTime.now(), 0));
+                        buildParams(id, 103, LocalDateTime.now(), 0));
                 return false;
             });
-            Optional<Map<String, Object>> first = jdbcExecutor
+
+            Optional<Map<String, Object>> first = jdbcTemplate
                     .queryFirst("SELECT * FROM base_table WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
             assertTrue(!first.isPresent());
         }
 
-        try (Connection conn = dataSource.getConnection()) {
+        // 返回 true，提交事务
+        {
             long id = this.idGenerator.nextId();
-            JdbcExecutor jdbcExecutor = SimpleJdbcTemplate.connect(conn);
-            jdbcExecutor.commitIfTrue(jdbc -> {
+            jdbcTemplate.commitIfTrue(jdbc -> {
                 jdbc.update("INSERT INTO base_table (id, created_by, create_time, status) VALUES (?, ?, ?, ?)",
-                        buildParams(id, 585757, LocalDateTime.now(), 0));
+                        buildParams(id, 104, LocalDateTime.now(), 0));
                 return true;
             });
-            Optional<Map<String, Object>> first = jdbcExecutor
+
+            Optional<Map<String, Object>> first = jdbcTemplate
                     .queryFirst("SELECT * FROM base_table WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
             assertTrue(first.isPresent());
@@ -202,18 +201,19 @@ class SimpleJdbcTemplateTests {
 
             handleDate = handleDate.plusDays(1L);
         }
-        try (Connection conn = dataSource.getConnection()) {
-            List<int[]> result = SimpleJdbcTemplate.connect(conn)
-                    .batchUpdate("insert into test_table (username, usage_date, usage_duration) values (?,?,?)",
-                            buildBatchParams(datas, item -> buildParams(
-                                    item.getValueAsString("username"),
-                                    item.getValueAsString("usage_date"),
-                                    item.getValueAsString("usage_duration"))),
-                            400);
+        try {
+            List<int[]> result = jdbcTemplate.batchUpdate(
+                    "insert into test_table (username, usage_date, usage_duration) values (?,?,?)",
+                    buildBatchParams(datas, item -> buildParams(
+                            item.getValueAsString("username"),
+                            item.getValueAsString("usage_date"),
+                            item.getValueAsString("usage_duration"))),
+                    400);
             long sum = Numbers.sum(ArrayTools.concatIntArray(result));
             assertEquals(datas.size(), sum);
             log.info("sum: {}", sum);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
             throw e;
         }

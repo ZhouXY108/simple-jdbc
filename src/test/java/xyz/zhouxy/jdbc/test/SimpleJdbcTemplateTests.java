@@ -1,4 +1,4 @@
-package xyz.zhouxy.jdbc;
+package xyz.zhouxy.jdbc.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static xyz.zhouxy.jdbc.ParamBuilder.*;
 import static xyz.zhouxy.plusone.commons.sql.JdbcSql.IN;
 
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -21,10 +22,15 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
+import xyz.zhouxy.jdbc.DbRecord;
+import xyz.zhouxy.jdbc.DefaultBeanResultMap;
+import xyz.zhouxy.jdbc.ResultMap;
+import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate.JdbcExecutor;
 import xyz.zhouxy.plusone.commons.sql.SQL;
 import xyz.zhouxy.plusone.commons.util.ArrayTools;
@@ -53,20 +59,19 @@ class SimpleJdbcTemplateTests {
 
     @Test
     void testQuery() throws SQLException {
-        Object[] ids = buildParams("501533", "501554", "544599");
+        Object[] ids = buildParams(22915, 22916, 22917, 22918, 22919, 22920, 22921);
         String sql = SQL.newJdbcSql()
                 .SELECT("*")
                 .FROM("test_table")
                 .WHERE(IN("id", ids))
                 .toString();
         log.info(sql);
-        List<DbRecord> rs = jdbcTemplate
-                .queryToRecordList(sql, ids);
+        List<DbRecord> rs = jdbcTemplate.queryToRecordList(sql, ids);
         assertNotNull(rs);
         for (DbRecord baseEntity : rs) {
             // log.info("id: {}", baseEntity.getValueAsString("id")); // NOSONAR
             log.info(baseEntity.toString());
-            assertEquals(Optional.empty(), baseEntity.getValueAsString("updated_by"));
+            assertTrue(baseEntity.getValueAsString("username").isPresent());
         }
     }
 
@@ -217,5 +222,59 @@ class SimpleJdbcTemplateTests {
             e.printStackTrace();
             throw e;
         }
+    }
+
+    @Test
+    void testBean() throws Exception {
+        Optional<TestBean> t = jdbcTemplate.queryFirst(
+                "SELECT * FROM test_table WHERE id = ?",
+                buildParams(22915),
+                ResultMap.beanResultMap(TestBean.class, ImmutableMap.of("usageDate", "usage_date", "usageDuration", "usage_duration")));
+        log.info("t: {}", t);
+    }
+}
+
+class TestBean {
+    Long id;
+    String username;
+    LocalDate usageDate;
+    Long usageDuration;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public LocalDate getUsageDate() {
+        return usageDate;
+    }
+
+    public void setUsageDate(LocalDate usageDate) {
+        this.usageDate = usageDate;
+    }
+
+    public Long getUsageDuration() {
+        return usageDuration;
+    }
+
+    public void setUsageDuration(Long usageDuration) {
+        this.usageDuration = usageDuration;
+    }
+
+    @Override
+    public String toString() {
+        return "TestBean [id=" + id + ", username=" + username + ", usageDate=" + usageDate + ", usageDuration="
+                + usageDuration + "]";
     }
 }

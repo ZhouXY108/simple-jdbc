@@ -37,7 +37,6 @@ public interface ResultMap<T> {
         return result;
     };
 
-
     public static final ResultMap<DbRecord> recordResultMap = (rs, rowNumber) -> {
         DbRecord result = new DbRecord();
         ResultSetMetaData metaData = rs.getMetaData();
@@ -48,4 +47,13 @@ public interface ResultMap<T> {
         }
         return result;
     };
+
+    public static <T> ResultMap<T> beanResultMap(Class<T> beanType) throws SQLException {
+        return DefaultBeanResultMap.of(beanType);
+    }
+
+    public static <T> ResultMap<T> beanResultMap(Class<T> beanType, Map<String, String> propertyColMap)
+            throws SQLException {
+        return DefaultBeanResultMap.of(beanType, propertyColMap);
+    }
 }

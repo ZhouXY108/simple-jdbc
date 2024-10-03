@@ -25,27 +25,19 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import javax.annotation.Nonnull;
 
-import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import xyz.zhouxy.plusone.commons.collection.CollectionTools;
-import xyz.zhouxy.plusone.commons.util.ArrayTools;
 import xyz.zhouxy.plusone.commons.util.OptionalTools;
 
-@Beta
 public class SimpleJdbcTemplate {
 
     public static JdbcExecutor connect(final Connection conn) {
@@ -86,7 +78,7 @@ public class SimpleJdbcTemplate {
 
         private final Connection conn;
 
-        public JdbcExecutor(Connection conn) {
+        private JdbcExecutor(Connection conn) {
             this.conn = conn;
         }
 
@@ -109,46 +101,46 @@ public class SimpleJdbcTemplate {
             return query(sql, params, resultMap).stream().findFirst();
         }
 
-        public List<Map<String, Object>> query(String sql, Object... params) throws SQLException {
+        public List<Map<String, Object>> query(String sql, Object[] params) throws SQLException {
             return query(sql, params, ResultMap.mapResultMap);
         }
 
-        public Optional<Map<String, Object>> queryFirst(String sql, Object... params) throws SQLException {
+        public Optional<Map<String, Object>> queryFirst(String sql, Object[] params) throws SQLException {
             return queryFirst(sql, params, ResultMap.mapResultMap);
         }
 
-        public List<DbRecord> queryToRecordList(String sql, Object... params) throws SQLException {
+        public List<DbRecord> queryToRecordList(String sql, Object[] params) throws SQLException {
             return query(sql, params, ResultMap.recordResultMap);
         }
 
-        public Optional<DbRecord> queryFirstRecord(String sql, Object... params) throws SQLException {
+        public Optional<DbRecord> queryFirstRecord(String sql, Object[] params) throws SQLException {
             return queryFirst(sql, params, ResultMap.recordResultMap);
         }
 
-        public Optional<String> queryToString(String sql, Object... params) throws SQLException {
+        public Optional<String> queryToString(String sql, Object[] params) throws SQLException {
             return queryFirst(sql, params, (rs, rowNumber) -> rs.getString(1));
         }
 
-        public OptionalInt queryToInt(String sql, Object... params) throws SQLException {
+        public OptionalInt queryToInt(String sql, Object[] params) throws SQLException {
             Optional<Integer> result = queryFirst(sql, params, (rs, rowNumber) -> rs.getInt(1));
             return OptionalTools.toOptionalInt(result);
         }
 
-        public OptionalLong queryToLong(String sql, Object... params) throws SQLException {
+        public OptionalLong queryToLong(String sql, Object[] params) throws SQLException {
             Optional<Long> result = queryFirst(sql, params, (rs, rowNumber) -> rs.getLong(1));
             return OptionalTools.toOptionalLong(result);
         }
 
-        public OptionalDouble queryToDouble(String sql, Object... params) throws SQLException {
+        public OptionalDouble queryToDouble(String sql, Object[] params) throws SQLException {
             Optional<Double> result = queryFirst(sql, params, (rs, rowNumber) -> rs.getDouble(1));
             return OptionalTools.toOptionalDouble(result);
         }
 
-        public Optional<BigDecimal> queryToBigDecimal(String sql, Object... params) throws SQLException {
+        public Optional<BigDecimal> queryToBigDecimal(String sql, Object[] params) throws SQLException {
             return queryFirst(sql, params, (rs, rowNumber) -> rs.getBigDecimal(1));
         }
 
-        public int update(String sql, Object... params) throws SQLException {
+        public int update(String sql, Object[] params) throws SQLException {
             try (PreparedStatement stmt = this.conn.prepareStatement(sql)) {
                 fillStatement(stmt, params);
                 return stmt.executeUpdate();
@@ -185,7 +177,7 @@ public class SimpleJdbcTemplate {
             }
         }
 
-        public int[] batchUpdate(String sql, Collection<Object[]> params, int batchSize) throws SQLException {
+        public List<int[]> batchUpdate(String sql, Collection<Object[]> params, int batchSize) throws SQLException {
             int executeCount = params.size() / batchSize;
             executeCount = (params.size() % batchSize == 0) ? executeCount : (executeCount + 1);
             List<int[]> result = Lists.newArrayListWithCapacity(executeCount);
@@ -194,9 +186,7 @@ public class SimpleJdbcTemplate {
                 int i = 0;
                 for (Object[] ps : params) {
                     i++;
-                    for (int j = 0; j < ps.length; j++) {
-                        stmt.setObject(j + 1, ps[j]);
-                    }
+                    fillStatement(stmt, ps);
                     stmt.addBatch();
                     if (i % batchSize == 0 || i >= params.size()) {
                         int[] n = stmt.executeBatch();
@@ -204,16 +194,17 @@ public class SimpleJdbcTemplate {
                         stmt.clearBatch();
                     }
                 }
-                return ArrayTools.concatIntArray(result);
+                return result;
             }
         }
 
-        public <E extends Exception> void tx(final IAtom<E> atom) throws SQLException, E {
-            Preconditions.checkNotNull(atom, "Atom can not be null.");
+        public <E extends Exception> void executeTransaction(@Nonnull final DbOperations<E> operations)
+                throws SQLException, E {
+            Preconditions.checkNotNull(operations, "Operations can not be null.");
             final boolean autoCommit = this.conn.getAutoCommit();
             try {
                 this.conn.setAutoCommit(false);
-                atom.execute(this);
+                operations.execute(this);
                 this.conn.commit();
             }
             catch (Exception e) {
@@ -225,9 +216,36 @@ public class SimpleJdbcTemplate {
             }
         }
 
+        public <E extends Exception> void commitIfTrue(@Nonnull final PredicateWithThrowable<E> operations)
+                throws SQLException, E {
+            Preconditions.checkNotNull(operations, "Operations can not be null.");
+            final boolean autoCommit = this.conn.getAutoCommit();
+            try {
+                this.conn.setAutoCommit(false);
+                if (operations.test(this)) {
+                    this.conn.commit();
+                }
+                else {
+                    this.conn.rollback();
+                }
+            }
+            catch (Exception e) {
+                this.conn.rollback();
+                throw e;
+            }
+            finally {
+                this.conn.setAutoCommit(autoCommit);
+            }
+        }
+
         @FunctionalInterface
-        public interface IAtom<E extends Exception> {
-            void execute(JdbcExecutor jdbcExecutor) throws SQLException, E;
+        public interface DbOperations<E extends Exception> {
+            void execute(JdbcExecutor jdbcExecutor) throws E;
+        }
+
+        @FunctionalInterface
+        public interface PredicateWithThrowable<E extends Throwable> {
+            boolean test(JdbcExecutor jdbcExecutor) throws E;
         }
 
         private static void fillStatement(PreparedStatement stmt, Object[] params) throws SQLException {
@@ -249,47 +267,6 @@ public class SimpleJdbcTemplate {
                     }
                 }
             }
-        }
-    }
-
-    public static class ParamBuilder {
-
-        public static final Object[] EMPTY_OBJECT_ARRAY = {};
-
-        public static Object[] buildParams(final Object... params) {
-            if (ArrayTools.isNullOrEmpty(params)) {
-                return EMPTY_OBJECT_ARRAY;
-            }
-            return Arrays.stream(params)
-                    .map(param -> {
-                        if (param instanceof Optional) {
-                            return OptionalTools.orElseNull((Optional<?>) param);
-                        }
-                        if (param instanceof OptionalInt) {
-                            return OptionalTools.toInteger(((OptionalInt) param));
-                        }
-                        if (param instanceof OptionalLong) {
-                            return OptionalTools.toLong(((OptionalLong) param));
-                        }
-                        if (param instanceof OptionalDouble) {
-                            return OptionalTools.toDouble(((OptionalDouble) param));
-                        }
-                        return param;
-                    })
-                    .toArray();
-        }
-
-        public static <T> List<Object[]> buildBatchParams(final Collection<T> c, final Function<T, Object[]> func) {
-            Preconditions.checkNotNull(c, "The collection can not be null.");
-            Preconditions.checkNotNull(func, "The func can not be null.");
-            if (CollectionTools.isEmpty(c)) {
-                return Collections.emptyList();
-            }
-            return c.stream().map(func).collect(Collectors.toList());
-        }
-
-        private ParamBuilder() {
-            throw new IllegalStateException("Utility class");
         }
     }
 }

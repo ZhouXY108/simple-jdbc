@@ -1,0 +1,58 @@
+package xyz.zhouxy.jdbc;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import com.google.common.base.Preconditions;
+
+import xyz.zhouxy.plusone.commons.collection.CollectionTools;
+import xyz.zhouxy.plusone.commons.util.ArrayTools;
+import xyz.zhouxy.plusone.commons.util.OptionalTools;
+
+public class ParamBuilder {
+    public static final Object[] EMPTY_OBJECT_ARRAY = {};
+
+    public static Object[] buildParams(final Object... params) {
+        if (ArrayTools.isNullOrEmpty(params)) {
+            return EMPTY_OBJECT_ARRAY;
+        }
+        return Arrays.stream(params)
+                .map(param -> {
+                    if (param instanceof Optional) {
+                        return OptionalTools.orElseNull((Optional<?>) param);
+                    }
+                    if (param instanceof OptionalInt) {
+                        return OptionalTools.toInteger(((OptionalInt) param));
+                    }
+                    if (param instanceof OptionalLong) {
+                        return OptionalTools.toLong(((OptionalLong) param));
+                    }
+                    if (param instanceof OptionalDouble) {
+                        return OptionalTools.toDouble(((OptionalDouble) param));
+                    }
+                    return param;
+                })
+                .toArray();
+    }
+
+    public static <T> List<Object[]> buildBatchParams(final Collection<T> c, final Function<T, Object[]> func) {
+        Preconditions.checkNotNull(c, "The collection can not be null.");
+        Preconditions.checkNotNull(func, "The func can not be null.");
+        if (CollectionTools.isEmpty(c)) {
+            return Collections.emptyList();
+        }
+        return c.stream().map(func).collect(Collectors.toList());
+    }
+
+    private ParamBuilder() {
+        throw new IllegalStateException("Utility class");
+    }
+}

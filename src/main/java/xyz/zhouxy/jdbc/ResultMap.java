@@ -16,15 +16,12 @@
 
 package xyz.zhouxy.jdbc;
 
-import com.google.common.annotations.Beta;
-
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
-@Beta
 @FunctionalInterface
 public interface ResultMap<T> {
     T map(ResultSet rs, int rowNumber) throws SQLException;

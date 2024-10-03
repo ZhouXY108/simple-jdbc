@@ -18,9 +18,9 @@ package xyz.zhouxy.jdbc;
 
 import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
-import org.apache.commons.lang3.StringUtils;
 import xyz.zhouxy.plusone.commons.collection.AbstractMapWrapper;
 import xyz.zhouxy.plusone.commons.util.OptionalTools;
+import xyz.zhouxy.plusone.commons.util.StringTools;
 
 import java.util.*;
 
@@ -28,11 +28,11 @@ import java.util.*;
 public class DbRecord extends AbstractMapWrapper<String, Object, DbRecord> {
 
     public DbRecord() {
-        super(new HashMap<>(), k -> Preconditions.checkArgument(StringUtils.isNotBlank(k), "Key must has text."), null);
+        super(new HashMap<>(), k -> Preconditions.checkArgument(StringTools.isNotBlank(k), "Key must has text."), null);
     }
 
     public DbRecord(Map<String, Object> map) {
-        super(map, k -> Preconditions.checkArgument(StringUtils.isNotBlank(k), "Key must has text."), null);
+        super(map, k -> Preconditions.checkArgument(StringTools.isNotBlank(k), "Key must has text."), null);
     }
 
     public Optional<String> getValueAsString(String key) {

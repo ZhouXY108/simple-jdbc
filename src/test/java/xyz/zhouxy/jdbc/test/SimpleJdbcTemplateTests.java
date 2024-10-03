@@ -22,13 +22,11 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import xyz.zhouxy.jdbc.DbRecord;
-import xyz.zhouxy.jdbc.DefaultBeanResultMap;
 import xyz.zhouxy.jdbc.ResultMap;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate.JdbcExecutor;
@@ -229,7 +227,7 @@ class SimpleJdbcTemplateTests {
         Optional<TestBean> t = jdbcTemplate.queryFirst(
                 "SELECT * FROM test_table WHERE id = ?",
                 buildParams(22915),
-                ResultMap.beanResultMap(TestBean.class, ImmutableMap.of("usageDate", "usage_date", "usageDuration", "usage_duration")));
+                ResultMap.beanResultMap(TestBean.class));
         log.info("t: {}", t);
     }
 }

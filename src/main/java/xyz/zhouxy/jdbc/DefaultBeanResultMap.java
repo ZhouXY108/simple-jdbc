@@ -33,6 +33,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import com.google.common.base.CaseFormat;
+
 public class DefaultBeanResultMap<T> implements ResultMap<T> {
 
     private final Constructor<T> constructor;
@@ -50,24 +52,28 @@ public class DefaultBeanResultMap<T> implements ResultMap<T> {
     public static <T> DefaultBeanResultMap<T> of(Class<T> beanType, @Nullable Map<String, String> propertyColMap)
             throws SQLException {
         try {
-            BeanInfo beanInfo = Introspector.getBeanInfo(beanType);
-            PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
-            Map<String, PropertyDescriptor> colPropertyMap;
-            if (propertyColMap != null && !propertyColMap.isEmpty()) {
-                colPropertyMap = Arrays.stream(propertyDescriptors)
-                        .collect(Collectors.toMap(p -> {
-                            String propertyName = p.getName();
-                            String colName = propertyColMap.get(propertyName);
-                            return colName != null ? colName : propertyName;
-                        }, Function.identity(), (a, b) -> b));
-            }
-            else {
-                colPropertyMap = Arrays.stream(propertyDescriptors)
-                        .collect(Collectors.toMap(PropertyDescriptor::getName, Function.identity(), (a, b) -> b));
-            }
-
+            // 获取无参构造器
             Constructor<T> constructor = beanType.getDeclaredConstructor();
             constructor.setAccessible(true); // NOSONAR
+
+            // 构建 column name 和 PropertyDescriptor 的 映射
+            BeanInfo beanInfo = Introspector.getBeanInfo(beanType);
+            PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
+
+            Function<? super PropertyDescriptor, String> keyMapper;
+            if (propertyColMap == null || propertyColMap.isEmpty()) {
+                keyMapper = p -> CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, p.getName());
+            }
+            else {
+                keyMapper = p -> {
+                    String propertyName = p.getName();
+                    String colName = propertyColMap.get(propertyName);
+                    return colName != null ? colName
+                            : CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, propertyName);
+                };
+            }
+            Map<String, PropertyDescriptor> colPropertyMap = Arrays.stream(propertyDescriptors).collect(
+                    Collectors.toMap(keyMapper, Function.identity(), (a, b) -> b));
             return new DefaultBeanResultMap<>(constructor, colPropertyMap);
         }
         catch (IntrospectionException e) {

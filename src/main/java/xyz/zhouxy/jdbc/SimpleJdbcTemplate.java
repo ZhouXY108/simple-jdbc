@@ -24,25 +24,32 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import xyz.zhouxy.plusone.commons.function.ThrowingConsumer;
+import xyz.zhouxy.plusone.commons.function.ThrowingPredicate;
 import xyz.zhouxy.plusone.commons.util.OptionalTools;
 
 public class SimpleJdbcTemplate {
 
+    @Nonnull
     private final DataSource dataSource;
 
-    public SimpleJdbcTemplate(DataSource dataSource) {
+    public SimpleJdbcTemplate(@Nonnull DataSource dataSource) {
+        Preconditions.checkNotNull(dataSource);
         this.dataSource = dataSource;
     }
 
@@ -140,28 +147,129 @@ public class SimpleJdbcTemplate {
      * @return 更新的数据
      * @throws SQLException 执行 SQL 遇到异常情况将抛出
      */
-    public <T> List<T> update(@Nonnull String sql, @Nonnull Object[] params, ResultMap<T> resultMap)
+    public <T> List<T> update(String sql, Object[] params, ResultMap<T> resultMap)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcExecutor.update(conn, sql, params, resultMap);
         }
     }
 
-    public List<int[]> batchUpdate(String sql, Collection<Object[]> params, int batchSize)
+    public <T> List<T> query(String sql, ResultMap<T> resultMap)
+            throws SQLException {
+        try (Connection conn = this.dataSource.getConnection()) {
+            return JdbcExecutor.query(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, resultMap);
+        }
+    }
+
+    public <T> Optional<T> queryFirst(String sql, ResultMap<T> resultMap)
+            throws SQLException {
+        try (Connection conn = this.dataSource.getConnection()) {
+            return JdbcExecutor.queryFirst(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, resultMap);
+        }
+    }
+
+    public List<Map<String, Object>> query(String sql)
+            throws SQLException {
+        try (Connection conn = this.dataSource.getConnection()) {
+            return JdbcExecutor.query(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+    }
+
+    public Optional<Map<String, Object>> queryFirst(String sql)
+            throws SQLException {
+        try (Connection conn = this.dataSource.getConnection()) {
+            return JdbcExecutor.queryFirst(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+    }
+
+    public List<DbRecord> queryToRecordList(String sql)
+            throws SQLException {
+        try (Connection conn = this.dataSource.getConnection()) {
+            return JdbcExecutor.queryToRecordList(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+    }
+
+    public Optional<DbRecord> queryFirstRecord(String sql)
+            throws SQLException {
+        try (Connection conn = this.dataSource.getConnection()) {
+            return JdbcExecutor.queryFirstRecord(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+    }
+
+    public Optional<String> queryToString(String sql)
+            throws SQLException {
+        try (Connection conn = this.dataSource.getConnection()) {
+            return JdbcExecutor.queryToString(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+    }
+
+    public OptionalInt queryToInt(String sql)
+            throws SQLException {
+        try (Connection conn = this.dataSource.getConnection()) {
+            return JdbcExecutor.queryToInt(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+    }
+
+    public OptionalLong queryToLong(String sql)
+            throws SQLException {
+        try (Connection conn = this.dataSource.getConnection()) {
+            return JdbcExecutor.queryToLong(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+    }
+
+    public OptionalDouble queryToDouble(String sql)
+            throws SQLException {
+        try (Connection conn = this.dataSource.getConnection()) {
+            return JdbcExecutor.queryToDouble(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+    }
+
+    public Optional<BigDecimal> queryToBigDecimal(String sql)
+            throws SQLException {
+        try (Connection conn = this.dataSource.getConnection()) {
+            return JdbcExecutor.queryToBigDecimal(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+    }
+
+    public int update(String sql)
+            throws SQLException {
+        try (Connection conn = this.dataSource.getConnection()) {
+            return JdbcExecutor.update(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+    }
+
+    /**
+     * 执行 SQL 并更新后的数据
+     * 
+     * @param sql       要执行的 SQL 语句
+     * @param params    参数
+     * @param resultMap 结果映射规则
+     * 
+     * @return 更新的数据
+     * @throws SQLException 执行 SQL 遇到异常情况将抛出
+     */
+    public <T> List<T> update(String sql, ResultMap<T> resultMap)
+            throws SQLException {
+        try (Connection conn = this.dataSource.getConnection()) {
+            return JdbcExecutor.update(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, resultMap);
+        }
+    }
+
+    public List<int[]> batchUpdate(String sql, @Nullable Collection<Object[]> params, int batchSize)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcExecutor.batchUpdate(conn, sql, params, batchSize);
         }
     }
 
-    public <E extends Exception> void executeTransaction(@Nonnull final DbOperations<E> operations)
+    public <E extends Exception> void executeTransaction(@Nonnull final ThrowingConsumer<JdbcExecutor, E> operations)
             throws SQLException, E {
         Preconditions.checkNotNull(operations, "Operations can not be null.");
         try (Connection conn = this.dataSource.getConnection()) {
             final boolean autoCommit = conn.getAutoCommit();
             try {
                 conn.setAutoCommit(false);
-                operations.execute(new JdbcExecutor(conn));
+                operations.accept(new JdbcExecutor(conn));
                 conn.commit();
             }
             catch (Exception e) {
@@ -174,7 +282,7 @@ public class SimpleJdbcTemplate {
         }
     }
 
-    public <E extends Exception> void commitIfTrue(@Nonnull final PredicateWithThrowable<E> operations)
+    public <E extends Exception> void commitIfTrue(@Nonnull final ThrowingPredicate<JdbcExecutor, E> operations)
             throws SQLException, E {
         Preconditions.checkNotNull(operations, "Operations can not be null.");
         try (Connection conn = this.dataSource.getConnection()) {
@@ -196,16 +304,6 @@ public class SimpleJdbcTemplate {
                 conn.setAutoCommit(autoCommit);
             }
         }
-    }
-
-    @FunctionalInterface
-    public interface DbOperations<E extends Exception> {
-        void execute(JdbcExecutor jdbcExecutor) throws E;
-    }
-
-    @FunctionalInterface
-    public interface PredicateWithThrowable<E extends Throwable> {
-        boolean test(JdbcExecutor jdbcExecutor) throws E;
     }
 
     public static final class JdbcExecutor {
@@ -286,18 +384,96 @@ public class SimpleJdbcTemplate {
          * @return 更新的数据
          * @throws SQLException 执行 SQL 遇到异常情况将抛出
          */
-        public <T> List<T> update(@Nonnull String sql, @Nonnull Object[] params, ResultMap<T> resultMap)
+        public <T> List<T> update(String sql, Object[] params, ResultMap<T> resultMap)
                 throws SQLException {
             return JdbcExecutor.update(this.conn, sql, params, resultMap);
         }
 
-        public List<int[]> batchUpdate(String sql, Collection<Object[]> params, int batchSize)
+        public List<int[]> batchUpdate(String sql, @Nullable Collection<Object[]> params, int batchSize)
                 throws SQLException {
             return JdbcExecutor.batchUpdate(this.conn, sql, params, batchSize);
         }
 
+        public <T> List<T> query(String sql, ResultMap<T> resultMap)
+                throws SQLException {
+            return JdbcExecutor.query(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, resultMap);
+        }
+
+        public <T> Optional<T> queryFirst(String sql, ResultMap<T> resultMap)
+                throws SQLException {
+            return JdbcExecutor.queryFirst(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, resultMap);
+        }
+
+        public List<Map<String, Object>> query(String sql)
+                throws SQLException {
+            return JdbcExecutor.query(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+
+        public Optional<Map<String, Object>> queryFirst(String sql)
+                throws SQLException {
+            return JdbcExecutor.queryFirst(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+
+        public List<DbRecord> queryToRecordList(String sql)
+                throws SQLException {
+            return JdbcExecutor.queryToRecordList(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+
+        public Optional<DbRecord> queryFirstRecord(String sql)
+                throws SQLException {
+            return JdbcExecutor.queryFirstRecord(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+
+        public Optional<String> queryToString(String sql)
+                throws SQLException {
+            return JdbcExecutor.queryToString(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+
+        public OptionalInt queryToInt(String sql)
+                throws SQLException {
+            return JdbcExecutor.queryToInt(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+
+        public OptionalLong queryToLong(String sql)
+                throws SQLException {
+            return JdbcExecutor.queryToLong(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+
+        public OptionalDouble queryToDouble(String sql)
+                throws SQLException {
+            return JdbcExecutor.queryToDouble(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+
+        public Optional<BigDecimal> queryToBigDecimal(String sql)
+                throws SQLException {
+            return JdbcExecutor.queryToBigDecimal(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+
+        public int update(String sql)
+                throws SQLException {
+            return JdbcExecutor.update(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+        }
+
+        /**
+         * 执行 SQL 并更新后的数据
+         * 
+         * @param sql       要执行的 SQL 语句
+         * @param params    参数
+         * @param resultMap 结果映射规则
+         * 
+         * @return 更新的数据
+         * @throws SQLException 执行 SQL 遇到异常情况将抛出
+         */
+        public <T> List<T> update(String sql, ResultMap<T> resultMap)
+                throws SQLException {
+            return JdbcExecutor.update(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, resultMap);
+        }
+
         private static <T> List<T> query(Connection conn, String sql, Object[] params, ResultMap<T> resultMap)
                 throws SQLException {
+            assertConnectionNotNull(conn);
+            assertSqlNotNull(sql);
+            assertResultMapNotNull(resultMap);
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 fillStatement(stmt, params);
                 try (ResultSet rs = stmt.executeQuery()) {
@@ -367,6 +543,8 @@ public class SimpleJdbcTemplate {
 
         private static int update(Connection conn, String sql, Object[] params)
                 throws SQLException {
+            assertConnectionNotNull(conn);
+            assertSqlNotNull(sql);
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 fillStatement(stmt, params);
                 return stmt.executeUpdate();
@@ -385,9 +563,9 @@ public class SimpleJdbcTemplate {
          */
         private static <T> List<T> update(Connection conn, String sql, Object[] params, ResultMap<T> resultMap)
                 throws SQLException {
-            Preconditions.checkNotNull(sql, "The sql could not be null.");
-            Preconditions.checkNotNull(params, "The params could not be null.");
-            Preconditions.checkNotNull(resultMap, "The resultMap could not be null.");
+            assertConnectionNotNull(conn);
+            assertSqlNotNull(sql);
+            assertResultMapNotNull(resultMap);
             final List<T> result = new ArrayList<>();
             try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                 fillStatement(stmt, params);
@@ -405,6 +583,12 @@ public class SimpleJdbcTemplate {
 
         private static List<int[]> batchUpdate(Connection conn, String sql, Collection<Object[]> params, int batchSize)
                 throws SQLException {
+            assertConnectionNotNull(conn);
+            assertSqlNotNull(sql);
+
+            if (params == null || params.isEmpty()) {
+                return Collections.emptyList();
+            }
             int executeCount = params.size() / batchSize;
             executeCount = (params.size() % batchSize == 0) ? executeCount : (executeCount + 1);
             List<int[]> result = Lists.newArrayListWithCapacity(executeCount);
@@ -445,6 +629,18 @@ public class SimpleJdbcTemplate {
                     }
                 }
             }
+        }
+
+        private static void assertConnectionNotNull(Connection conn) {
+            Preconditions.checkArgument(conn != null, "The connection could not be null.");
+        }
+
+        private static void assertSqlNotNull(String sql) {
+            Preconditions.checkArgument(sql != null, "The sql could not be null.");
+        }
+
+        private static void assertResultMapNotNull(ResultMap<?> resultMap) {
+            Preconditions.checkArgument(resultMap != null, "The resultMap could not be null.");
         }
     }
 }

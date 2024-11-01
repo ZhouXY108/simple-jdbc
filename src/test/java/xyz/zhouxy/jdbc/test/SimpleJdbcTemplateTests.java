@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static xyz.zhouxy.jdbc.ParamBuilder.*;
 import static xyz.zhouxy.plusone.commons.sql.JdbcSql.IN;
 
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,7 +26,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 import xyz.zhouxy.jdbc.DbRecord;
-import xyz.zhouxy.jdbc.ResultMap;
+import xyz.zhouxy.jdbc.RowMapper;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate.JdbcExecutor;
 import xyz.zhouxy.plusone.commons.sql.SQL;
@@ -64,7 +63,7 @@ class SimpleJdbcTemplateTests {
                 .WHERE(IN("id", ids))
                 .toString();
         log.info(sql);
-        List<DbRecord> rs = jdbcTemplate.queryToRecordList(sql, ids);
+        List<DbRecord> rs = jdbcTemplate.queryRecordList(sql, ids);
         assertNotNull(rs);
         for (DbRecord baseEntity : rs) {
             // log.info("id: {}", baseEntity.getValueAsString("id")); // NOSONAR
@@ -78,7 +77,7 @@ class SimpleJdbcTemplateTests {
         List<DbRecord> keys = jdbcTemplate.update(
                 "INSERT INTO base_table(status, created_by) VALUES (?, ?)",
                 buildParams(1, 886L),
-                ResultMap.recordResultMap);
+                RowMapper.RECORD_MAPPER);
         log.info("keys: {}", keys);
         assertEquals(1, keys.size());
         DbRecord result = keys.get(0);
@@ -92,7 +91,7 @@ class SimpleJdbcTemplateTests {
         List<DbRecord> keys = jdbcTemplate.update(
                 "UPDATE base_table SET status = ?, version = version + 1, update_time = now(), updated_by = ? WHERE id = ? AND version = ?",
                 buildParams(2, 886, 571328822575109L, 0),
-                ResultMap.recordResultMap);
+                RowMapper.RECORD_MAPPER);
         log.info("keys: {}", keys);
     }
 
@@ -227,7 +226,7 @@ class SimpleJdbcTemplateTests {
         Optional<TestBean> t = jdbcTemplate.queryFirst(
                 "SELECT * FROM test_table WHERE id = ?",
                 buildParams(22915),
-                ResultMap.beanResultMap(TestBean.class));
+                RowMapper.beanRowMapper(TestBean.class));
         log.info("t: {}", t);
     }
 }

@@ -35,21 +35,21 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.CaseFormat;
 
-public class DefaultBeanResultMap<T> implements ResultMap<T> {
+public class DefaultBeanRowMapper<T> implements RowMapper<T> {
 
     private final Constructor<T> constructor;
     private final Map<String, PropertyDescriptor> colPropertyMap;
 
-    private DefaultBeanResultMap(Constructor<T> constructor, Map<String, PropertyDescriptor> colPropertyMap) {
+    private DefaultBeanRowMapper(Constructor<T> constructor, Map<String, PropertyDescriptor> colPropertyMap) {
         this.constructor = constructor;
         this.colPropertyMap = colPropertyMap;
     }
 
-    public static <T> DefaultBeanResultMap<T> of(Class<T> beanType) throws SQLException {
+    public static <T> DefaultBeanRowMapper<T> of(Class<T> beanType) throws SQLException {
         return of(beanType, null);
     }
 
-    public static <T> DefaultBeanResultMap<T> of(Class<T> beanType, @Nullable Map<String, String> propertyColMap)
+    public static <T> DefaultBeanRowMapper<T> of(Class<T> beanType, @Nullable Map<String, String> propertyColMap)
             throws SQLException {
         try {
             // 获取无参构造器
@@ -74,7 +74,7 @@ public class DefaultBeanResultMap<T> implements ResultMap<T> {
             }
             Map<String, PropertyDescriptor> colPropertyMap = Arrays.stream(propertyDescriptors).collect(
                     Collectors.toMap(keyMapper, Function.identity(), (a, b) -> b));
-            return new DefaultBeanResultMap<>(constructor, colPropertyMap);
+            return new DefaultBeanRowMapper<>(constructor, colPropertyMap);
         }
         catch (IntrospectionException e) {
             throw new SQLException("There is an exception occurs during introspection.", e);
@@ -85,7 +85,7 @@ public class DefaultBeanResultMap<T> implements ResultMap<T> {
     }
 
     @Override
-    public T map(ResultSet rs, int rowNumber) throws SQLException {
+    public T mapRow(ResultSet rs, int rowNumber) throws SQLException {
         try {
             T newInstance = this.constructor.newInstance();
             ResultSetMetaData metaData = rs.getMetaData();

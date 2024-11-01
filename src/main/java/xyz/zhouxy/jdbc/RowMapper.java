@@ -23,10 +23,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 @FunctionalInterface
-public interface ResultMap<T> {
-    T map(ResultSet rs, int rowNumber) throws SQLException;
+public interface RowMapper<T> {
+    T mapRow(ResultSet rs, int rowNumber) throws SQLException;
 
-    public static final ResultMap<Map<String, Object>> mapResultMap = (rs, rowNumber) -> {
+    public static final RowMapper<Map<String, Object>> HASH_MAP_MAPPER = (rs, rowNumber) -> {
         Map<String, Object> result = new HashMap<>();
         ResultSetMetaData metaData = rs.getMetaData();
         int columnCount = metaData.getColumnCount();
@@ -37,23 +37,15 @@ public interface ResultMap<T> {
         return result;
     };
 
-    public static final ResultMap<DbRecord> recordResultMap = (rs, rowNumber) -> {
-        DbRecord result = new DbRecord();
-        ResultSetMetaData metaData = rs.getMetaData();
-        int columnCount = metaData.getColumnCount();
-        for (int i = 1; i <= columnCount; i++) {
-            String colName = metaData.getColumnName(i);
-            result.put(colName, rs.getObject(colName));
-        }
-        return result;
-    };
+    public static final RowMapper<DbRecord> RECORD_MAPPER =
+            (rs, rowNumber) -> new DbRecord(HASH_MAP_MAPPER.mapRow(rs, rowNumber));
 
-    public static <T> ResultMap<T> beanResultMap(Class<T> beanType) throws SQLException {
-        return DefaultBeanResultMap.of(beanType);
+    public static <T> RowMapper<T> beanRowMapper(Class<T> beanType) throws SQLException {
+        return DefaultBeanRowMapper.of(beanType);
     }
 
-    public static <T> ResultMap<T> beanResultMap(Class<T> beanType, Map<String, String> propertyColMap)
+    public static <T> RowMapper<T> beanRowMapper(Class<T> beanType, Map<String, String> propertyColMap)
             throws SQLException {
-        return DefaultBeanResultMap.of(beanType, propertyColMap);
+        return DefaultBeanRowMapper.of(beanType, propertyColMap);
     }
 }

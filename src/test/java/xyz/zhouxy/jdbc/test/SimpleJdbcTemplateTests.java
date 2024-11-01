@@ -122,6 +122,12 @@ class SimpleJdbcTemplateTests {
             assertTrue(key.containsKey("create_time"));
             assertInstanceOf(Date.class, key.get("create_time"));
         }
+        List<Long> ids = jdbcTemplate.update(
+                "INSERT INTO sys_account(username, account_status, created_by) VALUES (?, ?, ?), (?, ?, ?)",
+                buildParams("zhouxy21", "2", 123L, "code22", '2', 456L),
+                (rs, rowNumber) -> rs.getObject("id", Long.class));
+        log.info("ids: {}", ids);
+        assertEquals(2, ids.size());
     }
 
     @Test

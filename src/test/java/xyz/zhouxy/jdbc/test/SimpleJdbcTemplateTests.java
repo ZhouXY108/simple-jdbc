@@ -1,98 +1,142 @@
 package xyz.zhouxy.jdbc.test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static xyz.zhouxy.jdbc.ParamBuilder.*;
-import static xyz.zhouxy.plusone.commons.sql.JdbcSql.IN;
+import static xyz.zhouxy.plusone.commons.sql.JdbcSql.*;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 
-import javax.sql.DataSource;
-
+import org.h2.jdbcx.JdbcDataSource;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 
 import xyz.zhouxy.jdbc.DbRecord;
 import xyz.zhouxy.jdbc.RowMapper;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate.JdbcExecutor;
 import xyz.zhouxy.plusone.commons.sql.SQL;
-import xyz.zhouxy.plusone.commons.util.ArrayTools;
 import xyz.zhouxy.plusone.commons.util.IdGenerator;
 import xyz.zhouxy.plusone.commons.util.IdWorker;
-import xyz.zhouxy.plusone.commons.util.Numbers;
 
 class SimpleJdbcTemplateTests {
 
     private static final Logger log = LoggerFactory.getLogger(SimpleJdbcTemplateTests.class);
 
-    private static final DataSource dataSource;
-
     private static final SimpleJdbcTemplate jdbcTemplate;
 
     static {
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:postgresql://localhost:5432/plusone");
-        config.setUsername("postgres");
-        config.setPassword("zhouxy108");
-        config.setMaximumPoolSize(8);
-        config.setConnectionTimeout(1000000);
-        dataSource = new HikariDataSource(config);
+        JdbcDataSource dataSource = new JdbcDataSource();
+        dataSource.setURL("jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=FALSE;MODE=MySQL");
+        dataSource.setUser("sa");
+        dataSource.setPassword("");
         jdbcTemplate = new SimpleJdbcTemplate(dataSource);
+    }
+
+    @BeforeAll
+    static void setUp() throws SQLException {
+        jdbcTemplate.update("CREATE TABLE sys_account ("
+            + "\n" + "    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY"
+            + "\n" + "    ,username VARCHAR(255) NOT NULL"
+            + "\n" + "    ,account_status VARCHAR(2) NOT NULL"
+            + "\n" + "    ,create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+            + "\n" + "    ,created_by BIGINT NOT NULL"
+            + "\n" + "    ,update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+            + "\n" + "    ,updated_by BIGINT DEFAULT NULL"
+            + "\n" + "    ,version BIGINT NOT NULL DEFAULT 0"
+            + "\n" + ")");
+        jdbcTemplate.batchUpdate("INSERT INTO sys_account(id, username, account_status, created_by) VALUES (?, ?, ?, ?)", Lists.newArrayList(
+            buildParams(2L, "zhouxy2", "0", 108L),
+            buildParams(3L, "zhouxy3", "0", 108L),
+            buildParams(4L, "zhouxy4", "0", 108L),
+            buildParams(5L, "zhouxy5", "0", 108L),
+            buildParams(6L, "zhouxy6", "0", 108L),
+            buildParams(7L, "zhouxy7", "0", 108L),
+            buildParams(8L, "zhouxy8", "0", 108L),
+            buildParams(9L, "zhouxy9", "0", 108L)
+        ), 10);
+        jdbcTemplate.batchUpdate("INSERT INTO sys_account(id, username, account_status, created_by, create_time, update_time, version) VALUES (?, ?, ?, ?, ?, ?, ?)", Lists.newArrayList(
+            buildParams(10L, "zhouxy10", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 31),
+            buildParams(11L, "zhouxy11", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 28),
+            buildParams(12L, "zhouxy12", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 25),
+            buildParams(13L, "zhouxy13", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 22),
+            buildParams(14L, "zhouxy14", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 19),
+            buildParams(15L, "zhouxy15", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 16),
+            buildParams(16L, "zhouxy16", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 13),
+            buildParams(17L, "zhouxy17", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 10),
+            buildParams(18L, "zhouxy18", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 7),
+            buildParams(19L, "zhouxy19", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 0)
+        ), 10);
+        jdbcTemplate.update("INSERT INTO sys_account(id, username, account_status, created_by, create_time, updated_by, update_time, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            buildParams(20L, "zhouxy20", "2", 118L, LocalDateTime.of(2008, 8, 8, 20, 8), 31L, LocalDateTime.now(), 88L));
     }
 
     @Test
     void testQuery() throws SQLException {
-        Object[] ids = buildParams(22915, 22916, 22917, 22918, 22919, 22920, 22921);
+        Object[] ids = buildParams(5, 9, 13, 14, 17, 20, 108);
         String sql = SQL.newJdbcSql()
-                .SELECT("*")
-                .FROM("test_table")
+                .SELECT("id", "username", "account_status")
+                .FROM("sys_account")
                 .WHERE(IN("id", ids))
                 .toString();
         log.info(sql);
         List<DbRecord> rs = jdbcTemplate.queryRecordList(sql, ids);
-        assertNotNull(rs);
-        for (DbRecord baseEntity : rs) {
-            // log.info("id: {}", baseEntity.getValueAsString("id")); // NOSONAR
-            log.info(baseEntity.toString());
-            assertTrue(baseEntity.getValueAsString("username").isPresent());
+        for (DbRecord dbRecord : rs) {
+            log.info("{}", dbRecord);
         }
+        assertEquals(
+            Lists.newArrayList(
+                new DbRecord(ImmutableMap.of("id", 5L, "account_status", "0", "username", "zhouxy5")),
+                new DbRecord(ImmutableMap.of("id", 9L, "account_status", "0", "username", "zhouxy9")),
+                new DbRecord(ImmutableMap.of("id", 13L, "account_status", "1", "username", "zhouxy13")),
+                new DbRecord(ImmutableMap.of("id", 14L, "account_status", "1", "username", "zhouxy14")),
+                new DbRecord(ImmutableMap.of("id", 17L, "account_status", "1", "username", "zhouxy17")),
+                new DbRecord(ImmutableMap.of("id", 20L, "account_status", "2", "username", "zhouxy20"))
+            ),
+            rs
+        );
     }
 
     @Test
     void testInsert() throws SQLException {
-        List<DbRecord> keys = jdbcTemplate.update(
-                "INSERT INTO base_table(status, created_by) VALUES (?, ?)",
-                buildParams(1, 886L),
-                RowMapper.RECORD_MAPPER);
+        List<Map<String, Object>> keys = jdbcTemplate.update(
+                "INSERT INTO sys_account(username, account_status, created_by) VALUES (?, ?, ?), (?, ?, ?)",
+                buildParams("zhouxy21", "2", 123L, "code22", '2', 456L),
+                RowMapper.HASH_MAP_MAPPER);
         log.info("keys: {}", keys);
-        assertEquals(1, keys.size());
-        DbRecord result = keys.get(0);
-        assertEquals(1, result.getValueAsInt("status").getAsInt());
-        assertEquals(886L, result.getValueAsLong("created_by").getAsLong());
-        assertTrue(result.get("id").isPresent());
+        assertEquals(2, keys.size());
+        for (Map<String,Object> key : keys) {
+            assertTrue(key.containsKey("id"));
+            assertInstanceOf(Long.class, key.get("id"));
+            assertTrue(key.containsKey("create_time"));
+            assertInstanceOf(Date.class, key.get("create_time"));
+        }
     }
 
     @Test
     void testUpdate() throws SQLException {
         List<DbRecord> keys = jdbcTemplate.update(
-                "UPDATE base_table SET status = ?, version = version + 1, update_time = now(), updated_by = ? WHERE id = ? AND version = ?",
-                buildParams(2, 886, 571328822575109L, 0),
+                "UPDATE sys_account SET account_status = ?, version = version + 1, update_time = now(), updated_by = ? WHERE id = ? AND version = ?",
+                buildParams("7", 886L, 20L, 88L),
                 RowMapper.RECORD_MAPPER);
+        assertEquals(1, keys.size());
         log.info("keys: {}", keys);
+        keys = jdbcTemplate.update(
+                "UPDATE sys_account SET account_status = ?, version = version + 1, update_time = now(), updated_by = ? WHERE id = ? AND version = ?",
+                buildParams("-1", 886L, 20L, 88L),
+                RowMapper.RECORD_MAPPER);
+        assertEquals(0, keys.size());
     }
 
     final IdWorker idGenerator = IdGenerator.getSnowflakeIdGenerator(0);
@@ -104,8 +148,8 @@ class SimpleJdbcTemplateTests {
             long id = this.idGenerator.nextId();
             try {
                 jdbcTemplate.executeTransaction((JdbcExecutor jdbc) -> {
-                    jdbc.update("INSERT INTO base_table (id, created_by, create_time, status) VALUES (?, ?, ?, ?)",
-                            buildParams(id, 100, LocalDateTime.now(), 0));
+                    jdbc.update("INSERT INTO sys_account (id, username, created_by, create_time, account_status) VALUES (?, ?, ?, ?, ?)",
+                            buildParams(id, "testTransaction1", 100, LocalDateTime.now(), "55"));
                     throw new NullPointerException();
                 });
             }
@@ -113,7 +157,7 @@ class SimpleJdbcTemplateTests {
                 // ignore
             }
             Optional<Map<String, Object>> first = jdbcTemplate
-                    .queryFirst("SELECT * FROM base_table WHERE id = ?", buildParams(id));
+                    .queryFirst("SELECT * FROM sys_account WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
             assertTrue(!first.isPresent());
         }
@@ -122,12 +166,12 @@ class SimpleJdbcTemplateTests {
         {
             long id = this.idGenerator.nextId();
             jdbcTemplate.executeTransaction(jdbc -> {
-                jdbc.update("INSERT INTO base_table (id, created_by, create_time, status) VALUES (?, ?, ?, ?)",
-                        buildParams(id, 101, LocalDateTime.now(), 0));
+                jdbc.update("INSERT INTO sys_account (id, username, created_by, create_time, account_status) VALUES (?, ?, ?, ?, ?)",
+                        buildParams(id, "testTransaction2", 101, LocalDateTime.now(), "55"));
             });
 
             Optional<Map<String, Object>> first = jdbcTemplate
-                    .queryFirst("SELECT * FROM base_table WHERE id = ?", buildParams(id));
+                    .queryFirst("SELECT * FROM sys_account WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
             assertTrue(first.isPresent());
         }
@@ -137,8 +181,8 @@ class SimpleJdbcTemplateTests {
             long id = this.idGenerator.nextId();
             try {
                 jdbcTemplate.commitIfTrue(jdbc -> {
-                    jdbc.update("INSERT INTO base_table (id, created_by, create_time, status) VALUES (?, ?, ?, ?)",
-                            buildParams(id, 102, LocalDateTime.now(), 0));
+                    jdbc.update("INSERT INTO sys_account (id, username, created_by, create_time, account_status) VALUES (?, ?, ?, ?, ?)",
+                            buildParams(id, "testTransaction3", 102, LocalDateTime.now(), "55"));
                     throw new NullPointerException();
                 });
             }
@@ -146,7 +190,7 @@ class SimpleJdbcTemplateTests {
                 // ignore
             }
             Optional<Map<String, Object>> first = jdbcTemplate
-                    .queryFirst("SELECT * FROM base_table WHERE id = ?", buildParams(id));
+                    .queryFirst("SELECT * FROM sys_account WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
             assertTrue(!first.isPresent());
         }
@@ -155,13 +199,13 @@ class SimpleJdbcTemplateTests {
         {
             long id = this.idGenerator.nextId();
             jdbcTemplate.commitIfTrue(jdbc -> {
-                jdbc.update("INSERT INTO base_table (id, created_by, create_time, status) VALUES (?, ?, ?, ?)",
-                        buildParams(id, 103, LocalDateTime.now(), 0));
+                jdbc.update("INSERT INTO sys_account (id, username, created_by, create_time, account_status) VALUES (?, ?, ?, ?, ?)",
+                        buildParams(id, "testTransaction4", 103, LocalDateTime.now(), "55"));
                 return false;
             });
 
             Optional<Map<String, Object>> first = jdbcTemplate
-                    .queryFirst("SELECT * FROM base_table WHERE id = ?", buildParams(id));
+                    .queryFirst("SELECT * FROM sys_account WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
             assertTrue(!first.isPresent());
         }
@@ -170,72 +214,57 @@ class SimpleJdbcTemplateTests {
         {
             long id = this.idGenerator.nextId();
             jdbcTemplate.commitIfTrue(jdbc -> {
-                jdbc.update("INSERT INTO base_table (id, created_by, create_time, status) VALUES (?, ?, ?, ?)",
-                        buildParams(id, 104, LocalDateTime.now(), 0));
+                jdbc.update("INSERT INTO sys_account (id, username, created_by, create_time, account_status) VALUES (?, ?, ?, ?, ?)",
+                        buildParams(id, "testTransaction5", 104, LocalDateTime.now(), "55"));
                 return true;
             });
 
             Optional<Map<String, Object>> first = jdbcTemplate
-                    .queryFirst("SELECT * FROM base_table WHERE id = ?", buildParams(id));
+                    .queryFirst("SELECT * FROM sys_account WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
             assertTrue(first.isPresent());
         }
     }
 
     @Test
-    void testBatch() throws Exception {
-
-        Random random = ThreadLocalRandom.current();
-
-        LocalDate handleDate = LocalDate.of(1949, 10, 1);
-        List<DbRecord> datas = Lists.newArrayList();
-        while (handleDate.isBefore(LocalDate.of(2008, 8, 8))) {
-            DbRecord r1 = new DbRecord();
-            r1.put("username", "张三2");
-            r1.put("usage_date", handleDate);
-            r1.put("usage_duration", random.nextInt(500));
-            datas.add(r1);
-            DbRecord r2 = new DbRecord();
-            r2.put("username", "李四2");
-            r2.put("usage_date", handleDate);
-            r2.put("usage_duration", random.nextInt(500));
-            datas.add(r2);
-
-            handleDate = handleDate.plusDays(1L);
-        }
-        try {
-            List<int[]> result = jdbcTemplate.batchUpdate(
-                    "insert into test_table (username, usage_date, usage_duration) values (?,?,?)",
-                    buildBatchParams(datas, item -> buildParams(
-                            item.getValueAsString("username"),
-                            item.getValueAsString("usage_date"),
-                            item.getValueAsString("usage_duration"))),
-                    400);
-            long sum = Numbers.sum(ArrayTools.concatIntArray(result));
-            assertEquals(datas.size(), sum);
-            log.info("sum: {}", sum);
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
-    }
-
-    @Test
     void testBean() throws Exception {
-        Optional<TestBean> t = jdbcTemplate.queryFirst(
-                "SELECT * FROM test_table WHERE id = ?",
-                buildParams(22915),
-                RowMapper.beanRowMapper(TestBean.class));
-        log.info("t: {}", t);
+        Optional<AccountPO> t = jdbcTemplate.queryFirst(
+                "SELECT * FROM sys_account WHERE id = ?",
+                buildParams(18L),
+                RowMapper.beanRowMapper(AccountPO.class));
+        assertEquals(
+                new AccountPO(18L, "zhouxy18", "1",
+                    LocalDateTime.of(2000, 1, 1, 0, 0), 118L,
+                    LocalDateTime.of(2000, 1, 29, 0, 0), null, 7L),
+                t.get());
+        log.info("{}", t);
     }
 }
 
-class TestBean {
+class AccountPO {
     Long id;
     String username;
-    LocalDate usageDate;
-    Long usageDuration;
+    String accountStatus;
+    LocalDateTime createTime;
+    Long createdBy;
+    LocalDateTime updateTime;
+    Long updatedBy;
+    Long version;
+
+    public AccountPO() {
+    }
+
+    public AccountPO(Long id, String username, String accountStatus, LocalDateTime createTime, Long createdBy,
+            LocalDateTime updateTime, Long updatedBy, Long version) {
+        this.id = id;
+        this.username = username;
+        this.accountStatus = accountStatus;
+        this.createTime = createTime;
+        this.createdBy = createdBy;
+        this.updateTime = updateTime;
+        this.updatedBy = updatedBy;
+        this.version = version;
+    }
 
     public Long getId() {
         return id;
@@ -253,25 +282,78 @@ class TestBean {
         this.username = username;
     }
 
-    public LocalDate getUsageDate() {
-        return usageDate;
+    public String getAccountStatus() {
+        return accountStatus;
     }
 
-    public void setUsageDate(LocalDate usageDate) {
-        this.usageDate = usageDate;
+    public void setAccountStatus(String accountStatus) {
+        this.accountStatus = accountStatus;
     }
 
-    public Long getUsageDuration() {
-        return usageDuration;
+    public LocalDateTime getCreateTime() {
+        return createTime;
     }
 
-    public void setUsageDuration(Long usageDuration) {
-        this.usageDuration = usageDuration;
+    public void setCreateTime(LocalDateTime createTime) {
+        this.createTime = createTime;
+    }
+
+    public Long getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(Long createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
+    }
+
+    public Long getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(Long updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, username, accountStatus, createTime, createdBy, updateTime, updatedBy, version);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        AccountPO other = (AccountPO) obj;
+        return Objects.equals(id, other.id) && Objects.equals(username, other.username)
+                && Objects.equals(accountStatus, other.accountStatus) && Objects.equals(createTime, other.createTime)
+                && Objects.equals(createdBy, other.createdBy) && Objects.equals(updateTime, other.updateTime)
+                && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(version, other.version);
     }
 
     @Override
     public String toString() {
-        return "TestBean [id=" + id + ", username=" + username + ", usageDate=" + usageDate + ", usageDuration="
-                + usageDuration + "]";
+        return "AccountPO [id=" + id + ", username=" + username + ", accountStatus=" + accountStatus + ", createTime="
+                + createTime + ", createdBy=" + createdBy + ", updateTime=" + updateTime + ", updatedBy=" + updatedBy
+                + ", version=" + version + "]";
     }
 }

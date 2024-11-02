@@ -19,7 +19,21 @@ package xyz.zhouxy.jdbc;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+/**
+ * ResultHandler
+ *
+ * <p>
+ * 处理 {@link ResultSet}
+ * </p>
+ *
+ * @author <a href="http://zhouxy.xyz:3000/ZhouXY108">ZhouXY</a>
+ * @since 1.0.0
+ */
 @FunctionalInterface
 public interface ResultHandler<T> {
+
+    /**
+     * 将 {@link ResultSet} 转换为指定类型的对象
+     */
     T handle(ResultSet resultSet) throws SQLException;
 }

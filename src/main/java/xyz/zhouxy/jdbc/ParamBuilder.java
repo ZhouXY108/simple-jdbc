@@ -27,12 +27,21 @@ import java.util.OptionalLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Preconditions;
-
 import xyz.zhouxy.plusone.commons.collection.CollectionTools;
 import xyz.zhouxy.plusone.commons.util.ArrayTools;
+import xyz.zhouxy.plusone.commons.util.AssertTools;
 import xyz.zhouxy.plusone.commons.util.OptionalTools;
 
+/**
+ * ParamBuilder
+ *
+ * <p>
+ * JDBC 参数构造器，将数据转换为 {@code Object[]} 类型，以传给 {@link PreparedStatement}
+ * </p>
+ *
+ * @author <a href="http://zhouxy.xyz:3000/ZhouXY108">ZhouXY</a>
+ * @since 1.0.0
+ */
 public class ParamBuilder {
     public static final Object[] EMPTY_OBJECT_ARRAY = {};
 
@@ -60,8 +69,8 @@ public class ParamBuilder {
     }
 
     public static <T> List<Object[]> buildBatchParams(final Collection<T> c, final Function<T, Object[]> func) {
-        Preconditions.checkNotNull(c, "The collection can not be null.");
-        Preconditions.checkNotNull(func, "The func can not be null.");
+        AssertTools.checkNotNull(c, "The collection can not be null.");
+        AssertTools.checkNotNull(func, "The func can not be null.");
         if (CollectionTools.isEmpty(c)) {
             return Collections.emptyList();
         }

@@ -22,10 +22,21 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * RowMapper
+ *
+ * <p>
+ * {@link ResultSet} 中每一行数据的处理逻辑。
+ * </p>
+ *
+ * @author <a href="http://zhouxy.xyz:3000/ZhouXY108">ZhouXY</a>
+ * @since 1.0.0
+ */
 @FunctionalInterface
 public interface RowMapper<T> {
     T mapRow(ResultSet rs, int rowNumber) throws SQLException;
 
+    /** 每一行数据转换为 {@link HashMap} */
     public static final RowMapper<Map<String, Object>> HASH_MAP_MAPPER = (rs, rowNumber) -> {
         Map<String, Object> result = new HashMap<>();
         ResultSetMetaData metaData = rs.getMetaData();
@@ -37,13 +48,16 @@ public interface RowMapper<T> {
         return result;
     };
 
+    /** 每一行数据转换为 {@link DbRecord} */
     public static final RowMapper<DbRecord> RECORD_MAPPER =
             (rs, rowNumber) -> new DbRecord(HASH_MAP_MAPPER.mapRow(rs, rowNumber));
 
+    /** 默认实现的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。 */
     public static <T> RowMapper<T> beanRowMapper(Class<T> beanType) throws SQLException {
         return DefaultBeanRowMapper.of(beanType);
     }
 
+    /** 默认实现的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。 */
     public static <T> RowMapper<T> beanRowMapper(Class<T> beanType, Map<String, String> propertyColMap)
             throws SQLException {
         return DefaultBeanRowMapper.of(beanType, propertyColMap);

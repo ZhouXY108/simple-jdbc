@@ -109,6 +109,14 @@ class SimpleJdbcTemplateTests {
     }
 
     @Test
+    void testQueryExists() throws SQLException {
+        boolean isExists = jdbcTemplate.queryAsBoolean(
+                "SELECT EXISTS(SELECT 1 FROM sys_account WHERE id = ? LIMIT 1)",
+                buildParams(998));
+        assertFalse(isExists);
+    }
+
+    @Test
     void testInsert() throws SQLException {
         List<Map<String, Object>> keys = jdbcTemplate.update(
                 "INSERT INTO sys_account(username, account_status, created_by) VALUES (?, ?, ?), (?, ?, ?)",

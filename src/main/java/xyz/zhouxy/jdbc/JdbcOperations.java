@@ -285,6 +285,22 @@ interface JdbcOperations {
     Optional<BigDecimal> queryFirstBigDecimal(String sql)
             throws SQLException;
 
+    /**
+     * 查询结果，并转换为 boolean
+     *
+     * @param sql SQL
+     */
+    boolean queryAsBoolean(String sql)
+            throws SQLException;
+
+    /**
+     * 查询结果，并转换为 boolean
+     *
+     * @param sql SQL
+     */
+    boolean queryAsBoolean(String sql, Object[] params)
+            throws SQLException;
+
     // #endregion
 
     // #region - update & batchUpdate

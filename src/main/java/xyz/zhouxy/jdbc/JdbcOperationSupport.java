@@ -26,10 +26,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import java.util.OptionalDouble;
-import java.util.OptionalInt;
-import java.util.OptionalLong;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,7 +34,6 @@ import com.google.common.collect.Lists;
 
 import xyz.zhouxy.plusone.commons.collection.CollectionTools;
 import xyz.zhouxy.plusone.commons.util.AssertTools;
-import xyz.zhouxy.plusone.commons.util.OptionalTools;
 
 /**
  * JdbcOperationSupport
@@ -111,14 +106,14 @@ class JdbcOperationSupport {
     // #region - queryFirst
 
     /**
-     * 执行查询，将查询结果的第一行数据按照指定逻辑进行处理，返回 {@link Optional}
+     * 执行查询，将查询结果的第一行数据按照指定逻辑进行映射
      *
      * @param conn      数据库连接
      * @param sql       SQL
      * @param params    参数
      * @param rowMapper {@link ResultSet} 中每一行的数据的处理逻辑
      */
-    static <T> Optional<T> queryFirst(Connection conn, String sql, Object[] params, RowMapper<T> rowMapper)
+    static <T> T queryFirst(Connection conn, String sql, Object[] params, RowMapper<T> rowMapper)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
@@ -134,7 +129,7 @@ class JdbcOperationSupport {
      * @param params 参数
      * @param clazz  目标类型
      */
-    static <T> Optional<T> queryFirst(Connection conn, String sql, Object[] params, Class<T> clazz)
+    static <T> T queryFirst(Connection conn, String sql, Object[] params, Class<T> clazz)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
@@ -149,7 +144,7 @@ class JdbcOperationSupport {
      * @param sql    SQL
      * @param params 参数
      */
-    static Optional<String> queryFirstString(Connection conn, String sql, Object[] params)
+    static String queryFirstString(Connection conn, String sql, Object[] params)
             throws SQLException {
         return queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getString(1));
     }
@@ -161,10 +156,9 @@ class JdbcOperationSupport {
      * @param sql    SQL
      * @param params 参数
      */
-    static OptionalInt queryFirstInt(Connection conn, String sql, Object[] params)
+    static Integer queryFirstInt(Connection conn, String sql, Object[] params)
             throws SQLException {
-        Optional<Integer> result = queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getInt(1));
-        return OptionalTools.toOptionalInt(result);
+        return queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getInt(1));
     }
 
     /**
@@ -174,10 +168,9 @@ class JdbcOperationSupport {
      * @param sql    SQL
      * @param params 参数
      */
-    static OptionalLong queryFirstLong(Connection conn, String sql, Object[] params)
+    static Long queryFirstLong(Connection conn, String sql, Object[] params)
             throws SQLException {
-        Optional<Long> result = queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getLong(1));
-        return OptionalTools.toOptionalLong(result);
+        return queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getLong(1));
     }
 
     /**
@@ -187,10 +180,9 @@ class JdbcOperationSupport {
      * @param sql    SQL
      * @param params 参数
      */
-    static OptionalDouble queryFirstDouble(Connection conn, String sql, Object[] params)
+    static Double queryFirstDouble(Connection conn, String sql, Object[] params)
             throws SQLException {
-        Optional<Double> result = queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getDouble(1));
-        return OptionalTools.toOptionalDouble(result);
+        return queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getDouble(1));
     }
 
     /**
@@ -200,9 +192,21 @@ class JdbcOperationSupport {
      * @param sql    SQL
      * @param params 参数
      */
-    static Optional<BigDecimal> queryFirstBigDecimal(Connection conn, String sql, Object[] params)
+    static BigDecimal queryFirstBigDecimal(Connection conn, String sql, Object[] params)
             throws SQLException {
         return queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getBigDecimal(1));
+    }
+
+    /**
+     * 查询结果，并转换为 bool 值
+     *
+     * @param conn   数据库连接
+     * @param sql    SQL
+     * @param params 参数
+     */
+    static Boolean queryFirstBoolean(Connection conn, String sql, Object[] params)
+            throws SQLException {
+        return queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getBoolean(1));
     }
 
     // #endregion
@@ -357,9 +361,9 @@ class JdbcOperationSupport {
      * @param resultHandler 结果处理器，用于处理 {@link ResultSet}
      */
     private static <T> T queryInternal(@Nonnull Connection conn,
-                                        @Nonnull String sql,
-                                        @Nullable Object[] params,
-                                        @Nonnull ResultHandler<T> resultHandler)
+                                       @Nonnull String sql,
+                                       @Nullable Object[] params,
+                                       @Nonnull ResultHandler<T> resultHandler)
             throws SQLException {
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             fillStatement(stmt, params);
@@ -378,9 +382,9 @@ class JdbcOperationSupport {
      * @param rowMapper {@link ResultSet} 中每一行的数据的处理逻辑
      */
     private static <T> List<T> queryListInternal(@Nonnull Connection conn,
-                                            @Nonnull String sql,
-                                            @Nullable Object[] params,
-                                            @Nonnull RowMapper<T> rowMapper)
+                                                 @Nonnull String sql,
+                                                 @Nullable Object[] params,
+                                                 @Nonnull RowMapper<T> rowMapper)
             throws SQLException {
         return queryInternal(conn, sql, params, rs -> {
             List<T> result = new ArrayList<>();
@@ -401,17 +405,13 @@ class JdbcOperationSupport {
      * @param params    参数
      * @param rowMapper 行数据映射逻辑
      */
-    private static <T> Optional<T> queryFirstInternal(@Nonnull Connection conn,
+    private static <T> T queryFirstInternal(@Nonnull Connection conn,
                                             @Nonnull String sql,
                                             @Nullable Object[] params,
                                             @Nonnull RowMapper<T> rowMapper)
             throws SQLException {
-        return queryInternal(conn, sql, params, rs -> {
-            if (rs.next()) {
-                return Optional.ofNullable(rowMapper.mapRow(rs, 0));
-            }
-            return Optional.empty();
-        });
+        return queryInternal(conn, sql, params, rs ->
+                rs.next() ? rowMapper.mapRow(rs, 0) : null);
     }
 
     // #endregion

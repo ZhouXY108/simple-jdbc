@@ -48,10 +48,6 @@ public interface RowMapper<T> {
         return result;
     };
 
-    /** 每一行数据转换为 {@link DbRecord} */
-    public static final RowMapper<DbRecord> RECORD_MAPPER =
-            (rs, rowNumber) -> new DbRecord(HASH_MAP_MAPPER.mapRow(rs, rowNumber));
-
     /** 默认实现的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。 */
     public static <T> RowMapper<T> beanRowMapper(Class<T> beanType) throws SQLException {
         return DefaultBeanRowMapper.of(beanType);

@@ -109,15 +109,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
     /** {@inheritDoc} */
     @Override
-    public List<DbRecord> queryRecordList(String sql, Object[] params)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.queryList(conn, sql, params, RowMapper.RECORD_MAPPER);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public <T> List<T> queryList(String sql, RowMapper<T> rowMapper)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
@@ -141,16 +132,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcOperationSupport
                     .queryList(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, RowMapper.HASH_MAP_MAPPER);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public List<DbRecord> queryRecordList(String sql)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport
-                    .queryList(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, RowMapper.RECORD_MAPPER);
         }
     }
 
@@ -185,17 +166,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
         try (Connection conn = this.dataSource.getConnection()) {
             final Map<String, Object> result = JdbcOperationSupport
                     .queryFirst(conn, sql, params, RowMapper.HASH_MAP_MAPPER);
-            return Optional.ofNullable(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Optional<DbRecord> queryFirstRecord(String sql, Object[] params)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final DbRecord result = JdbcOperationSupport
-                    .queryFirst(conn, sql, params, RowMapper.RECORD_MAPPER);
             return Optional.ofNullable(result);
         }
     }
@@ -279,17 +249,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
         try (Connection conn = this.dataSource.getConnection()) {
             final Map<String, Object> result = JdbcOperationSupport
                     .queryFirst(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, RowMapper.HASH_MAP_MAPPER);
-            return Optional.ofNullable(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Optional<DbRecord> queryFirstRecord(String sql)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final DbRecord result = JdbcOperationSupport
-                    .queryFirst(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, RowMapper.RECORD_MAPPER);
             return Optional.ofNullable(result);
         }
     }
@@ -557,13 +516,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
         /** {@inheritDoc} */
         @Override
-        public List<DbRecord> queryRecordList(String sql, Object[] params)
-                throws SQLException {
-            return JdbcOperationSupport.queryList(this.conn, sql, params, RowMapper.RECORD_MAPPER);
-        }
-
-        /** {@inheritDoc} */
-        @Override
         public <T> List<T> queryList(String sql, RowMapper<T> rowMapper)
                 throws SQLException {
             return JdbcOperationSupport
@@ -583,14 +535,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
                 throws SQLException {
             return JdbcOperationSupport
                     .queryList(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, RowMapper.HASH_MAP_MAPPER);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public List<DbRecord> queryRecordList(String sql)
-                throws SQLException {
-            return JdbcOperationSupport
-                    .queryList(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, RowMapper.RECORD_MAPPER);
         }
 
         // #endregion
@@ -619,15 +563,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
                 throws SQLException {
             final Map<String, Object> result = JdbcOperationSupport
                     .queryFirst(this.conn, sql, params, RowMapper.HASH_MAP_MAPPER);
-            return Optional.ofNullable(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public Optional<DbRecord> queryFirstRecord(String sql, Object[] params)
-                throws SQLException {
-            final DbRecord result = JdbcOperationSupport
-                    .queryFirst(this.conn, sql, params, RowMapper.RECORD_MAPPER);
             return Optional.ofNullable(result);
         }
 
@@ -695,15 +630,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
                 throws SQLException {
             final Map<String, Object> result = JdbcOperationSupport
                     .queryFirst(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, RowMapper.HASH_MAP_MAPPER);
-            return Optional.ofNullable(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public Optional<DbRecord> queryFirstRecord(String sql)
-                throws SQLException {
-            final DbRecord result = JdbcOperationSupport
-                    .queryFirst(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, RowMapper.RECORD_MAPPER);
             return Optional.ofNullable(result);
         }
 

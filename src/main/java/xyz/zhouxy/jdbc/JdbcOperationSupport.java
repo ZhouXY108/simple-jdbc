@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -444,23 +445,28 @@ class JdbcOperationSupport {
     // #region - 参数校验
 
     private static void assertConnectionNotNull(Connection conn) {
-        AssertTools.checkArgumentNotNull(conn, "The argument \"conn\" could not be null.");
+        AssertTools.checkArgument(Objects.nonNull(conn),
+                "The argument \"conn\" could not be null.");
     }
 
     private static void assertSqlNotNull(String sql) {
-        AssertTools.checkArgumentNotNull(sql, "The argument \"sql\" could not be null.");
+        AssertTools.checkArgument(Objects.nonNull(sql),
+                "The argument \"sql\" could not be null.");
     }
 
     private static void assertRowMapperNotNull(RowMapper<?> rowMapper) {
-        AssertTools.checkArgumentNotNull(rowMapper, "The argument \"rowMapper\" could not be null.");
+        AssertTools.checkArgument(Objects.nonNull(rowMapper),
+                "The argument \"rowMapper\" could not be null.");
     }
 
     private static void assertResultHandlerNotNull(ResultHandler<?> resultHandler) {
-        AssertTools.checkArgumentNotNull(resultHandler, "The argument \"resultHandler\" could not be null.");
+        AssertTools.checkArgument(Objects.nonNull(resultHandler),
+                "The argument \"resultHandler\" could not be null.");
     }
 
     private static void assertClazzNotNull(Class<?> clazz) {
-        AssertTools.checkArgumentNotNull(clazz, "The argument \"clazz\" could not be null.");
+        AssertTools.checkArgument(Objects.nonNull(clazz),
+                "The argument \"clazz\" could not be null.");
     }
 
     // #endregion

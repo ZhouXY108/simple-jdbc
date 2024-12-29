@@ -80,15 +80,6 @@ interface JdbcOperations {
             throws SQLException;
 
     /**
-     * 执行查询，每一行数据映射为 {@link DbRecord}，返回结果列表
-     *
-     * @param sql    SQL
-     * @param params 参数列表
-     */
-    List<DbRecord> queryRecordList(String sql, Object[] params)
-            throws SQLException;
-
-    /**
      * 执行查询，将查询结果的每一行数据按照指定逻辑进行处理，返回结果列表
      *
      * @param sql       SQL
@@ -112,14 +103,6 @@ interface JdbcOperations {
      * @param sql SQL
      */
     List<Map<String, Object>> queryList(String sql)
-            throws SQLException;
-
-    /**
-     * 执行查询，每一行数据映射为 {@link DbRecord}，返回结果列表
-     *
-     * @param sql SQL
-     */
-    List<DbRecord> queryRecordList(String sql)
             throws SQLException;
 
     // #endregion
@@ -154,15 +137,6 @@ interface JdbcOperations {
      * @param params 参数
      */
     Optional<Map<String, Object>> queryFirst(String sql, Object[] params)
-            throws SQLException;
-
-    /**
-     * 执行查询，将第一行数据转为 DbRecord
-     *
-     * @param sql    SQL
-     * @param params 参数
-     */
-    Optional<DbRecord> queryFirstRecord(String sql, Object[] params)
             throws SQLException;
 
     /**
@@ -235,14 +209,6 @@ interface JdbcOperations {
      * @param sql SQL
      */
     Optional<Map<String, Object>> queryFirst(String sql)
-            throws SQLException;
-
-    /**
-     * 执行查询，将第一行数据转为 DbRecord
-     *
-     * @param sql SQL
-     */
-    Optional<DbRecord> queryFirstRecord(String sql)
             throws SQLException;
 
     /**

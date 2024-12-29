@@ -2,7 +2,6 @@ package xyz.zhouxy.jdbc.test;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static xyz.zhouxy.jdbc.ParamBuilder.*;
-import static xyz.zhouxy.plusone.commons.sql.JdbcSql.*;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -22,11 +21,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
-import xyz.zhouxy.jdbc.DbRecord;
 import xyz.zhouxy.jdbc.RowMapper;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate.JdbcExecutor;
-import xyz.zhouxy.plusone.commons.sql.SQL;
 import xyz.zhouxy.plusone.commons.util.IdGenerator;
 import xyz.zhouxy.plusone.commons.util.IdWorker;
 
@@ -85,24 +82,24 @@ class SimpleJdbcTemplateTests {
     @Test
     void testQuery() throws SQLException {
         Object[] ids = buildParams(5, 9, 13, 14, 17, 20, 108);
-        String sql = SQL.newJdbcSql()
-                .SELECT("id", "username", "account_status")
-                .FROM("sys_account")
-                .WHERE(IN("id", ids))
-                .toString();
+        String sql = "SELECT id, username, account_status"
+                + "\n FROM sys_account"
+                + "\n WHERE id IN ("
+                + "\n     ?, ?, ?, ?, ?, ?, ?"
+                + "\n )";
         log.info(sql);
-        List<DbRecord> rs = jdbcTemplate.queryRecordList(sql, ids);
-        for (DbRecord dbRecord : rs) {
+        List<Map<String, Object>> rs = jdbcTemplate.queryList(sql, ids);
+        for (Map<String, Object> dbRecord : rs) {
             log.info("{}", dbRecord);
         }
         assertEquals(
             Lists.newArrayList(
-                new DbRecord(ImmutableMap.of("id", 5L, "account_status", "0", "username", "zhouxy5")),
-                new DbRecord(ImmutableMap.of("id", 9L, "account_status", "0", "username", "zhouxy9")),
-                new DbRecord(ImmutableMap.of("id", 13L, "account_status", "1", "username", "zhouxy13")),
-                new DbRecord(ImmutableMap.of("id", 14L, "account_status", "1", "username", "zhouxy14")),
-                new DbRecord(ImmutableMap.of("id", 17L, "account_status", "1", "username", "zhouxy17")),
-                new DbRecord(ImmutableMap.of("id", 20L, "account_status", "2", "username", "zhouxy20"))
+                ImmutableMap.of("id", 5L, "account_status", "0", "username", "zhouxy5"),
+                ImmutableMap.of("id", 9L, "account_status", "0", "username", "zhouxy9"),
+                ImmutableMap.of("id", 13L, "account_status", "1", "username", "zhouxy13"),
+                ImmutableMap.of("id", 14L, "account_status", "1", "username", "zhouxy14"),
+                ImmutableMap.of("id", 17L, "account_status", "1", "username", "zhouxy17"),
+                ImmutableMap.of("id", 20L, "account_status", "2", "username", "zhouxy20")
             ),
             rs
         );
@@ -140,16 +137,16 @@ class SimpleJdbcTemplateTests {
 
     @Test
     void testUpdate() throws SQLException {
-        List<DbRecord> keys = jdbcTemplate.update(
+        List<Map<String, Object>> keys = jdbcTemplate.update(
                 "UPDATE sys_account SET account_status = ?, version = version + 1, update_time = now(), updated_by = ? WHERE id = ? AND version = ?",
                 buildParams("7", 886L, 20L, 88L),
-                RowMapper.RECORD_MAPPER);
+                RowMapper.HASH_MAP_MAPPER);
         assertEquals(1, keys.size());
         log.info("keys: {}", keys);
         keys = jdbcTemplate.update(
                 "UPDATE sys_account SET account_status = ?, version = version + 1, update_time = now(), updated_by = ? WHERE id = ? AND version = ?",
                 buildParams("-1", 886L, 20L, 88L),
-                RowMapper.RECORD_MAPPER);
+                RowMapper.HASH_MAP_MAPPER);
         assertEquals(0, keys.size());
     }
 

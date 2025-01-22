@@ -18,7 +18,7 @@
         <dependency>
             <groupId>xyz.zhouxy.plusone</groupId>
             <artifactId>plusone-commons</artifactId>
-            <version>1.0.0-alpha</version>
+            <version>1.0.0-RC2</version>
         </dependency>
 
         <dependency>

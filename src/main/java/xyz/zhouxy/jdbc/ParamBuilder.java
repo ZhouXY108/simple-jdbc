@@ -68,6 +68,29 @@ public class ParamBuilder {
                 .toArray();
     }
 
+    public static Object[] buildParams(final Collection<?> params) {
+        if (CollectionTools.isEmpty(params)) {
+            return EMPTY_OBJECT_ARRAY;
+        }
+        return params.stream()
+                .map(param -> {
+                    if (param instanceof Optional) {
+                        return OptionalTools.orElseNull((Optional<?>) param);
+                    }
+                    if (param instanceof OptionalInt) {
+                        return OptionalTools.toInteger(((OptionalInt) param));
+                    }
+                    if (param instanceof OptionalLong) {
+                        return OptionalTools.toLong(((OptionalLong) param));
+                    }
+                    if (param instanceof OptionalDouble) {
+                        return OptionalTools.toDouble(((OptionalDouble) param));
+                    }
+                    return param;
+                })
+                .toArray();
+    }
+
     public static <T> List<Object[]> buildBatchParams(final Collection<T> c, final Function<T, Object[]> func) {
         AssertTools.checkNotNull(c, "The collection can not be null.");
         AssertTools.checkNotNull(func, "The func can not be null.");

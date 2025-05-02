@@ -9,11 +9,11 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +42,7 @@ class SimpleJdbcTemplateTests {
     }
 
     @BeforeAll
-    static void setUp() throws SQLException {
+    static void createTable() throws SQLException {
         jdbcTemplate.update("CREATE TABLE sys_account ("
             + "\n" + "    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY"
             + "\n" + "    ,username VARCHAR(255) NOT NULL"
@@ -53,6 +53,11 @@ class SimpleJdbcTemplateTests {
             + "\n" + "    ,updated_by BIGINT DEFAULT NULL"
             + "\n" + "    ,version BIGINT NOT NULL DEFAULT 0"
             + "\n" + ")");
+    }
+
+    @BeforeEach
+    void initData() throws SQLException {
+        jdbcTemplate.update("truncate table sys_account");
         jdbcTemplate.batchUpdate("INSERT INTO sys_account(id, username, account_status, created_by) VALUES (?, ?, ?, ?)", Lists.newArrayList(
             buildParams(2L, "zhouxy2", "0", 108L),
             buildParams(3L, "zhouxy3", "0", 108L),
@@ -249,122 +254,5 @@ class SimpleJdbcTemplateTests {
                     LocalDateTime.of(2000, 1, 29, 0, 0), null, 7L),
                 t.get());
         log.info("{}", t);
-    }
-}
-
-class AccountPO {
-    Long id;
-    String username;
-    String accountStatus;
-    LocalDateTime createTime;
-    Long createdBy;
-    LocalDateTime updateTime;
-    Long updatedBy;
-    Long version;
-
-    public AccountPO() {
-    }
-
-    public AccountPO(Long id, String username, String accountStatus, LocalDateTime createTime, Long createdBy,
-            LocalDateTime updateTime, Long updatedBy, Long version) {
-        this.id = id;
-        this.username = username;
-        this.accountStatus = accountStatus;
-        this.createTime = createTime;
-        this.createdBy = createdBy;
-        this.updateTime = updateTime;
-        this.updatedBy = updatedBy;
-        this.version = version;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getAccountStatus() {
-        return accountStatus;
-    }
-
-    public void setAccountStatus(String accountStatus) {
-        this.accountStatus = accountStatus;
-    }
-
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public Long getCreatedBy() {
-        return createdBy;
-    }
-
-    public void setCreatedBy(Long createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(LocalDateTime updateTime) {
-        this.updateTime = updateTime;
-    }
-
-    public Long getUpdatedBy() {
-        return updatedBy;
-    }
-
-    public void setUpdatedBy(Long updatedBy) {
-        this.updatedBy = updatedBy;
-    }
-
-    public Long getVersion() {
-        return version;
-    }
-
-    public void setVersion(Long version) {
-        this.version = version;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, username, accountStatus, createTime, createdBy, updateTime, updatedBy, version);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        AccountPO other = (AccountPO) obj;
-        return Objects.equals(id, other.id) && Objects.equals(username, other.username)
-                && Objects.equals(accountStatus, other.accountStatus) && Objects.equals(createTime, other.createTime)
-                && Objects.equals(createdBy, other.createdBy) && Objects.equals(updateTime, other.updateTime)
-                && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(version, other.version);
-    }
-
-    @Override
-    public String toString() {
-        return "AccountPO [id=" + id + ", username=" + username + ", accountStatus=" + accountStatus + ", createTime="
-                + createTime + ", createdBy=" + createdBy + ", updateTime=" + updateTime + ", updatedBy=" + updatedBy
-                + ", version=" + version + "]";
     }
 }

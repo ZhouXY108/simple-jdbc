@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 the original author or authors.
+ * Copyright 2022-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ public class ParamBuilder {
     public static final Object[] EMPTY_OBJECT_ARRAY = {};
 
     public static Object[] buildParams(final Object... params) {
-        if (ArrayTools.isNullOrEmpty(params)) {
+        if (ArrayTools.isEmpty(params)) {
             return EMPTY_OBJECT_ARRAY;
         }
         return Arrays.stream(params)
@@ -55,13 +55,13 @@ public class ParamBuilder {
                         return OptionalTools.orElseNull((Optional<?>) param);
                     }
                     if (param instanceof OptionalInt) {
-                        return OptionalTools.toInteger(((OptionalInt) param));
+                        return OptionalTools.toInteger((OptionalInt) param);
                     }
                     if (param instanceof OptionalLong) {
-                        return OptionalTools.toLong(((OptionalLong) param));
+                        return OptionalTools.toLong((OptionalLong) param);
                     }
                     if (param instanceof OptionalDouble) {
-                        return OptionalTools.toDouble(((OptionalDouble) param));
+                        return OptionalTools.toDouble((OptionalDouble) param);
                     }
                     return param;
                 })
@@ -78,13 +78,13 @@ public class ParamBuilder {
                         return OptionalTools.orElseNull((Optional<?>) param);
                     }
                     if (param instanceof OptionalInt) {
-                        return OptionalTools.toInteger(((OptionalInt) param));
+                        return OptionalTools.toInteger((OptionalInt) param);
                     }
                     if (param instanceof OptionalLong) {
-                        return OptionalTools.toLong(((OptionalLong) param));
+                        return OptionalTools.toLong((OptionalLong) param);
                     }
                     if (param instanceof OptionalDouble) {
-                        return OptionalTools.toDouble(((OptionalDouble) param));
+                        return OptionalTools.toDouble((OptionalDouble) param);
                     }
                     return param;
                 })

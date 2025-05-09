@@ -175,7 +175,7 @@ class SimpleJdbcTemplateTests {
             Optional<Map<String, Object>> first = jdbcTemplate
                     .queryFirst("SELECT * FROM sys_account WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
-            assertTrue(!first.isPresent());
+            assertFalse(first.isPresent());
         }
 
         // 没有异常，提交事务
@@ -208,7 +208,7 @@ class SimpleJdbcTemplateTests {
             Optional<Map<String, Object>> first = jdbcTemplate
                     .queryFirst("SELECT * FROM sys_account WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
-            assertTrue(!first.isPresent());
+            assertFalse(first.isPresent());
         }
 
         // 返回 false，回滚
@@ -223,7 +223,7 @@ class SimpleJdbcTemplateTests {
             Optional<Map<String, Object>> first = jdbcTemplate
                     .queryFirst("SELECT * FROM sys_account WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
-            assertTrue(!first.isPresent());
+            assertFalse(first.isPresent());
         }
 
         // 返回 true，提交事务

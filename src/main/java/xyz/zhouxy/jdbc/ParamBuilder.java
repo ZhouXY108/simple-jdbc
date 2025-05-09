@@ -26,6 +26,7 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import xyz.zhouxy.plusone.commons.collection.CollectionTools;
 import xyz.zhouxy.plusone.commons.util.ArrayTools;
@@ -49,30 +50,18 @@ public class ParamBuilder {
         if (ArrayTools.isEmpty(params)) {
             return EMPTY_OBJECT_ARRAY;
         }
-        return Arrays.stream(params)
-                .map(param -> {
-                    if (param instanceof Optional) {
-                        return OptionalTools.orElseNull((Optional<?>) param);
-                    }
-                    if (param instanceof OptionalInt) {
-                        return OptionalTools.toInteger((OptionalInt) param);
-                    }
-                    if (param instanceof OptionalLong) {
-                        return OptionalTools.toLong((OptionalLong) param);
-                    }
-                    if (param instanceof OptionalDouble) {
-                        return OptionalTools.toDouble((OptionalDouble) param);
-                    }
-                    return param;
-                })
-                .toArray();
+        return buildParamsFromStream(Arrays.stream(params));
     }
 
     public static Object[] buildParams(final Collection<?> params) {
         if (CollectionTools.isEmpty(params)) {
             return EMPTY_OBJECT_ARRAY;
         }
-        return params.stream()
+        return buildParamsFromStream(params.stream());
+    }
+
+    private static Object[] buildParamsFromStream(Stream<?> stream) {
+        return stream
                 .map(param -> {
                     if (param instanceof Optional) {
                         return OptionalTools.orElseNull((Optional<?>) param);

@@ -37,7 +37,7 @@ public interface RowMapper<T> {
     T mapRow(ResultSet rs, int rowNumber) throws SQLException;
 
     /** 每一行数据转换为 {@link HashMap} */
-    public static final RowMapper<Map<String, Object>> HASH_MAP_MAPPER = (rs, rowNumber) -> {
+    RowMapper<Map<String, Object>> HASH_MAP_MAPPER = (rs, rowNumber) -> {
         Map<String, Object> result = new HashMap<>();
         ResultSetMetaData metaData = rs.getMetaData();
         int columnCount = metaData.getColumnCount();
@@ -49,12 +49,12 @@ public interface RowMapper<T> {
     };
 
     /** 默认实现的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。 */
-    public static <T> RowMapper<T> beanRowMapper(Class<T> beanType) throws SQLException {
+    static <T> RowMapper<T> beanRowMapper(Class<T> beanType) throws SQLException {
         return DefaultBeanRowMapper.of(beanType);
     }
 
     /** 默认实现的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。 */
-    public static <T> RowMapper<T> beanRowMapper(Class<T> beanType, Map<String, String> propertyColMap)
+    static <T> RowMapper<T> beanRowMapper(Class<T> beanType, Map<String, String> propertyColMap)
             throws SQLException {
         return DefaultBeanRowMapper.of(beanType, propertyColMap);
     }

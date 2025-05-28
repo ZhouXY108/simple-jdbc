@@ -252,7 +252,7 @@ class JdbcOperationSupport {
         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             fillStatement(stmt, params);
             stmt.executeUpdate();
-            try (ResultSet generatedKeys = stmt.getGeneratedKeys();) {
+            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                 int rowNumber = 0;
                 while (generatedKeys.next()) {
                     T e = rowMapper.mapRow(generatedKeys, rowNumber++);
@@ -399,12 +399,13 @@ class JdbcOperationSupport {
     }
 
     /**
-     * 执行查询，将查询结果的第一行数据按照指定逻辑进行处理，返回 {@link Optional}
+     * 执行查询，将查询结果的第一行数据按照指定逻辑进行处理，返回映射结果
      *
      * @param conn      数据库连接
      * @param sql       SQL
      * @param params    参数
      * @param rowMapper 行数据映射逻辑
+     * @return 映射结果。如果查询结果为空，则返回 null
      */
     private static <T> T queryFirstInternal(@Nonnull Connection conn,
                                             @Nonnull String sql,

@@ -94,25 +94,7 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
             Constructor<T> constructor = beanType.getDeclaredConstructor();
             constructor.setAccessible(true); // NOSONAR
 
-            // 构建 column name 和 PropertyDescriptor 的 映射
-            BeanInfo beanInfo = Introspector.getBeanInfo(beanType);
-            PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
-
-            // Bean 的属性名为小驼峰，对应的列名为下划线
-            Function<? super PropertyDescriptor, String> keyMapper;
-            if (propertyColMap == null || propertyColMap.isEmpty()) {
-                keyMapper = p -> CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, p.getName());
-            }
-            else {
-                keyMapper = p -> {
-                    String propertyName = p.getName();
-                    String colName = propertyColMap.get(propertyName);
-                    return colName != null ? colName
-                            : CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, propertyName);
-                };
-            }
-            Map<String, PropertyDescriptor> colPropertyMap = Arrays.stream(propertyDescriptors).collect(
-                    Collectors.toMap(keyMapper, Function.identity(), (a, b) -> b));
+            final Map<String, PropertyDescriptor> colPropertyMap = buildColPropertyMap(beanType, propertyColMap);
             return new DefaultBeanRowMapper<>(constructor, colPropertyMap);
         }
         catch (IntrospectionException e) {
@@ -149,5 +131,37 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
         catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
             throw new SQLException(e);
         }
+    }
+
+    /**
+     * 构建 column name 和 PropertyDescriptor 的 映射
+     *
+     * @param <T> Java bean 类型
+     * @param beanType       Java bean 类型
+     * @param propertyColMap 属性与列名的映射
+     * @return column name 和 PropertyDescriptor 的映射
+     * @throws IntrospectionException if an exception occurs during introspection.
+     */
+    private static <T> Map<String, PropertyDescriptor> buildColPropertyMap(
+        Class<T> beanType, Map<String, String> propertyColMap) throws IntrospectionException {
+
+        BeanInfo beanInfo = Introspector.getBeanInfo(beanType);
+        PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
+
+        // Bean 的属性名为小驼峰，对应的列名为下划线
+        Function<? super PropertyDescriptor, String> keyMapper;
+        if (propertyColMap == null || propertyColMap.isEmpty()) {
+            keyMapper = p -> CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, p.getName());
+        }
+        else {
+            keyMapper = p -> {
+                String propertyName = p.getName();
+                String colName = propertyColMap.get(propertyName);
+                return colName != null ? colName
+                    : CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, propertyName);
+            };
+        }
+        return Arrays.stream(propertyDescriptors)
+            .collect(Collectors.toMap(keyMapper, Function.identity(), (a, b) -> b));
     }
 }

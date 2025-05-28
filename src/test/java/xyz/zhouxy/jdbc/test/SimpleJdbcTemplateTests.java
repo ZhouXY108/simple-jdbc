@@ -1,10 +1,27 @@
+/*
+ * Copyright 2023-2025 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package xyz.zhouxy.jdbc.test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static xyz.zhouxy.jdbc.ParamBuilder.*;
+import static xyz.zhouxy.jdbc.ParamBuilder.buildParams;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
@@ -18,8 +35,9 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
+import com.google.common.io.Resources;
 
 import xyz.zhouxy.jdbc.RowMapper;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
@@ -31,83 +49,53 @@ class SimpleJdbcTemplateTests {
 
     private static final Logger log = LoggerFactory.getLogger(SimpleJdbcTemplateTests.class);
 
-    private static final SimpleJdbcTemplate jdbcTemplate;
+    private static SimpleJdbcTemplate jdbcTemplate;
 
-    static {
+    @BeforeAll
+    static void initH2() throws IOException, SQLException {
         JdbcDataSource dataSource = new JdbcDataSource();
         dataSource.setURL("jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=FALSE;MODE=MySQL");
         dataSource.setUser("sa");
         dataSource.setPassword("");
         jdbcTemplate = new SimpleJdbcTemplate(dataSource);
-    }
 
-    @BeforeAll
-    static void createTable() throws SQLException {
-        jdbcTemplate.update("CREATE TABLE sys_account ("
-            + "\n" + "    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY"
-            + "\n" + "    ,username VARCHAR(255) NOT NULL"
-            + "\n" + "    ,account_status VARCHAR(2) NOT NULL"
-            + "\n" + "    ,create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
-            + "\n" + "    ,created_by BIGINT NOT NULL"
-            + "\n" + "    ,update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
-            + "\n" + "    ,updated_by BIGINT DEFAULT NULL"
-            + "\n" + "    ,version BIGINT NOT NULL DEFAULT 0"
-            + "\n" + ")");
+        // 建表
+        executeSqlFile("schema.sql");
     }
 
     @BeforeEach
-    void initData() throws SQLException {
-        jdbcTemplate.update("truncate table sys_account");
-        jdbcTemplate.batchUpdate("INSERT INTO sys_account(id, username, account_status, created_by) VALUES (?, ?, ?, ?)", Lists.newArrayList(
-            buildParams(2L, "zhouxy2", "0", 108L),
-            buildParams(3L, "zhouxy3", "0", 108L),
-            buildParams(4L, "zhouxy4", "0", 108L),
-            buildParams(5L, "zhouxy5", "0", 108L),
-            buildParams(6L, "zhouxy6", "0", 108L),
-            buildParams(7L, "zhouxy7", "0", 108L),
-            buildParams(8L, "zhouxy8", "0", 108L),
-            buildParams(9L, "zhouxy9", "0", 108L)
-        ), 10);
-        jdbcTemplate.batchUpdate("INSERT INTO sys_account(id, username, account_status, created_by, create_time, update_time, version) VALUES (?, ?, ?, ?, ?, ?, ?)", Lists.newArrayList(
-            buildParams(10L, "zhouxy10", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 31),
-            buildParams(11L, "zhouxy11", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 28),
-            buildParams(12L, "zhouxy12", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 25),
-            buildParams(13L, "zhouxy13", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 22),
-            buildParams(14L, "zhouxy14", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 19),
-            buildParams(15L, "zhouxy15", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 16),
-            buildParams(16L, "zhouxy16", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 13),
-            buildParams(17L, "zhouxy17", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 10),
-            buildParams(18L, "zhouxy18", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 7),
-            buildParams(19L, "zhouxy19", "1", 118L, LocalDate.of(2000, 1, 1), LocalDate.of(2000, 1, 29), 0)
-        ), 10);
-        jdbcTemplate.update("INSERT INTO sys_account(id, username, account_status, created_by, create_time, updated_by, update_time, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            buildParams(20L, "zhouxy20", "2", 118L, LocalDateTime.of(2008, 8, 8, 20, 8), 31L, LocalDateTime.now(), 88L));
+    void initData() throws IOException, SQLException {
+        // 初始化数据
+        executeSqlFile("data.sql");
+    }
+
+    static void executeSqlFile(String filePath) throws IOException, SQLException {
+        String[] sqls = Resources
+                .toString(Resources.getResource(filePath), StandardCharsets.UTF_8)
+                .split(";");
+        for (String sql : sqls) {
+            jdbcTemplate.update(sql);
+        }
     }
 
     @Test
     void testQuery() throws SQLException {
         Object[] ids = buildParams(5, 9, 13, 14, 17, 20, 108);
-        String sql = "SELECT id, username, account_status"
-                + "\n FROM sys_account"
-                + "\n WHERE id IN ("
-                + "\n     ?, ?, ?, ?, ?, ?, ?"
-                + "\n )";
+        String sql = "SELECT id, username, account_status FROM sys_account WHERE id IN (?, ?, ?, ?, ?, ?, ?)";
         log.info(sql);
         List<Map<String, Object>> rs = jdbcTemplate.queryList(sql, ids);
         for (Map<String, Object> dbRecord : rs) {
             log.info("{}", dbRecord);
         }
-        assertEquals(
-            Lists.newArrayList(
-                ImmutableMap.of("id", 5L, "account_status", "0", "username", "zhouxy5"),
-                ImmutableMap.of("id", 9L, "account_status", "0", "username", "zhouxy9"),
-                ImmutableMap.of("id", 13L, "account_status", "1", "username", "zhouxy13"),
-                ImmutableMap.of("id", 14L, "account_status", "1", "username", "zhouxy14"),
-                ImmutableMap.of("id", 17L, "account_status", "1", "username", "zhouxy17"),
-                ImmutableMap.of("id", 20L, "account_status", "2", "username", "zhouxy20")
-            ),
-            rs
+        List<ImmutableMap<String, Object>> expected = ImmutableList.of(
+            ImmutableMap.of("id", 5L, "account_status", "0", "username", "zhouxy5"),
+            ImmutableMap.of("id", 9L, "account_status", "0", "username", "zhouxy9"),
+            ImmutableMap.of("id", 13L, "account_status", "1", "username", "zhouxy13"),
+            ImmutableMap.of("id", 14L, "account_status", "1", "username", "zhouxy14"),
+            ImmutableMap.of("id", 17L, "account_status", "1", "username", "zhouxy17"),
+            ImmutableMap.of("id", 20L, "account_status", "2", "username", "zhouxy20")
         );
+        assertEquals(expected, rs);
     }
 
     @Test

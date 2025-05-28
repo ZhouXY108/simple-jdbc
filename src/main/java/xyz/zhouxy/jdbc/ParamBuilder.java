@@ -16,6 +16,7 @@
 
 package xyz.zhouxy.jdbc;
 
+import java.sql.PreparedStatement;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;

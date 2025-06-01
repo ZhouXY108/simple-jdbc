@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2024 the original author or authors.
+ * Copyright 2022-2025 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,12 +65,12 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
     }
 
     /**
-     * 创建一个 DefaultBeanRowMapper
+     * 创建一个 {@code DefaultBeanRowMapper}
      *
      * @param <T>      Bean 类型
      * @param beanType Bean 类型
      * @return DefaultBeanRowMapper 对象
-     * @throws SQLException 创建 DefaultBeanRowMapper 出现错误的异常时抛出
+     * @throws SQLException 创建 {@code DefaultBeanRowMapper} 出现错误的异常时抛出
      */
     @StaticFactoryMethod(DefaultBeanRowMapper.class)
     public static <T> DefaultBeanRowMapper<T> of(Class<T> beanType) throws SQLException {
@@ -78,13 +78,13 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
     }
 
     /**
-     * 创建一个 DefaultBeanRowMapper
+     * 创建一个 {@code DefaultBeanRowMapper}
      *
      * @param <T>            Bean 类型
      * @param beanType       Bean 类型
      * @param propertyColMap Bean 字段与列名的映射关系。key 是字段，value 是列名。
-     * @return DefaultBeanRowMapper 对象
-     * @throws SQLException 创建 DefaultBeanRowMapper 出现错误的异常时抛出
+     * @return {@code DefaultBeanRowMapper} 对象
+     * @throws SQLException 创建 {@code DefaultBeanRowMapper} 出现错误的异常时抛出
      */
     @StaticFactoryMethod(DefaultBeanRowMapper.class)
     public static <T> DefaultBeanRowMapper<T> of(Class<T> beanType, @Nullable Map<String, String> propertyColMap)

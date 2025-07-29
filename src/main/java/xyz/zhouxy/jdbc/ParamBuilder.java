@@ -41,7 +41,7 @@ import xyz.zhouxy.plusone.commons.util.OptionalTools;
  * JDBC 参数构造器，将数据转换为 {@code Object[]} 类型，以传给 {@link PreparedStatement}
  * </p>
  *
- * @author <a href="http://zhouxy.xyz:3000/ZhouXY108">ZhouXY</a>
+ * @author ZhouXY108 <luquanlion@outlook.com>
  * @since 1.0.0
  */
 public class ParamBuilder {

@@ -48,7 +48,7 @@ import xyz.zhouxy.plusone.commons.annotation.StaticFactoryMethod;
  * <b>NOTE: 使用反射获取类型信息，也是使用反射调用无参构造器和 {@code setter} 方法。
  * 实际使用中还是建议针对目标类型自定义 {@link RowMapper}。</b>
  * </p>
- * @author <a href="http://zhouxy.xyz:3000/ZhouXY108">ZhouXY</a>
+ * @author ZhouXY108 <luquanlion@outlook.com>
  * @since 1.0.0
  */
 public class DefaultBeanRowMapper<T> implements RowMapper<T> {

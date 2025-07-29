@@ -20,7 +20,7 @@ import javax.annotation.Nullable;
  * 定义 JdbcTemplate 的 API
  * </p>
  *
- * @author <a href="http://zhouxy.xyz:3000/ZhouXY108">ZhouXY</a>
+ * @author ZhouXY108 <luquanlion@outlook.com>
  * @since 1.0.0
  */
 interface JdbcOperations {

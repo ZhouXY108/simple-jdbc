@@ -13,3 +13,6 @@ insert_final_newline = true
 
 [*.sql]
 indent_size = 2
+
+[*.md]
+indent_size = 2

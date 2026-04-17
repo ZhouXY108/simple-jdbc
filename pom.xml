@@ -10,7 +10,7 @@
 
     <name>Simple JDBC</name>
     <description>对 JDBC 的简单封装。</description>
-    <url>http://gitea.zhouxy.xyz/plusone/simple-jdbc</url>
+    <url>https://gitea.zhouxy.xyz/plusone/simple-jdbc</url>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -51,7 +51,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/com.h2database/h2 -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>

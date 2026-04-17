@@ -16,17 +16,12 @@
 
 package xyz.zhouxy.jdbc;
 
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalDouble;
-import java.util.OptionalInt;
-import java.util.OptionalLong;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
@@ -34,7 +29,6 @@ import javax.sql.DataSource;
 import xyz.zhouxy.plusone.commons.function.ThrowingConsumer;
 import xyz.zhouxy.plusone.commons.function.ThrowingPredicate;
 import xyz.zhouxy.plusone.commons.util.AssertTools;
-import xyz.zhouxy.plusone.commons.util.OptionalTools;
 
 /**
  * SimpleJdbcTemplate
@@ -172,56 +166,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
     /** {@inheritDoc} */
     @Override
-    public Optional<String> queryFirstString(String sql, Object[] params)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final String result = JdbcOperationSupport.queryFirstString(conn, sql, params);
-            return Optional.ofNullable(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public OptionalInt queryFirstInt(String sql, Object[] params)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final Integer result = JdbcOperationSupport.queryFirstInt(conn, sql, params);
-            return OptionalTools.optionalOf(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public OptionalLong queryFirstLong(String sql, Object[] params)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final Long result = JdbcOperationSupport.queryFirstLong(conn, sql, params);
-            return OptionalTools.optionalOf(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public OptionalDouble queryFirstDouble(String sql, Object[] params)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final Double result = JdbcOperationSupport.queryFirstDouble(conn, sql, params);
-            return OptionalTools.optionalOf(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Optional<BigDecimal> queryFirstBigDecimal(String sql, Object[] params)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final BigDecimal result = JdbcOperationSupport.queryFirstBigDecimal(conn, sql, params);
-            return Optional.ofNullable(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public <T> Optional<T> queryFirst(String sql, RowMapper<T> rowMapper)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
@@ -249,61 +193,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
         try (Connection conn = this.dataSource.getConnection()) {
             final Map<String, Object> result = JdbcOperationSupport
                     .queryFirst(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, RowMapper.HASH_MAP_MAPPER);
-            return Optional.ofNullable(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Optional<String> queryFirstString(String sql)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final String result = JdbcOperationSupport.
-                    queryFirstString(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
-            return Optional.ofNullable(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public OptionalInt queryFirstInt(String sql)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final Integer result = JdbcOperationSupport
-                    .queryFirstInt(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
-            return OptionalTools.optionalOf(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public OptionalLong queryFirstLong(String sql)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final Long result = JdbcOperationSupport
-                    .queryFirstLong(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
-            return OptionalTools.optionalOf(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public OptionalDouble queryFirstDouble(String sql)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final Double result = JdbcOperationSupport
-                    .queryFirstDouble(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
-            return OptionalTools.optionalOf(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Optional<BigDecimal> queryFirstBigDecimal(String sql)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final BigDecimal result = JdbcOperationSupport
-                    .queryFirstBigDecimal(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
             return Optional.ofNullable(result);
         }
     }
@@ -375,18 +264,18 @@ public class SimpleJdbcTemplate implements JdbcOperations {
     public List<int[]> batchUpdate(String sql, @Nullable Collection<Object[]> params, int batchSize)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.batchUpdate(conn, sql, params, batchSize);
+            return JdbcOperationSupport.batchUpdate(conn, sql, params, batchSize, null, false);
         }
     }
 
     /** {@inheritDoc} */
     @Override
-    public List<int[]> batchUpdateAndIgnoreException(String sql, @Nullable Collection<Object[]> params,
-            int batchSize, List<Exception> exceptions)
+    public List<int[]> batchUpdate(String sql, @Nullable Collection<Object[]> params,
+                                   int batchSize, List<Exception> exceptions, boolean quietly)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcOperationSupport
-                    .batchUpdateAndIgnoreException(conn, sql, params, batchSize, exceptions);
+                    .batchUpdate(conn, sql, params, batchSize, exceptions, quietly);
         }
     }
 
@@ -407,7 +296,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
      * @throws E            事务中的异常
      */
     public <E extends Exception> void executeTransaction(
-            @Nonnull final ThrowingConsumer<JdbcExecutor, E> operations)
+            @Nonnull final ThrowingConsumer<JdbcOperations, E> operations)
             throws SQLException, E {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
         try (Connection conn = this.dataSource.getConnection()) {
@@ -438,7 +327,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
      * @throws E            事务中的异常类型
      */
     public <E extends Exception> void commitIfTrue(
-            @Nonnull final ThrowingPredicate<JdbcExecutor, E> operations)
+            @Nonnull final ThrowingPredicate<JdbcOperations, E> operations)
             throws SQLException, E {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
         try (Connection conn = this.dataSource.getConnection()) {
@@ -464,7 +353,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
     // #endregion
 
-    public static final class JdbcExecutor implements JdbcOperations {
+    private static final class JdbcExecutor implements JdbcOperations {
 
         private final Connection conn;
 
@@ -568,46 +457,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
         /** {@inheritDoc} */
         @Override
-        public Optional<String> queryFirstString(String sql, Object[] params)
-                throws SQLException {
-            final String result = JdbcOperationSupport.queryFirstString(this.conn, sql, params);
-            return Optional.ofNullable(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public OptionalInt queryFirstInt(String sql, Object[] params)
-                throws SQLException {
-            final Integer result = JdbcOperationSupport.queryFirstInt(this.conn, sql, params);
-            return OptionalTools.optionalOf(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public OptionalLong queryFirstLong(String sql, Object[] params)
-                throws SQLException {
-            final Long result = JdbcOperationSupport.queryFirstLong(this.conn, sql, params);
-            return OptionalTools.optionalOf(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public OptionalDouble queryFirstDouble(String sql, Object[] params)
-                throws SQLException {
-            final Double result = JdbcOperationSupport.queryFirstDouble(this.conn, sql, params);
-            return OptionalTools.optionalOf(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public Optional<BigDecimal> queryFirstBigDecimal(String sql, Object[] params)
-                throws SQLException {
-            final BigDecimal result = JdbcOperationSupport.queryFirstBigDecimal(this.conn, sql, params);
-            return Optional.ofNullable(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
         public <T> Optional<T> queryFirst(String sql, RowMapper<T> rowMapper)
                 throws SQLException {
             final T result = JdbcOperationSupport
@@ -630,51 +479,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
                 throws SQLException {
             final Map<String, Object> result = JdbcOperationSupport
                     .queryFirst(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, RowMapper.HASH_MAP_MAPPER);
-            return Optional.ofNullable(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public Optional<String> queryFirstString(String sql)
-                throws SQLException {
-            final String result = JdbcOperationSupport
-                    .queryFirstString(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
-            return Optional.ofNullable(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public OptionalInt queryFirstInt(String sql)
-                throws SQLException {
-            final Integer result = JdbcOperationSupport
-                    .queryFirstInt(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
-            return OptionalTools.optionalOf(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public OptionalLong queryFirstLong(String sql)
-                throws SQLException {
-            final Long result = JdbcOperationSupport
-                    .queryFirstLong(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
-            return OptionalTools.optionalOf(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public OptionalDouble queryFirstDouble(String sql)
-                throws SQLException {
-            final Double result = JdbcOperationSupport
-                    .queryFirstDouble(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
-            return OptionalTools.optionalOf(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public Optional<BigDecimal> queryFirstBigDecimal(String sql)
-                throws SQLException {
-            final BigDecimal result = JdbcOperationSupport
-                    .queryFirstBigDecimal(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
             return Optional.ofNullable(result);
         }
 
@@ -731,17 +535,18 @@ public class SimpleJdbcTemplate implements JdbcOperations {
         @Override
         public List<int[]> batchUpdate(String sql, @Nullable Collection<Object[]> params, int batchSize)
                 throws SQLException {
-            return JdbcOperationSupport.batchUpdate(this.conn, sql, params, batchSize);
+            return JdbcOperationSupport.batchUpdate(this.conn, sql, params, batchSize, null, false);
         }
 
         /** {@inheritDoc} */
         @Override
-        public List<int[]> batchUpdateAndIgnoreException(String sql,
-                                                         @Nullable Collection<Object[]> params,
-                                                         int batchSize,
-                                                         List<Exception> exceptions) throws SQLException {
+        public List<int[]> batchUpdate(String sql,
+                                       @Nullable Collection<Object[]> params,
+                                       int batchSize,
+                                       List<Exception> exceptions,
+                                       boolean quietly) throws SQLException {
             return JdbcOperationSupport
-                    .batchUpdateAndIgnoreException(this.conn, sql, params, batchSize, exceptions);
+                    .batchUpdate(this.conn, sql, params, batchSize, exceptions, quietly);
         }
 
         // #endregion

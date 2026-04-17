@@ -39,9 +39,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 
+import xyz.zhouxy.jdbc.JdbcOperations;
 import xyz.zhouxy.jdbc.RowMapper;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
-import xyz.zhouxy.jdbc.SimpleJdbcTemplate.JdbcExecutor;
 import xyz.zhouxy.plusone.commons.util.IdGenerator;
 import xyz.zhouxy.plusone.commons.util.IdWorker;
 
@@ -151,7 +151,7 @@ class SimpleJdbcTemplateTests {
         {
             long id = this.idGenerator.nextId();
             try {
-                jdbcTemplate.executeTransaction((JdbcExecutor jdbc) -> {
+                jdbcTemplate.executeTransaction((JdbcOperations jdbc) -> {
                     jdbc.update("INSERT INTO sys_account (id, username, created_by, create_time, account_status) VALUES (?, ?, ?, ?, ?)",
                             buildParams(id, "testTransaction1", 100, LocalDateTime.now(), "55"));
                     throw new NullPointerException();

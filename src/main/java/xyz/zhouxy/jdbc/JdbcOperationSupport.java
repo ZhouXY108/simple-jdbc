@@ -16,17 +16,13 @@
 
 package xyz.zhouxy.jdbc;
 
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -139,66 +135,6 @@ class JdbcOperationSupport {
     }
 
     /**
-     * 查询第一行第一列，并转换为字符串
-     *
-     * @param conn   数据库连接
-     * @param sql    SQL
-     * @param params 参数
-     */
-    static String queryFirstString(Connection conn, String sql, Object[] params)
-            throws SQLException {
-        return queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getString(1));
-    }
-
-    /**
-     * 查询第一行第一列，并转换为整数值
-     *
-     * @param conn   数据库连接
-     * @param sql    SQL
-     * @param params 参数
-     */
-    static Integer queryFirstInt(Connection conn, String sql, Object[] params)
-            throws SQLException {
-        return queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getInt(1));
-    }
-
-    /**
-     * 查询第一行第一列，并转换为长整型
-     *
-     * @param conn   数据库连接
-     * @param sql    SQL
-     * @param params 参数
-     */
-    static Long queryFirstLong(Connection conn, String sql, Object[] params)
-            throws SQLException {
-        return queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getLong(1));
-    }
-
-    /**
-     * 查询第一行第一列，并转换为双精度浮点型
-     *
-     * @param conn   数据库连接
-     * @param sql    SQL
-     * @param params 参数
-     */
-    static Double queryFirstDouble(Connection conn, String sql, Object[] params)
-            throws SQLException {
-        return queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getDouble(1));
-    }
-
-    /**
-     * 查询第一行第一列，并转换为 {@link BigDecimal}
-     *
-     * @param conn   数据库连接
-     * @param sql    SQL
-     * @param params 参数
-     */
-    static BigDecimal queryFirstBigDecimal(Connection conn, String sql, Object[] params)
-            throws SQLException {
-        return queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getBigDecimal(1));
-    }
-
-    /**
      * 查询结果，并转换为 bool 值
      *
      * @param conn   数据库连接
@@ -248,7 +184,7 @@ class JdbcOperationSupport {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         assertRowMapperNotNull(rowMapper);
-        final List<T> result = new ArrayList<>();
+        final List<T> result = new LinkedList<>();
         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             fillStatement(stmt, params);
             stmt.executeUpdate();
@@ -264,42 +200,6 @@ class JdbcOperationSupport {
     }
 
     /**
-     * 执行批量更新，批量更新数据，返回每条记录更新的行数
-     *
-     * @param conn      数据库连接
-     * @param sql       SQL 语句
-     * @param params    参数列表
-     * @param batchSize 每次批量更新的数据量
-     */
-    static List<int[]> batchUpdate(Connection conn, String sql, Collection<Object[]> params, int batchSize)
-            throws SQLException {
-        assertConnectionNotNull(conn);
-        assertSqlNotNull(sql);
-
-        if (params == null || params.isEmpty()) {
-            return Collections.emptyList();
-        }
-        int executeCount = params.size() / batchSize;
-        executeCount = (params.size() % batchSize == 0) ? executeCount : (executeCount + 1);
-        List<int[]> result = Lists.newArrayListWithCapacity(executeCount);
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            int i = 0;
-            for (Object[] ps : params) {
-                i++;
-                fillStatement(stmt, ps);
-                stmt.addBatch();
-                if (i % batchSize == 0 || i >= params.size()) {
-                    int[] n = stmt.executeBatch();
-                    result.add(n);
-                    stmt.clearBatch();
-                }
-            }
-            return result;
-        }
-    }
-
-    /**
      * 批量更新，返回更新成功的记录行数。发生异常时不中断操作，将异常存入 {@code exceptions} 中
      *
      * @param conn       数据库连接
@@ -307,14 +207,15 @@ class JdbcOperationSupport {
      * @param params     参数列表
      * @param batchSize  每次批量更新的数据量
      * @param exceptions 异常列表，用于记录异常信息
+     * @param quietly    静默
      */
-    static List<int[]> batchUpdateAndIgnoreException(Connection conn,
-            String sql, @Nullable Collection<Object[]> params, int batchSize,
-            List<Exception> exceptions)
+    static List<int[]> batchUpdate(Connection conn,
+                                   String sql, @Nullable Collection<Object[]> params, int batchSize,
+                                   List<Exception> exceptions, boolean quietly)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
-        AssertTools.checkArgument(CollectionTools.isNotEmpty(exceptions),
+        AssertTools.checkArgument(!quietly || CollectionTools.isNotEmpty(exceptions),
                 "The list used to store exceptions should be non-null and empty.");
         if (params == null || params.isEmpty()) {
             return Collections.emptyList();
@@ -329,17 +230,20 @@ class JdbcOperationSupport {
                 i++;
                 fillStatement(stmt, ps);
                 stmt.addBatch();
-                final int batchIndex = i % batchSize;
-                if (batchIndex == 0 || i >= params.size()) {
+                final int indexInBatch = i % batchSize;
+                if (indexInBatch == 0 || i >= params.size()) {
                     try {
                         int[] n = stmt.executeBatch();
                         result.add(n);
                         stmt.clearBatch();
                     }
                     catch (Exception e) {
-                        int n = (i >= params.size() && batchIndex != 0) ? batchIndex : batchSize;
+                        int n = (i >= params.size() && indexInBatch != 0) ? indexInBatch : batchSize;
                         result.add(new int[n]);
                         stmt.clearBatch();
+                        if (!quietly) {
+                            throw e;
+                        }
                         // 收集异常信息
                         exceptions.add(e);
                     }
@@ -366,12 +270,20 @@ class JdbcOperationSupport {
                                        @Nullable Object[] params,
                                        @Nonnull ResultHandler<T> resultHandler)
             throws SQLException {
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            fillStatement(stmt, params);
-            try (ResultSet rs = stmt.executeQuery()) {
-                return resultHandler.handle(rs);
-            }
+        try (PreparedStatement stmt = createPreparedStatementInternal(conn, sql, params);
+             ResultSet rs = stmt.executeQuery()) {
+            return resultHandler.handle(rs);
         }
+    }
+
+    private static PreparedStatement createPreparedStatementInternal(
+            @Nonnull Connection conn,
+            @Nonnull String sql,
+            @Nullable Object[] params)
+            throws SQLException {
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        fillStatement(stmt, params);
+        return stmt;
     }
 
     /**
@@ -388,7 +300,7 @@ class JdbcOperationSupport {
                                                  @Nonnull RowMapper<T> rowMapper)
             throws SQLException {
         return queryInternal(conn, sql, params, rs -> {
-            List<T> result = new ArrayList<>();
+            List<T> result = new LinkedList<>();
             int rowNumber = 0;
             while (rs.next()) {
                 T e = rowMapper.mapRow(rs, rowNumber++);

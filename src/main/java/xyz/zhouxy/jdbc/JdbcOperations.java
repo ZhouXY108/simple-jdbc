@@ -16,17 +16,12 @@
 
 package xyz.zhouxy.jdbc;
 
-import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalDouble;
-import java.util.OptionalInt;
-import java.util.OptionalLong;
-
 import javax.annotation.Nullable;
 
 /**
@@ -39,7 +34,7 @@ import javax.annotation.Nullable;
  * @author ZhouXY108 <luquanlion@outlook.com>
  * @since 1.0.0
  */
-interface JdbcOperations {
+public interface JdbcOperations {
 
     // #region - query
 
@@ -156,51 +151,6 @@ interface JdbcOperations {
             throws SQLException;
 
     /**
-     * 查询第一行第一列，并转换为字符串
-     *
-     * @param sql    SQL
-     * @param params 参数
-     */
-    Optional<String> queryFirstString(String sql, Object[] params)
-            throws SQLException;
-
-    /**
-     * 查询第一行第一列，并转换为整数值
-     *
-     * @param sql    SQL
-     * @param params 参数
-     */
-    OptionalInt queryFirstInt(String sql, Object[] params)
-            throws SQLException;
-
-    /**
-     * 查询第一行第一列，并转换为长整型
-     *
-     * @param sql    SQL
-     * @param params 参数
-     */
-    OptionalLong queryFirstLong(String sql, Object[] params)
-            throws SQLException;
-
-    /**
-     * 查询第一行第一列，并转换为双精度浮点型
-     *
-     * @param sql    SQL
-     * @param params 参数
-     */
-    OptionalDouble queryFirstDouble(String sql, Object[] params)
-            throws SQLException;
-
-    /**
-     * 查询第一行第一列，并转换为 {@link BigDecimal}
-     *
-     * @param sql    SQL
-     * @param params 参数
-     */
-    Optional<BigDecimal> queryFirstBigDecimal(String sql, Object[] params)
-            throws SQLException;
-
-    /**
      * 执行查询，将查询结果的第一行数据按照指定逻辑进行处理，返回 {@link Optional}
      *
      * @param sql       SQL
@@ -225,46 +175,6 @@ interface JdbcOperations {
      * @param sql SQL
      */
     Optional<Map<String, Object>> queryFirst(String sql)
-            throws SQLException;
-
-    /**
-     * 查询第一行第一列，并转换为字符串
-     *
-     * @param sql SQL
-     */
-    Optional<String> queryFirstString(String sql)
-            throws SQLException;
-
-    /**
-     * 查询第一行第一列，并转换为整数值
-     *
-     * @param sql SQL
-     */
-    OptionalInt queryFirstInt(String sql)
-            throws SQLException;
-
-    /**
-     * 查询第一行第一列，并转换为长整型
-     *
-     * @param sql SQL
-     */
-    OptionalLong queryFirstLong(String sql)
-            throws SQLException;
-
-    /**
-     * 查询第一行第一列，并转换为双精度浮点型
-     *
-     * @param sql SQL
-     */
-    OptionalDouble queryFirstDouble(String sql)
-            throws SQLException;
-
-    /**
-     * 查询第一行第一列，并转换为 {@link BigDecimal}
-     *
-     * @param sql SQL
-     */
-    Optional<BigDecimal> queryFirstBigDecimal(String sql)
             throws SQLException;
 
     /**
@@ -348,9 +258,10 @@ interface JdbcOperations {
      * @param params     参数列表
      * @param batchSize  每次批量更新的数据量
      * @param exceptions 异常列表，用于记录异常信息
+     * @param quietly    静默
      */
-    List<int[]> batchUpdateAndIgnoreException(String sql, @Nullable Collection<Object[]> params,
-            int batchSize, List<Exception> exceptions)
+    List<int[]> batchUpdate(String sql, @Nullable Collection<Object[]> params,
+                            int batchSize, List<Exception> exceptions, boolean quietly)
             throws SQLException;
 
     // #endregion

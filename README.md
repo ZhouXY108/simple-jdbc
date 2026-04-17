@@ -11,7 +11,6 @@
 - `query`：**最基础的查询方法**。可使用 `ResultHandler` 将查询结果映射为 Java 对象。
 - `queryList`：**查询列表**。可使用 `RowMapper` 将结果的每一行数据映射为 Java 对象，返回列表。
 - `queryFirst`：**查询，并获取第一行数据**。一般可以结合 `LIMIT 1` 使用。可使用 `RowMapper` 将结果的第一行数据映射为 Java 对象，返回 `Optional`。
-- `queryFirstXXX`：**查询，并获取第一行数据的第一个字段**，并转换为对应类型，返回对应的类型的 `Optional`。
 - `queryAsBoolean`：**查询，并获取第一行数据的第一个字段**，并转换为布尔类型。如果结果为空，则返回 `false`。
 
 ### 结果映射
@@ -30,9 +29,9 @@
 
 ## 事务
 
-- `executeTransaction`：**执行事务**。传入一个 `ThrowingConsumer` 函数，入参是一个 `JdbcExecutor` 对象，在 `ThrowingConsumer` 内使用该入参执行 jdbc 操作。如果 `ThrowingConsumer` 内部有异常抛出，这些操作将被回滚。
+- `executeTransaction`：**执行事务**。传入一个 `ThrowingConsumer` 函数，入参是一个 `JdbcOperations` 对象，在 `ThrowingConsumer` 内使用该入参执行 jdbc 操作。如果 `ThrowingConsumer` 内部有异常抛出，这些操作将被回滚。
 
-- `commitIfTrue`：**执行事务**。传入一个 `ThrowingPredicate` 函数，入参是一个 `JdbcExecutor` 对象，在 `ThrowingPredicate` 内使用该入参执行 jdbc 操作。如果`ThrowingPredicate` 返回 `true`，则提交事务；如果返回 `false` 或有异常抛出，则回滚这些操作。
+- `commitIfTrue`：**执行事务**。传入一个 `ThrowingPredicate` 函数，入参是一个 `JdbcOperations` 对象，在 `ThrowingPredicate` 内使用该入参执行 jdbc 操作。如果`ThrowingPredicate` 返回 `true`，则提交事务；如果返回 `false` 或有异常抛出，则回滚这些操作。
 
 ## 参数构建
 

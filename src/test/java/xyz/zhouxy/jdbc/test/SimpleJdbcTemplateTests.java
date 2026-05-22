@@ -100,7 +100,7 @@ class SimpleJdbcTemplateTests {
 
     @Test
     void testQueryExists() throws SQLException {
-        boolean isExists = jdbcTemplate.queryAsBoolean(
+        boolean isExists = jdbcTemplate.queryBoolean(
                 "SELECT EXISTS(SELECT 1 FROM sys_account WHERE id = ? LIMIT 1)",
                 buildParams(998));
         assertFalse(isExists);

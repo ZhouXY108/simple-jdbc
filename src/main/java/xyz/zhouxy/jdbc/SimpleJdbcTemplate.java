@@ -199,7 +199,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
     /** {@inheritDoc} */
     @Override
-    public boolean queryAsBoolean(String sql) // TODO 单元测试
+    public boolean queryBoolean(String sql) // TODO 单元测试
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             final Boolean result = JdbcOperationSupport
@@ -210,7 +210,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
     /** {@inheritDoc} */
     @Override
-    public boolean queryAsBoolean(String sql, Object[] params) // TODO 单元测试
+    public boolean queryBoolean(String sql, Object[] params) // TODO 单元测试
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             final Boolean result = JdbcOperationSupport
@@ -484,7 +484,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
         /** {@inheritDoc} */
         @Override
-        public boolean queryAsBoolean(String sql)
+        public boolean queryBoolean(String sql)
                 throws SQLException {
             final Boolean result = JdbcOperationSupport
                     .queryFirstBoolean(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
@@ -493,7 +493,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
         /** {@inheritDoc} */
         @Override
-        public boolean queryAsBoolean(String sql, Object[] params)
+        public boolean queryBoolean(String sql, Object[] params)
                 throws SQLException {
             final Boolean result = JdbcOperationSupport.queryFirstBoolean(this.conn, sql, params);
             return Boolean.TRUE.equals(result);

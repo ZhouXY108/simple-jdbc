@@ -183,7 +183,7 @@ public interface JdbcOperations {
      *
      * @param sql SQL
      */
-    boolean queryAsBoolean(String sql)
+    boolean queryBoolean(String sql)
             throws SQLException;
 
     /**
@@ -191,7 +191,7 @@ public interface JdbcOperations {
      *
      * @param sql SQL
      */
-    boolean queryAsBoolean(String sql, Object[] params)
+    boolean queryBoolean(String sql, Object[] params)
             throws SQLException;
 
     // #endregion

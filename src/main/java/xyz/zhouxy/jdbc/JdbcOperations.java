@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 the original author or authors.
+ * Copyright 2026-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -251,7 +251,7 @@ public interface JdbcOperations {
      * @return generated keys
      * @throws SQLException 执行 SQL 遇到异常情况将抛出
      */
-    <T> List<T> update(String sql, Object[] params, RowMapper<T> rowMapper)
+    <T> List<T> updateAndReturnKeys(String sql, Object[] params, RowMapper<T> rowMapper)
             throws SQLException;
 
     /**
@@ -263,9 +263,9 @@ public interface JdbcOperations {
      * @return generated keys
      * @throws SQLException 执行 SQL 遇到异常情况将抛出
      */
-    default <T> List<T> update(String sql, RowMapper<T> rowMapper)
+    default <T> List<T> updateAndReturnKeys(String sql, RowMapper<T> rowMapper)
             throws SQLException {
-        return update(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
+        return updateAndReturnKeys(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
     }
 
     /**
@@ -273,6 +273,9 @@ public interface JdbcOperations {
      *
      * <p>
      * 跑批过程中发生异常即中断操作，并返回结果。
+     *
+     * <p>
+     * 当无法获取所更新的行数时，对应位置的更新行数将被设置为 {@link JdbcOperationSupport#UNKNOWN_COUNT}。
      *
      * @param sql       SQL 语句
      * @param params    参数列表
@@ -283,6 +286,9 @@ public interface JdbcOperations {
 
     /**
      * 批量更新
+     *
+     * <p>
+     * 当无法获取所更新的行数时，对应位置的更新行数将被设置为 {@link JdbcOperationSupport#UNKNOWN_COUNT}。
      *
      * @param sql        sql语句
      * @param params     参数列表

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 the original author or authors.
+ * Copyright 2022-2026 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -153,10 +153,10 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
     /** {@inheritDoc} */
     @Override
-    public <T> List<T> update(String sql, Object[] params, RowMapper<T> rowMapper)
+    public <T> List<T> updateAndReturnKeys(String sql, Object[] params, RowMapper<T> rowMapper)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.update(conn, sql, params, rowMapper);
+            return JdbcOperationSupport.updateAndReturnKeys(conn, sql, params, rowMapper);
         }
     }
 
@@ -206,10 +206,17 @@ public class SimpleJdbcTemplate implements JdbcOperations {
                 conn.setAutoCommit(false);
                 operations.accept(new JdbcExecutor(conn));
                 conn.commit();
-            } catch (Exception e) {
-                conn.rollback();
+            }
+            catch (Exception e) {
+                try {
+                    conn.rollback();
+                }
+                catch (SQLException ex) {
+                    e.addSuppressed(ex);
+                }
                 throw new TransactionException(e);
-            } finally {
+            }
+            finally {
                 conn.setAutoCommit(autoCommit);
             }
         }
@@ -235,13 +242,21 @@ public class SimpleJdbcTemplate implements JdbcOperations {
                 conn.setAutoCommit(false);
                 if (operations.test(new JdbcExecutor(conn))) {
                     conn.commit();
-                } else {
+                }
+                else {
                     conn.rollback();
                 }
-            } catch (Exception e) {
-                conn.rollback();
+            }
+            catch (Exception e) {
+                try {
+                    conn.rollback();
+                }
+                catch (SQLException ex) {
+                    e.addSuppressed(ex);
+                }
                 throw new TransactionException(e);
-            } finally {
+            }
+            finally {
                 conn.setAutoCommit(autoCommit);
             }
         }
@@ -341,9 +356,9 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
         /** {@inheritDoc} */
         @Override
-        public <T> List<T> update(String sql, Object[] params, RowMapper<T> rowMapper)
+        public <T> List<T> updateAndReturnKeys(String sql, Object[] params, RowMapper<T> rowMapper)
                 throws SQLException {
-            return JdbcOperationSupport.update(this.conn, sql, params, rowMapper);
+            return JdbcOperationSupport.updateAndReturnKeys(this.conn, sql, params, rowMapper);
         }
 
         /** {@inheritDoc} */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 the original author or authors.
+ * Copyright 2026-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -49,7 +53,10 @@ class JdbcOperationSupport {
 
     // #region - query
 
-    private static final int UNKNOWN_COUNT = -999;
+    /**
+     * 表示无法获取所更新的行数
+     */
+    public static final int UNKNOWN_COUNT = -999;
 
     /**
      * 执行查询，并按照自定义处理逻辑对结果进行处理，将结果转换为指定类型并返回
@@ -187,12 +194,12 @@ class JdbcOperationSupport {
      * @return generated keys
      * @throws SQLException 执行 SQL 遇到异常情况将抛出
      */
-    static <T> List<T> update(Connection conn, String sql, Object[] params, RowMapper<T> rowMapper)
+    static <T> List<T> updateAndReturnKeys(Connection conn, String sql, Object[] params, RowMapper<T> rowMapper)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         assertRowMapperNotNull(rowMapper);
-        final List<T> result = Lists.newArrayList();
+        final List<T> result = Lists.newArrayListWithCapacity(4);
         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             fillStatement(stmt, params);
             stmt.executeUpdate();
@@ -208,7 +215,10 @@ class JdbcOperationSupport {
     }
 
     /**
-     * 批量更新，返回更新成功的记录行数
+     * 批量更新
+     *
+     * <p>
+     * 当无法获取所更新的行数时，对应位置的更新行数将被设置为 {@link #UNKNOWN_COUNT}。
      *
      * @param conn       数据库连接
      * @param sql        sql语句
@@ -229,9 +239,10 @@ class JdbcOperationSupport {
             return new BatchUpdateResult(0, 0, batchSize);
         }
 
-        int batchCount = (params.size() + batchSize - 1) / batchSize;
+        final int paramsSize = params.size();
+        int batchCount = (paramsSize + batchSize - 1) / batchSize;
 
-        final BatchUpdateResult result = new BatchUpdateResult(params.size(), batchCount, batchSize);
+        final BatchUpdateResult result = new BatchUpdateResult(paramsSize, batchCount, batchSize);
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             int i = 0;
@@ -241,7 +252,7 @@ class JdbcOperationSupport {
                 fillStatement(stmt, ps);
                 stmt.addBatch();
                 final int indexInBatch = i % batchSize;
-                if (indexInBatch == 0 || i >= params.size()) {
+                if (indexInBatch == 0 || i >= paramsSize) {
                     try {
                         int[] updateCounts = stmt.executeBatch();
                         result.recordSuccessBatch(batchIndex, updateCounts);
@@ -252,7 +263,7 @@ class JdbcOperationSupport {
                             updateCounts = ((BatchUpdateException) e).getUpdateCounts();
                         }
                         else {
-                            int n = (i >= params.size() && indexInBatch != 0) ? indexInBatch : batchSize;
+                            int n = (i >= paramsSize && indexInBatch != 0) ? indexInBatch : batchSize;
                             updateCounts = new int[n];
                             Arrays.fill(updateCounts, UNKNOWN_COUNT);
                         }
@@ -357,16 +368,19 @@ class JdbcOperationSupport {
             for (int i = 0; i < params.length; i++) {
                 param = params[i];
                 if (param == null) {
-                    stmt.setObject(i + 1, null, Types.OTHER);
+                    stmt.setObject(i + 1, null, Types.NULL);
                 }
-                else if (param instanceof java.sql.Date) {
-                    stmt.setDate(i + 1, (java.sql.Date) param);
+                else if (param instanceof LocalDate) {
+                    stmt.setDate(i + 1, java.sql.Date.valueOf((LocalDate) param));
                 }
-                else if (param instanceof java.sql.Time) {
-                    stmt.setTime(i + 1, (java.sql.Time) param);
+                else if (param instanceof LocalTime) {
+                    stmt.setTime(i + 1, java.sql.Time.valueOf((LocalTime) param));
                 }
-                else if (param instanceof java.sql.Timestamp) {
-                    stmt.setTimestamp(i + 1, (java.sql.Timestamp) param);
+                else if (param instanceof LocalDateTime) {
+                    stmt.setTimestamp(i + 1, java.sql.Timestamp.valueOf((LocalDateTime) param));
+                }
+                else if (param instanceof Instant) {
+                    stmt.setTimestamp(i + 1, java.sql.Timestamp.from((Instant) param));
                 }
                 else {
                     stmt.setObject(i + 1, param);

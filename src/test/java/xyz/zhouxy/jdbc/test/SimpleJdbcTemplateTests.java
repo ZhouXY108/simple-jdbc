@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2025 the original author or authors.
+ * Copyright 2026-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -111,7 +111,7 @@ class SimpleJdbcTemplateTests {
 
     @Test
     void testInsert() throws SQLException {
-        List<Map<String, Object>> keys = jdbcTemplate.update(
+        List<Map<String, Object>> keys = jdbcTemplate.updateAndReturnKeys(
                 "INSERT INTO sys_account(username, account_status, created_by) VALUES (?, ?, ?), (?, ?, ?)",
                 buildParams("zhouxy21", "2", 123L, "code22", '2', 456L),
                 RowMapper.HASH_MAP_MAPPER);
@@ -123,7 +123,7 @@ class SimpleJdbcTemplateTests {
             assertTrue(key.containsKey("create_time"));
             assertInstanceOf(Date.class, key.get("create_time"));
         }
-        List<Long> ids = jdbcTemplate.update(
+        List<Long> ids = jdbcTemplate.updateAndReturnKeys(
                 "INSERT INTO sys_account(username, account_status, created_by) VALUES (?, ?, ?), (?, ?, ?)",
                 buildParams("zhouxy21", "2", 123L, "code22", '2', 456L),
                 (rs, rowNumber) -> rs.getObject("id", Long.class));
@@ -133,13 +133,13 @@ class SimpleJdbcTemplateTests {
 
     @Test
     void testUpdate() throws SQLException {
-        List<Map<String, Object>> keys = jdbcTemplate.update(
+        List<Map<String, Object>> keys = jdbcTemplate.updateAndReturnKeys(
                 "UPDATE sys_account SET account_status = ?, version = version + 1, update_time = now(), updated_by = ? WHERE id = ? AND version = ?",
                 buildParams("7", 886L, 20L, 88L),
                 RowMapper.HASH_MAP_MAPPER);
         assertEquals(1, keys.size());
         log.info("keys: {}", keys);
-        keys = jdbcTemplate.update(
+        keys = jdbcTemplate.updateAndReturnKeys(
                 "UPDATE sys_account SET account_status = ?, version = version + 1, update_time = now(), updated_by = ? WHERE id = ? AND version = ?",
                 buildParams("-1", 886L, 20L, 88L),
                 RowMapper.HASH_MAP_MAPPER);

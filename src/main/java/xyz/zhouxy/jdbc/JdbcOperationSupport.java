@@ -16,6 +16,9 @@
 
 package xyz.zhouxy.jdbc;
 
+import static xyz.zhouxy.plusone.commons.util.AssertTools.checkArgument;
+import static xyz.zhouxy.plusone.commons.util.AssertTools.checkArgumentNotNull;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -28,9 +31,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.Lists;
-
-import xyz.zhouxy.plusone.commons.collection.CollectionTools;
-import xyz.zhouxy.plusone.commons.util.AssertTools;
 
 /**
  * JdbcOperationSupport
@@ -217,14 +217,16 @@ class JdbcOperationSupport {
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
-        AssertTools.checkArgument(!quietly || CollectionTools.isNotEmpty(exceptions),
+        checkArgument(batchSize > 0, "The batch size must be greater than 0.");
+        checkArgument(!quietly || (exceptions != null && exceptions.isEmpty()),
                 "The list used to store exceptions should be non-null and empty.");
         if (params == null || params.isEmpty()) {
             return Collections.emptyList();
         }
-        int executeCount = params.size() / batchSize;
-        executeCount = (params.size() % batchSize == 0) ? executeCount : (executeCount + 1);
-        List<int[]> result = Lists.newArrayListWithCapacity(executeCount);
+
+        int batchCount = (params.size() + batchSize - 1) / batchSize;
+
+        List<int[]> result = Lists.newArrayListWithCapacity(batchCount);
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             int i = 0;
@@ -360,28 +362,23 @@ class JdbcOperationSupport {
     // #region - 参数校验
 
     private static void assertConnectionNotNull(Connection conn) {
-        AssertTools.checkArgument(Objects.nonNull(conn),
-                "The argument \"conn\" could not be null.");
+        checkArgumentNotNull(conn, "The argument \"conn\" could not be null.");
     }
 
     private static void assertSqlNotNull(String sql) {
-        AssertTools.checkArgument(Objects.nonNull(sql),
-                "The argument \"sql\" could not be null.");
+        checkArgumentNotNull(sql, "The argument \"sql\" could not be null.");
     }
 
     private static void assertRowMapperNotNull(RowMapper<?> rowMapper) {
-        AssertTools.checkArgument(Objects.nonNull(rowMapper),
-                "The argument \"rowMapper\" could not be null.");
+        checkArgumentNotNull(rowMapper, "The argument \"rowMapper\" could not be null.");
     }
 
     private static void assertResultHandlerNotNull(ResultHandler<?> resultHandler) {
-        AssertTools.checkArgument(Objects.nonNull(resultHandler),
-                "The argument \"resultHandler\" could not be null.");
+        checkArgumentNotNull(resultHandler, "The argument \"resultHandler\" could not be null.");
     }
 
     private static void assertClazzNotNull(Class<?> clazz) {
-        AssertTools.checkArgument(Objects.nonNull(clazz),
-                "The argument \"clazz\" could not be null.");
+        checkArgumentNotNull(clazz, "The argument \"clazz\" could not be null.");
     }
 
     // #endregion

@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 the original author or authors.
+ * Copyright 2026-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import static xyz.zhouxy.jdbc.ParamBuilder.buildBatchParams;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 
 import java.util.Optional;
@@ -112,7 +113,7 @@ public class BatchUpdateTests {
         assertEquals(2, result.getRemainingBatchCount());
         assertArrayEquals(new int[] { 1, 1, 1 }, result.getUpdateCounts(0));
         assertArrayEquals(new int[] { 1, 1, 1 }, result.getUpdateCounts(1));
-        assertArrayEquals(new int[] { 1, -3, 1 }, result.getUpdateCounts(2));
+        assertArrayEquals(new int[] { 1, Statement.EXECUTE_FAILED, 1 }, result.getUpdateCounts(2));
         assertNull(result.getUpdateCounts(3));
         assertNull(result.getUpdateCounts(4));
 
@@ -140,8 +141,8 @@ public class BatchUpdateTests {
         assertEquals(0, result.getRemainingBatchCount());
         assertArrayEquals(new int[] { 1, 1, 1 }, result.getUpdateCounts(0));
         assertArrayEquals(new int[] { 1, 1, 1 }, result.getUpdateCounts(1));
-        assertArrayEquals(new int[] { 1, -3, 1 }, result.getUpdateCounts(2));
-        assertArrayEquals(new int[] { -3, 1, 1 }, result.getUpdateCounts(3));
+        assertArrayEquals(new int[] { 1, Statement.EXECUTE_FAILED, 1 }, result.getUpdateCounts(2));
+        assertArrayEquals(new int[] { Statement.EXECUTE_FAILED, 1, 1 }, result.getUpdateCounts(3));
         assertArrayEquals(new int[] { 1 }, result.getUpdateCounts(4));
 
         Optional<Integer> count11 = jdbcTemplate.queryFirst("SELECT COUNT(*) FROM sys_account", (rs, i) -> rs.getInt(1));

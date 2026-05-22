@@ -51,6 +51,8 @@ class SimpleJdbcTemplateTests {
 
     private static SimpleJdbcTemplate jdbcTemplate;
 
+    final IdWorker idGenerator = IdGenerator.getSnowflakeIdGenerator(0);
+
     @BeforeAll
     static void initH2() throws IOException, SQLException {
         JdbcDataSource dataSource = new JdbcDataSource();
@@ -87,7 +89,7 @@ class SimpleJdbcTemplateTests {
         for (Map<String, Object> dbRecord : rs) {
             log.info("{}", dbRecord);
         }
-        List<ImmutableMap<String, Object>> expected = ImmutableList.of(
+        List<Map<String, Object>> expected = ImmutableList.of(
             ImmutableMap.of("id", 5L, "account_status", "0", "username", "zhouxy5"),
             ImmutableMap.of("id", 9L, "account_status", "0", "username", "zhouxy9"),
             ImmutableMap.of("id", 13L, "account_status", "1", "username", "zhouxy13"),
@@ -142,8 +144,6 @@ class SimpleJdbcTemplateTests {
                 RowMapper.HASH_MAP_MAPPER);
         assertEquals(0, keys.size());
     }
-
-    final IdWorker idGenerator = IdGenerator.getSnowflakeIdGenerator(0);
 
     @Test
     void testTransaction() throws SQLException {
@@ -236,6 +236,7 @@ class SimpleJdbcTemplateTests {
                 "SELECT * FROM sys_account WHERE id = ?",
                 buildParams(18L),
                 RowMapper.beanRowMapper(AccountPO.class));
+        assertTrue(t.isPresent());
         assertEquals(
                 new AccountPO(18L, "zhouxy18", "1",
                     LocalDateTime.of(2000, 1, 1, 0, 0), 118L,

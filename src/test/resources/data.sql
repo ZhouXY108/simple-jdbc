@@ -20,4 +20,4 @@ INSERT INTO sys_account(id, username, account_status, created_by, create_time, u
 INSERT INTO sys_account(id, username, account_status, created_by, create_time, update_time, `version`) VALUES (18, 'zhouxy18', '1', 118, '2000-01-01', '2000-01-29', 7 );
 INSERT INTO sys_account(id, username, account_status, created_by, create_time, update_time, `version`) VALUES (19, 'zhouxy19', '1', 118, '2000-01-01', '2000-01-29', 0 );
 
-INSERT INTO sys_account(id, username, account_status, created_by, create_time, updated_by, update_time, version) VALUES (20, 'zhouxy20', '2', 118, '2008-08-08 20:08:00', 31, now(), 88);
+INSERT INTO sys_account(id, username, account_status, created_by, create_time, updated_by, update_time, `version`) VALUES (20, 'zhouxy20', '2', 118, '2008-08-08 20:08:00', 31, now(), 88);

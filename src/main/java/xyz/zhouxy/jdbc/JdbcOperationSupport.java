@@ -19,6 +19,7 @@ package xyz.zhouxy.jdbc;
 import static xyz.zhouxy.plusone.commons.util.AssertTools.checkArgument;
 import static xyz.zhouxy.plusone.commons.util.AssertTools.checkArgumentNotNull;
 
+import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -45,6 +46,8 @@ import com.google.common.collect.Lists;
 class JdbcOperationSupport {
 
     // #region - query
+
+    private static final int UNKNOWN_COUNT = -999;
 
     /**
      * 执行查询，并按照自定义处理逻辑对结果进行处理，将结果转换为指定类型并返回
@@ -242,8 +245,16 @@ class JdbcOperationSupport {
                         stmt.clearBatch();
                     }
                     catch (Exception e) {
-                        int n = (i >= params.size() && indexInBatch != 0) ? indexInBatch : batchSize;
-                        result.add(new int[n]);
+                        final int[] updateCounts;
+                        if (e instanceof BatchUpdateException) {
+                            updateCounts = ((BatchUpdateException)e).getUpdateCounts();
+                        }
+                        else {
+                            int n = (i >= params.size() && indexInBatch != 0) ? indexInBatch : batchSize;
+                            updateCounts = new int[n];
+                            Arrays.fill(updateCounts, UNKNOWN_COUNT);
+                        }
+                        result.add(updateCounts);
                         stmt.clearBatch();
                         if (!quietly) {
                             throw e;

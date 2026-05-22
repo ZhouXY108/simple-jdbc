@@ -135,7 +135,7 @@ class JdbcOperationSupport {
     }
 
     /**
-     * 查询结果，并转换为 bool 值
+     * 查询第一行第一列并转换为 boolean
      *
      * @param conn   数据库连接
      * @param sql    SQL
@@ -200,14 +200,16 @@ class JdbcOperationSupport {
     }
 
     /**
-     * 批量更新，返回更新成功的记录行数。发生异常时不中断操作，将异常存入 {@code exceptions} 中
+     * 批量更新，返回更新成功的记录行数
      *
      * @param conn       数据库连接
      * @param sql        sql语句
      * @param params     参数列表
      * @param batchSize  每次批量更新的数据量
-     * @param exceptions 异常列表，用于记录异常信息
-     * @param quietly    静默
+     * @param exceptions 空列表，用于记录异常信息
+     * @param quietly    静默跑批。
+     *                   当 {@code quietly} 为 {@code true} 时，发生异常不中断操作，将异常存入 {@code exceptions} 中；
+     *                   当 {@code quietly} 为 {@code false} 时，发生异常即中断操作，并将异常抛出。
      */
     static List<int[]> batchUpdate(Connection conn,
                                    String sql, @Nullable Collection<Object[]> params, int batchSize,

@@ -45,8 +45,13 @@ import xyz.zhouxy.plusone.commons.annotation.StaticFactoryMethod;
  * </p>
  *
  * <p>
- * <b>NOTE: 使用反射获取类型信息，也是使用反射调用无参构造器和 {@code setter} 方法。
- * 实际使用中还是建议针对目标类型自定义 {@link RowMapper}。</b>
+ * 说明：
+ * <ul>
+ * <li>使用反射获取类型信息，也是使用反射调用无参构造器和 {@code setter} 方法。</li>
+ * <li>{@code propertyColMap} 未指定的列名和属性名的映射时，默认 JavaBean 的属性名为小驼峰，列名为小写蛇形命名。</li>
+ * <li>从{@link ResultSet} 中获取属性值时，使用 {@link ResultSet#getObject(String, Class)} 获取。</li>
+ * <li>实际使用中还是建议针对目标类型自定义 {@link RowMapper}。</li>
+ * </ul>
  * </p>
  * @author ZhouXY108 <luquanlion@outlook.com>
  * @since 1.0.0

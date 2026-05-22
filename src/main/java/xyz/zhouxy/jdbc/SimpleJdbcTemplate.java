@@ -261,21 +261,21 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
     /** {@inheritDoc} */
     @Override
-    public List<int[]> batchUpdate(String sql, @Nullable Collection<Object[]> params, int batchSize)
+    public BatchUpdateResult batchUpdate(String sql, @Nullable Collection<Object[]> params, int batchSize)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.batchUpdate(conn, sql, params, batchSize, null, false);
+            return JdbcOperationSupport.batchUpdate(conn, sql, params, batchSize, false);
         }
     }
 
     /** {@inheritDoc} */
     @Override
-    public List<int[]> batchUpdate(String sql, @Nullable Collection<Object[]> params,
-                                   int batchSize, List<Exception> exceptions, boolean quietly)
+    public BatchUpdateResult batchUpdate(String sql, @Nullable Collection<Object[]> params,
+                                   int batchSize, boolean quietly)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcOperationSupport
-                    .batchUpdate(conn, sql, params, batchSize, exceptions, quietly);
+                    .batchUpdate(conn, sql, params, batchSize, quietly);
         }
     }
 
@@ -533,20 +533,19 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
         /** {@inheritDoc} */
         @Override
-        public List<int[]> batchUpdate(String sql, @Nullable Collection<Object[]> params, int batchSize)
+        public BatchUpdateResult batchUpdate(String sql, @Nullable Collection<Object[]> params, int batchSize)
                 throws SQLException {
-            return JdbcOperationSupport.batchUpdate(this.conn, sql, params, batchSize, null, false);
+            return JdbcOperationSupport.batchUpdate(this.conn, sql, params, batchSize, false);
         }
 
         /** {@inheritDoc} */
         @Override
-        public List<int[]> batchUpdate(String sql,
+        public BatchUpdateResult batchUpdate(String sql,
                                        @Nullable Collection<Object[]> params,
                                        int batchSize,
-                                       List<Exception> exceptions,
                                        boolean quietly) throws SQLException {
             return JdbcOperationSupport
-                    .batchUpdate(this.conn, sql, params, batchSize, exceptions, quietly);
+                    .batchUpdate(this.conn, sql, params, batchSize, quietly);
         }
 
         // #endregion

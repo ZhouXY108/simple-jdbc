@@ -243,28 +243,31 @@ public interface JdbcOperations {
             throws SQLException;
 
     /**
-     * 批量更新，返回每条记录更新的行数
+     * 批量更新
+     *
+     * <p>
+     * 跑批过程中发生异常即中断操作，并返回结果。
      *
      * @param sql       SQL 语句
      * @param params    参数列表
      * @param batchSize 每次批量更新的数据量
      */
-    List<int[]> batchUpdate(String sql, @Nullable Collection<Object[]> params, int batchSize)
+    BatchUpdateResult batchUpdate(String sql, @Nullable Collection<Object[]> params, int batchSize)
             throws SQLException;
 
     /**
-     * 批量更新，返回更新成功的记录行数
+     * 批量更新
      *
      * @param sql        sql语句
      * @param params     参数列表
      * @param batchSize  每次批量更新的数据量
      * @param exceptions 空列表，用于记录异常信息
-     * @param quietly    静默跑批。
-     *                   当 {@code quietly} 为 {@code true} 时，发生异常不中断操作，将异常存入 {@code exceptions} 中；
-     *                   当 {@code quietly} 为 {@code false} 时，发生异常即中断操作，并将异常抛出。
+     * @param quietly    静默分批更新。
+     *                   如果 {@code quietly} 为 {@code true}，分批更新过程中发生异常不中断操作；
+     *                   如果 {@code quietly} 为 {@code false}，分批更新过程中发生异常即中断操作，并返回结果。
      */
-    List<int[]> batchUpdate(String sql, @Nullable Collection<Object[]> params,
-                            int batchSize, List<Exception> exceptions, boolean quietly)
+    BatchUpdateResult batchUpdate(String sql, @Nullable Collection<Object[]> params,
+                            int batchSize, boolean quietly)
             throws SQLException;
 
     // #endregion

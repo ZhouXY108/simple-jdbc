@@ -210,29 +210,28 @@ class JdbcOperationSupport {
      * @param params     参数列表
      * @param batchSize  每次批量更新的数据量
      * @param exceptions 空列表，用于记录异常信息
-     * @param quietly    静默跑批。
-     *                   当 {@code quietly} 为 {@code true} 时，发生异常不中断操作，将异常存入 {@code exceptions} 中；
-     *                   当 {@code quietly} 为 {@code false} 时，发生异常即中断操作，并将异常抛出。
+     * @param quietly    静默分批更新。
+     *                   如果 {@code quietly} 为 {@code true}，分批更新过程中发生异常不中断操作；
+     *                   如果 {@code quietly} 为 {@code false}，分批更新过程中发生异常即中断操作，并返回结果。
      */
-    static List<int[]> batchUpdate(Connection conn,
+    static BatchUpdateResult batchUpdate(Connection conn,
                                    String sql, @Nullable Collection<Object[]> params, int batchSize,
-                                   List<Exception> exceptions, boolean quietly)
+                                   boolean quietly)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         checkArgument(batchSize > 0, "The batch size must be greater than 0.");
-        checkArgument(!quietly || (exceptions != null && exceptions.isEmpty()),
-                "The list used to store exceptions should be non-null and empty.");
         if (params == null || params.isEmpty()) {
-            return Collections.emptyList();
+            return new BatchUpdateResult(0, 0, batchSize);
         }
 
         int batchCount = (params.size() + batchSize - 1) / batchSize;
 
-        List<int[]> result = Lists.newArrayListWithCapacity(batchCount);
+        final BatchUpdateResult result = new BatchUpdateResult(params.size(), batchCount, batchSize);
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             int i = 0;
+            int batchIndex = 0;
             for (Object[] ps : params) {
                 i++;
                 fillStatement(stmt, ps);
@@ -240,28 +239,27 @@ class JdbcOperationSupport {
                 final int indexInBatch = i % batchSize;
                 if (indexInBatch == 0 || i >= params.size()) {
                     try {
-                        int[] n = stmt.executeBatch();
-                        result.add(n);
-                        stmt.clearBatch();
+                        int[] updateCounts = stmt.executeBatch();
+                        result.recordSuccessBatch(batchIndex, updateCounts);
                     }
                     catch (Exception e) {
                         final int[] updateCounts;
                         if (e instanceof BatchUpdateException) {
-                            updateCounts = ((BatchUpdateException)e).getUpdateCounts();
+                            updateCounts = ((BatchUpdateException) e).getUpdateCounts();
                         }
                         else {
                             int n = (i >= params.size() && indexInBatch != 0) ? indexInBatch : batchSize;
                             updateCounts = new int[n];
                             Arrays.fill(updateCounts, UNKNOWN_COUNT);
                         }
-                        result.add(updateCounts);
-                        stmt.clearBatch();
+                        result.recordErrorBatch(batchIndex, updateCounts, e);
                         if (!quietly) {
-                            throw e;
+                            result.interrupt();
+                            return result;
                         }
-                        // 收集异常信息
-                        exceptions.add(e);
                     }
+                    stmt.clearBatch();
+                    batchIndex++;
                 }
             }
             return result;

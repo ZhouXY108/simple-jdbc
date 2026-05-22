@@ -32,8 +32,19 @@ public class AccountPO {
     public AccountPO() {
     }
 
-    public AccountPO(Long id, String username, String accountStatus, LocalDateTime createTime, Long createdBy,
-            LocalDateTime updateTime, Long updatedBy, Long version) {
+    public AccountPO(Long id, String username, String accountStatus,
+            Long createdBy, Long updatedBy) {
+        this.id = id;
+        this.username = username;
+        this.accountStatus = accountStatus;
+        this.createdBy = createdBy;
+        this.updatedBy = updatedBy;
+    }
+
+    public AccountPO(Long id, String username, String accountStatus,
+            LocalDateTime createTime, Long createdBy,
+            LocalDateTime updateTime, Long updatedBy,
+            Long version) {
         this.id = id;
         this.username = username;
         this.accountStatus = accountStatus;

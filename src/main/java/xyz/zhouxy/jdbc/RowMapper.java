@@ -36,13 +36,18 @@ import java.util.Map;
 public interface RowMapper<T> {
     T mapRow(ResultSet rs, int rowNumber) throws SQLException;
 
-    /** 每一行数据转换为 {@link HashMap} */
+    /**
+     * 每一行数据转换为 {@link HashMap}
+     *
+     * <p>
+     * <b>注：如果两个属性映射到同一列名（虽然不常见），后者静默覆盖前者。</b>
+     */
     RowMapper<Map<String, Object>> HASH_MAP_MAPPER = (rs, rowNumber) -> {
         Map<String, Object> result = new HashMap<>();
         ResultSetMetaData metaData = rs.getMetaData();
         int columnCount = metaData.getColumnCount();
         for (int i = 1; i <= columnCount; i++) {
-            String colName = metaData.getColumnName(i);
+            String colName = metaData.getColumnLabel(i);
             result.put(colName, rs.getObject(colName));
         }
         return result;

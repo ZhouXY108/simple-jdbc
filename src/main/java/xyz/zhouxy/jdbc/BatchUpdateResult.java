@@ -33,7 +33,7 @@ public class BatchUpdateResult {
 
     private int completeBatchCount;
 
-    public BatchUpdateResult(int total, int batchCount, int batchSize) {
+    BatchUpdateResult(int total, int batchCount, int batchSize) {
         this.total = total;
         this.batchCount = batchCount;
         this.batchSize = batchSize;
@@ -45,7 +45,7 @@ public class BatchUpdateResult {
     /**
      * 记录成功批次
      */
-    public void recordSuccessBatch(int batchIndex, int[] updateCounts) {
+    void recordSuccessBatch(int batchIndex, int[] updateCounts) {
         this.completeBatchCount++;
         this.allUpdateCounts.put(batchIndex, updateCounts);
         this.successBatchCount++;
@@ -54,7 +54,7 @@ public class BatchUpdateResult {
     /**
      * 记录失败批次
      */
-    public void recordErrorBatch(int batchIndex, int[] updateCounts, Throwable cause) {
+    void recordErrorBatch(int batchIndex, int[] updateCounts, Throwable cause) {
         this.completeBatchCount++;
         this.allUpdateCounts.put(batchIndex, updateCounts);
         this.allErrorsInfo.put(batchIndex, new BatchUpdateErrorInfo(batchIndex, cause));
@@ -66,7 +66,7 @@ public class BatchUpdateResult {
     /**
      * 中断
      */
-    public void interrupt() {
+    void interrupt() {
         this.status = BatchUpdateStatus.INTERRUPTED;
     }
 

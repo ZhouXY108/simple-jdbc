@@ -61,15 +61,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
         }
     }
 
-    /** {@inheritDoc} */
-    @Override
-    public <T> T query(String sql, ResultHandler<T> resultHandler)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.query(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, resultHandler);
-        }
-    }
-
     // #endregion
 
     // #region - queryList
@@ -98,34 +89,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcOperationSupport.queryList(conn, sql, params, RowMapper.HASH_MAP_MAPPER);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public <T> List<T> queryList(String sql, RowMapper<T> rowMapper)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.queryList(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public <T> List<T> queryList(String sql, Class<T> clazz)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.queryList(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public List<Map<String, Object>> queryList(String sql)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport
-                    .queryList(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, RowMapper.HASH_MAP_MAPPER);
         }
     }
 
@@ -166,51 +129,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
     /** {@inheritDoc} */
     @Override
-    public <T> Optional<T> queryFirst(String sql, RowMapper<T> rowMapper)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final T result = JdbcOperationSupport
-                    .queryFirst(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
-            return Optional.ofNullable(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public <T> Optional<T> queryFirst(String sql, Class<T> clazz)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final T result = JdbcOperationSupport
-                    .queryFirst(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz);
-            return Optional.ofNullable(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Optional<Map<String, Object>> queryFirst(String sql)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final Map<String, Object> result = JdbcOperationSupport
-                    .queryFirst(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, RowMapper.HASH_MAP_MAPPER);
-            return Optional.ofNullable(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public boolean queryBoolean(String sql) // TODO 单元测试
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            final Boolean result = JdbcOperationSupport
-                    .queryFirstBoolean(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
-            return Boolean.TRUE.equals(result);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public boolean queryBoolean(String sql, Object[] params) // TODO 单元测试
+    public boolean queryBoolean(String sql, Object[] params)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             final Boolean result = JdbcOperationSupport
@@ -234,28 +153,10 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
     /** {@inheritDoc} */
     @Override
-    public int update(String sql)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.update(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public <T> List<T> update(String sql, Object[] params, RowMapper<T> rowMapper)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcOperationSupport.update(conn, sql, params, rowMapper);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public <T> List<T> update(String sql, RowMapper<T> rowMapper)
-            throws SQLException {
-        try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.update(conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
         }
     }
 
@@ -271,7 +172,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
     /** {@inheritDoc} */
     @Override
     public BatchUpdateResult batchUpdate(String sql, @Nullable Collection<Object[]> params,
-                                   int batchSize, boolean quietly)
+            int batchSize, boolean quietly)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcOperationSupport
@@ -290,14 +191,14 @@ public class SimpleJdbcTemplate implements JdbcOperations {
      * operations 中使用 JdbcExecutor 实参进行 JDBC 操作，这些操作在一个连接中
      * </p>
      *
-     * @param <E>           异常类型
-     * @param operations    事务操作
-     * @throws SQLException SQL 异常
-     * @throws E            事务中的异常
+     * @param <E>                   异常类型
+     * @param operations            事务操作
+     * @throws SQLException         SQL 异常
+     * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
      */
     public <E extends Exception> void executeTransaction(
             @Nonnull final ThrowingConsumer<JdbcOperations, E> operations)
-            throws SQLException, E {
+            throws TransactionException, SQLException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
         try (Connection conn = this.dataSource.getConnection()) {
             final boolean autoCommit = conn.getAutoCommit();
@@ -305,12 +206,10 @@ public class SimpleJdbcTemplate implements JdbcOperations {
                 conn.setAutoCommit(false);
                 operations.accept(new JdbcExecutor(conn));
                 conn.commit();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 conn.rollback();
-                throw new SQLException("Transaction failed during execution", e);
-            }
-            finally {
+                throw new TransactionException(e);
+            } finally {
                 conn.setAutoCommit(autoCommit);
             }
         }
@@ -321,14 +220,14 @@ public class SimpleJdbcTemplate implements JdbcOperations {
      * 如果 {@code operations} 返回 {@code true}，则提交事务；
      * 如果抛出异常，或返回 {@code false}，则回滚事务
      *
-     * @param <E>        事务中的异常
-     * @param operations 事务操作
-     * @throws SQLException 数据库异常
-     * @throws E            事务中的异常类型
+     * @param <E>                   事务中的异常
+     * @param operations            事务操作
+     * @throws SQLException         数据库异常
+     * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
      */
     public <E extends Exception> void commitIfTrue(
             @Nonnull final ThrowingPredicate<JdbcOperations, E> operations)
-            throws SQLException, E {
+            throws SQLException, TransactionException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
         try (Connection conn = this.dataSource.getConnection()) {
             final boolean autoCommit = conn.getAutoCommit();
@@ -336,16 +235,13 @@ public class SimpleJdbcTemplate implements JdbcOperations {
                 conn.setAutoCommit(false);
                 if (operations.test(new JdbcExecutor(conn))) {
                     conn.commit();
-                }
-                else {
+                } else {
                     conn.rollback();
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 conn.rollback();
-                throw new SQLException("Transaction failed during execution", e);
-            }
-            finally {
+                throw new TransactionException(e);
+            } finally {
                 conn.setAutoCommit(autoCommit);
             }
         }
@@ -368,14 +264,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
         public <T> T query(String sql, Object[] params, ResultHandler<T> resultHandler)
                 throws SQLException {
             return JdbcOperationSupport.query(this.conn, sql, params, resultHandler);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public <T> T query(String sql, ResultHandler<T> resultHandler)
-                throws SQLException {
-            return JdbcOperationSupport
-                    .query(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, resultHandler);
         }
 
         // #endregion
@@ -401,29 +289,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
         public List<Map<String, Object>> queryList(String sql, Object[] params)
                 throws SQLException {
             return JdbcOperationSupport.queryList(this.conn, sql, params, RowMapper.HASH_MAP_MAPPER);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public <T> List<T> queryList(String sql, RowMapper<T> rowMapper)
-                throws SQLException {
-            return JdbcOperationSupport
-                    .queryList(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public <T> List<T> queryList(String sql, Class<T> clazz)
-                throws SQLException {
-            return JdbcOperationSupport.queryList(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public List<Map<String, Object>> queryList(String sql)
-                throws SQLException {
-            return JdbcOperationSupport
-                    .queryList(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, RowMapper.HASH_MAP_MAPPER);
         }
 
         // #endregion
@@ -457,42 +322,6 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
         /** {@inheritDoc} */
         @Override
-        public <T> Optional<T> queryFirst(String sql, RowMapper<T> rowMapper)
-                throws SQLException {
-            final T result = JdbcOperationSupport
-                    .queryFirst(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
-            return Optional.ofNullable(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public <T> Optional<T> queryFirst(String sql, Class<T> clazz)
-                throws SQLException {
-            final T result = JdbcOperationSupport
-                    .queryFirst(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz);
-            return Optional.ofNullable(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public Optional<Map<String, Object>> queryFirst(String sql)
-                throws SQLException {
-            final Map<String, Object> result = JdbcOperationSupport
-                    .queryFirst(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, RowMapper.HASH_MAP_MAPPER);
-            return Optional.ofNullable(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public boolean queryBoolean(String sql)
-                throws SQLException {
-            final Boolean result = JdbcOperationSupport
-                    .queryFirstBoolean(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
-            return Boolean.TRUE.equals(result);
-        }
-
-        /** {@inheritDoc} */
-        @Override
         public boolean queryBoolean(String sql, Object[] params)
                 throws SQLException {
             final Boolean result = JdbcOperationSupport.queryFirstBoolean(this.conn, sql, params);
@@ -512,23 +341,9 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
         /** {@inheritDoc} */
         @Override
-        public int update(String sql)
-                throws SQLException {
-            return JdbcOperationSupport.update(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
-        }
-
-        /** {@inheritDoc} */
-        @Override
         public <T> List<T> update(String sql, Object[] params, RowMapper<T> rowMapper)
                 throws SQLException {
             return JdbcOperationSupport.update(this.conn, sql, params, rowMapper);
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public <T> List<T> update(String sql, RowMapper<T> rowMapper)
-                throws SQLException {
-            return JdbcOperationSupport.update(this.conn, sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
         }
 
         /** {@inheritDoc} */
@@ -541,9 +356,9 @@ public class SimpleJdbcTemplate implements JdbcOperations {
         /** {@inheritDoc} */
         @Override
         public BatchUpdateResult batchUpdate(String sql,
-                                       @Nullable Collection<Object[]> params,
-                                       int batchSize,
-                                       boolean quietly) throws SQLException {
+                @Nullable Collection<Object[]> params,
+                int batchSize,
+                boolean quietly) throws SQLException {
             return JdbcOperationSupport
                     .batchUpdate(this.conn, sql, params, batchSize, quietly);
         }

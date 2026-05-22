@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS sys_account;
+
 CREATE TABLE sys_account (
     `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY
   , `username` VARCHAR(255) NOT NULL
@@ -7,4 +9,4 @@ CREATE TABLE sys_account (
   , `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
   , `updated_by` BIGINT DEFAULT NULL
   , `version` BIGINT NOT NULL DEFAULT 0
-)
+);

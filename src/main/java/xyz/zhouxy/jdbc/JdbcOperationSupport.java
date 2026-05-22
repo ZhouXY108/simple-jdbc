@@ -25,8 +25,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.*;
-
+import java.sql.Types;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -140,6 +142,9 @@ class JdbcOperationSupport {
     /**
      * 查询第一行第一列并转换为 boolean
      *
+     * <p>
+     * <b>注：如果查询结果为空，则返回 {@code false}。</b>
+     *
      * @param conn   数据库连接
      * @param sql    SQL
      * @param params 参数
@@ -187,7 +192,7 @@ class JdbcOperationSupport {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         assertRowMapperNotNull(rowMapper);
-        final List<T> result = new LinkedList<>();
+        final List<T> result = Lists.newArrayList();
         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             fillStatement(stmt, params);
             stmt.executeUpdate();
@@ -209,7 +214,6 @@ class JdbcOperationSupport {
      * @param sql        sql语句
      * @param params     参数列表
      * @param batchSize  每次批量更新的数据量
-     * @param exceptions 空列表，用于记录异常信息
      * @param quietly    静默分批更新。
      *                   如果 {@code quietly} 为 {@code true}，分批更新过程中发生异常不中断操作；
      *                   如果 {@code quietly} 为 {@code false}，分批更新过程中发生异常即中断操作，并返回结果。
@@ -313,7 +317,7 @@ class JdbcOperationSupport {
                                                  @Nonnull RowMapper<T> rowMapper)
             throws SQLException {
         return queryInternal(conn, sql, params, rs -> {
-            List<T> result = new LinkedList<>();
+            List<T> result = Lists.newArrayList();
             int rowNumber = 0;
             while (rs.next()) {
                 T e = rowMapper.mapRow(rs, rowNumber++);
@@ -352,7 +356,10 @@ class JdbcOperationSupport {
             Object param;
             for (int i = 0; i < params.length; i++) {
                 param = params[i];
-                if (param instanceof java.sql.Date) {
+                if (param == null) {
+                    stmt.setObject(i + 1, null, Types.OTHER);
+                }
+                else if (param instanceof java.sql.Date) {
                     stmt.setDate(i + 1, (java.sql.Date) param);
                 }
                 else if (param instanceof java.sql.Time) {

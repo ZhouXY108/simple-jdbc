@@ -42,6 +42,7 @@ import com.google.common.io.Resources;
 import xyz.zhouxy.jdbc.JdbcOperations;
 import xyz.zhouxy.jdbc.RowMapper;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
+import xyz.zhouxy.jdbc.TransactionException;
 import xyz.zhouxy.plusone.commons.util.IdGenerator;
 import xyz.zhouxy.plusone.commons.util.IdWorker;
 
@@ -146,20 +147,18 @@ class SimpleJdbcTemplateTests {
     }
 
     @Test
-    void testTransaction() throws SQLException {
+    void testTransaction() throws TransactionException, SQLException {
         // 抛异常，回滚
         {
             long id = this.idGenerator.nextId();
-            try {
+            TransactionException e = assertThrows(TransactionException.class, () -> {
                 jdbcTemplate.executeTransaction((JdbcOperations jdbc) -> {
                     jdbc.update("INSERT INTO sys_account (id, username, created_by, create_time, account_status) VALUES (?, ?, ?, ?, ?)",
                             buildParams(id, "testTransaction1", 100, LocalDateTime.now(), "55"));
                     throw new NullPointerException();
                 });
-            }
-            catch (NullPointerException e) {
-                // ignore
-            }
+            });
+            assertEquals(NullPointerException.class, e.getCause().getClass());
             Optional<Map<String, Object>> first = jdbcTemplate
                     .queryFirst("SELECT * FROM sys_account WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
@@ -183,16 +182,14 @@ class SimpleJdbcTemplateTests {
         // 抛异常，回滚
         {
             long id = this.idGenerator.nextId();
-            try {
+            TransactionException e = assertThrows(TransactionException.class, () -> {
                 jdbcTemplate.commitIfTrue(jdbc -> {
                     jdbc.update("INSERT INTO sys_account (id, username, created_by, create_time, account_status) VALUES (?, ?, ?, ?, ?)",
                             buildParams(id, "testTransaction3", 102, LocalDateTime.now(), "55"));
                     throw new NullPointerException();
                 });
-            }
-            catch (NullPointerException e) {
-                // ignore
-            }
+            });
+            assertEquals(NullPointerException.class, e.getCause().getClass());
             Optional<Map<String, Object>> first = jdbcTemplate
                     .queryFirst("SELECT * FROM sys_account WHERE id = ?", buildParams(id));
             log.info("first: {}", first);
@@ -243,5 +240,16 @@ class SimpleJdbcTemplateTests {
                     LocalDateTime.of(2000, 1, 29, 0, 0), null, 7L),
                 t.get());
         log.info("{}", t);
+    }
+
+    @Test
+    void testQueryBoolean() throws SQLException {
+        // 建议写法
+        assertTrue(jdbcTemplate.queryBoolean("SELECT EXISTS(SELECT 1 FROM sys_account WHERE id = 10)"));
+        assertFalse(jdbcTemplate.queryBoolean("SELECT EXISTS(SELECT 1 FROM sys_account WHERE id = 999)"));
+
+        // 不建议写法
+        assertTrue(jdbcTemplate.queryBoolean("SELECT 1 FROM sys_account WHERE id = 10"));
+        assertFalse(jdbcTemplate.queryBoolean("SELECT 1 FROM sys_account WHERE id = 999"));
     }
 }

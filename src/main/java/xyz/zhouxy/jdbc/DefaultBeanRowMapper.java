@@ -50,6 +50,7 @@ import xyz.zhouxy.plusone.commons.annotation.StaticFactoryMethod;
  * <li>使用反射获取类型信息，也是使用反射调用无参构造器和 {@code setter} 方法。</li>
  * <li>{@code propertyColMap} 未指定的列名和属性名的映射时，默认 JavaBean 的属性名为小驼峰，列名为小写蛇形命名。</li>
  * <li>从{@link ResultSet} 中获取属性值时，使用 {@link ResultSet#getObject(String, Class)} 获取。</li>
+ * <li>JavaBean 属性仅支持引用类型，不支持基本数据类型。</li>
  * <li>实际使用中还是建议针对目标类型自定义 {@link RowMapper}。</li>
  * </ul>
  * </p>
@@ -119,7 +120,7 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
             ResultSetMetaData metaData = rs.getMetaData();
             // 遍历结果的每一列
             for (int i = 1; i <= metaData.getColumnCount(); i++) {
-                String colName = metaData.getColumnName(i);
+                String colName = metaData.getColumnLabel(i);
                 // 获取查询结果列名对应的属性，调用 setter
                 PropertyDescriptor propertyDescriptor = this.colPropertyMap.get(colName);
                 if (propertyDescriptor != null) {

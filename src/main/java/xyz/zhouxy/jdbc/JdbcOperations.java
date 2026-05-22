@@ -55,8 +55,10 @@ public interface JdbcOperations {
      * @param sql           SQL
      * @param resultHandler 结果处理器，用于处理 {@link ResultSet}
      */
-    <T> T query(String sql, ResultHandler<T> resultHandler)
-            throws SQLException;
+    default <T> T query(String sql, ResultHandler<T> resultHandler)
+            throws SQLException {
+        return query(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, resultHandler);
+    }
 
     // #endregion
 
@@ -97,8 +99,10 @@ public interface JdbcOperations {
      * @param sql       SQL
      * @param rowMapper {@link ResultSet} 中每一行的数据的处理逻辑
      */
-    <T> List<T> queryList(String sql, RowMapper<T> rowMapper)
-            throws SQLException;
+    default <T> List<T> queryList(String sql, RowMapper<T> rowMapper)
+            throws SQLException {
+        return queryList(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
+    }
 
     /**
      * 执行查询，返回结果映射为指定的类型。当结果为单列时使用
@@ -106,16 +110,20 @@ public interface JdbcOperations {
      * @param sql   SQL
      * @param clazz 将结果映射为指定的类型
      */
-    <T> List<T> queryList(String sql, Class<T> clazz)
-            throws SQLException;
+    default <T> List<T> queryList(String sql, Class<T> clazz)
+            throws SQLException {
+        return queryList(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz);
+    }
 
     /**
      * 执行查询，每一行数据映射为 {@code Map<String, Object>}，返回结果列表
      *
      * @param sql SQL
      */
-    List<Map<String, Object>> queryList(String sql)
-            throws SQLException;
+    default List<Map<String, Object>> queryList(String sql)
+            throws SQLException {
+        return queryList(sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+    }
 
     // #endregion
 
@@ -157,8 +165,10 @@ public interface JdbcOperations {
      * @param sql       SQL
      * @param rowMapper {@link ResultSet} 中每一行的数据的处理逻辑
      */
-    <T> Optional<T> queryFirst(String sql, RowMapper<T> rowMapper)
-            throws SQLException;
+    default <T> Optional<T> queryFirst(String sql, RowMapper<T> rowMapper)
+            throws SQLException {
+        return queryFirst(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
+    }
 
     /**
      * 查询第一行第一列，并转换为指定类型
@@ -167,27 +177,39 @@ public interface JdbcOperations {
      * @param sql   SQL
      * @param clazz 目标类型
      */
-    <T> Optional<T> queryFirst(String sql, Class<T> clazz)
-            throws SQLException;
+    default <T> Optional<T> queryFirst(String sql, Class<T> clazz)
+            throws SQLException {
+        return queryFirst(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz);
+    }
 
     /**
      * 执行查询，将第一行数据转为 Map<String, Object>
      *
      * @param sql SQL
      */
-    Optional<Map<String, Object>> queryFirst(String sql)
-            throws SQLException;
+    default Optional<Map<String, Object>> queryFirst(String sql)
+            throws SQLException {
+        return queryFirst(sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+    }
 
     /**
      * 查询第一行第一列并转换为 boolean
      *
+     * <p>
+     * <b>注：如果查询结果为空，则返回 {@code false}。</b>
+     *
      * @param sql SQL
      */
-    boolean queryBoolean(String sql)
-            throws SQLException;
+    default boolean queryBoolean(String sql)
+            throws SQLException {
+        return queryBoolean(sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+    }
 
     /**
      * 查询第一行第一列并转换为 boolean
+     *
+     * <p>
+     * <b>注：如果查询结果为空，则返回 {@code false}。</b>
      *
      * @param sql SQL
      */
@@ -214,8 +236,10 @@ public interface JdbcOperations {
      * @param sql 要执行的 SQL
      * @return 更新记录数
      */
-    int update(String sql)
-            throws SQLException;
+    default int update(String sql)
+            throws SQLException {
+        return update(sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+    }
 
     /**
      * 执行 SQL 并返回生成的 keys
@@ -239,8 +263,10 @@ public interface JdbcOperations {
      * @return generated keys
      * @throws SQLException 执行 SQL 遇到异常情况将抛出
      */
-    <T> List<T> update(String sql, RowMapper<T> rowMapper)
-            throws SQLException;
+    default <T> List<T> update(String sql, RowMapper<T> rowMapper)
+            throws SQLException {
+        return update(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
+    }
 
     /**
      * 批量更新
@@ -261,7 +287,6 @@ public interface JdbcOperations {
      * @param sql        sql语句
      * @param params     参数列表
      * @param batchSize  每次批量更新的数据量
-     * @param exceptions 空列表，用于记录异常信息
      * @param quietly    静默分批更新。
      *                   如果 {@code quietly} 为 {@code true}，分批更新过程中发生异常不中断操作；
      *                   如果 {@code quietly} 为 {@code false}，分批更新过程中发生异常即中断操作，并返回结果。

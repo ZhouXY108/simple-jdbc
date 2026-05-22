@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 the original author or authors.
+ * Copyright 2026-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -65,9 +66,15 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
     /** 列名到属性的映射 */
     private final Map<String, PropertyDescriptor> colPropertyMap;
 
-    private DefaultBeanRowMapper(Constructor<T> constructor, Map<String, PropertyDescriptor> colPropertyMap) {
+    /** 列名与 setter 的映射 */
+    private final Map<String, Method> colSetterMap;
+
+    private DefaultBeanRowMapper(Constructor<T> constructor,
+                                 Map<String, PropertyDescriptor> colPropertyMap,
+                                 Map<String, Method> colSetterMap) {
         this.constructor = constructor;
         this.colPropertyMap = colPropertyMap;
+        this.colSetterMap = colSetterMap;
     }
 
     /**
@@ -101,7 +108,8 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
             constructor.setAccessible(true); // NOSONAR
 
             final Map<String, PropertyDescriptor> colPropertyMap = buildColPropertyMap(beanType, propertyColMap);
-            return new DefaultBeanRowMapper<>(constructor, colPropertyMap);
+            final Map<String, Method> colSetterMap = buildColSetterMap(colPropertyMap);
+            return new DefaultBeanRowMapper<>(constructor, colPropertyMap, colSetterMap);
         }
         catch (IntrospectionException e) {
             throw new SQLException("There is an exception occurs during introspection.", e);
@@ -123,13 +131,10 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
                 String colName = metaData.getColumnLabel(i);
                 // 获取查询结果列名对应的属性，调用 setter
                 PropertyDescriptor propertyDescriptor = this.colPropertyMap.get(colName);
-                if (propertyDescriptor != null) {
-                    Method setter = propertyDescriptor.getWriteMethod();
-                    if (setter != null) {
-                        Class<?> propertyType = propertyDescriptor.getPropertyType();
-                        setter.setAccessible(true); // NOSONAR
-                        setter.invoke(newInstance, rs.getObject(colName, propertyType));
-                    }
+                Method setter = this.colSetterMap.get(colName);
+                if (propertyDescriptor != null && setter != null) {
+                    Class<?> propertyType = propertyDescriptor.getPropertyType();
+                    setter.invoke(newInstance, rs.getObject(colName, propertyType));
                 }
             }
             return newInstance;
@@ -149,7 +154,7 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
      * @throws IntrospectionException if an exception occurs during introspection.
      */
     private static <T> Map<String, PropertyDescriptor> buildColPropertyMap(
-        Class<T> beanType, Map<String, String> propertyColMap) throws IntrospectionException {
+            Class<T> beanType, Map<String, String> propertyColMap) throws IntrospectionException {
 
         BeanInfo beanInfo = Introspector.getBeanInfo(beanType);
         PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
@@ -168,6 +173,18 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
             };
         }
         return Arrays.stream(propertyDescriptors)
-            .collect(Collectors.toMap(keyMapper, Function.identity(), (a, b) -> b));
+                .collect(Collectors.toMap(keyMapper, Function.identity(), (a, b) -> b));
+    }
+
+    private static Map<String, Method> buildColSetterMap(Map<String, PropertyDescriptor> colPropertyMap) {
+        final Map<String, Method> colSetterMap = new HashMap<>(colPropertyMap.size());
+        colPropertyMap.forEach((col, propertyDescriptor) -> {
+            Method setter = propertyDescriptor.getWriteMethod();
+            if (setter != null) {
+                setter.setAccessible(true); // NOSONAR
+                colSetterMap.put(col, setter);
+            }
+        });
+        return colSetterMap;
     }
 }

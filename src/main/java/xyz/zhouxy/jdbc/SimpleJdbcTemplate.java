@@ -308,7 +308,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
             }
             catch (Exception e) {
                 conn.rollback();
-                throw e;
+                throw new SQLException("Translation failed during execution", e);
             }
             finally {
                 conn.setAutoCommit(autoCommit);
@@ -343,7 +343,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
             }
             catch (Exception e) {
                 conn.rollback();
-                throw e;
+                throw new SQLException("Translation failed during execution", e);
             }
             finally {
                 conn.setAutoCommit(autoCommit);

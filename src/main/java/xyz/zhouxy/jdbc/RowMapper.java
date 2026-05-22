@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 the original author or authors.
+ * Copyright 2026-present the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ public interface RowMapper<T> {
      * 每一行数据转换为 {@link HashMap}
      *
      * <p>
-     * <b>注：如果两个属性映射到同一列名（虽然不常见），后者静默覆盖前者。</b>
+     * <b>注：如果两个属性映射到同一列名，后者静默覆盖前者。</b>
      */
     RowMapper<Map<String, Object>> HASH_MAP_MAPPER = (rs, rowNumber) -> {
         Map<String, Object> result = new HashMap<>();

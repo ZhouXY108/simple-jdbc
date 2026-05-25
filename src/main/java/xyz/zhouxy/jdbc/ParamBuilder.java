@@ -54,13 +54,6 @@ public class ParamBuilder {
         return buildParamsFromStream(Arrays.stream(params));
     }
 
-    public static Object[] buildParams(final Collection<?> params) {
-        if (CollectionTools.isEmpty(params)) {
-            return EMPTY_OBJECT_ARRAY;
-        }
-        return buildParamsFromStream(params.stream());
-    }
-
     private static Object[] buildParamsFromStream(Stream<?> stream) {
         return stream
                 .map(param -> {

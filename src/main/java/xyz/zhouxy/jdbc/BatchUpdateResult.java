@@ -72,7 +72,7 @@ public class BatchUpdateResult {
 
     /**
      * 获取批次更新结果
-     */
+          */
     public int[] getUpdateCounts(int batchIndex) {
         int[] updateCounts = this.allUpdateCounts.get(batchIndex);
         return updateCounts != null ? updateCounts.clone() : null;
@@ -80,7 +80,7 @@ public class BatchUpdateResult {
 
     /**
      * 获取错误批次号
-     */
+          */
     public int[] getErrorBatchIndexes() {
         return this.allErrorsInfo.keySet().stream().mapToInt(Integer::intValue).toArray();
     }
@@ -179,14 +179,14 @@ public class BatchUpdateResult {
     @Override
     public String toString() {
         return "BatchUpdateResult ["
-                + "total()=" + total
-                + ", batchCount()=" + batchCount
-                + ", batchSize()=" + batchSize
-                + ", status()=" + status
-                + ", completeBatchCount()=" + completeBatchCount
-                + ", successBatchCount()=" + successBatchCount
-                + ", errorBatchCount()=" + getErrorBatchCount()
-                + ", remainingBatchCount()=" + getRemainingBatchCount()
+                + "total=" + total
+                + ", batchCount=" + batchCount
+                + ", batchSize=" + batchSize
+                + ", status=" + status
+                + ", completeBatchCount=" + completeBatchCount
+                + ", successBatchCount=" + successBatchCount
+                + ", errorBatchCount=" + getErrorBatchCount()
+                + ", remainingBatchCount=" + getRemainingBatchCount()
                 + "]";
     }
 }

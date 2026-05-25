@@ -19,6 +19,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 批量更新结果
+ *
+ * @author ZhouXY108 <luquanlion@outlook.com>
+ */
 public class BatchUpdateResult {
     private final int total;
     private final int batchCount;
@@ -72,7 +77,10 @@ public class BatchUpdateResult {
 
     /**
      * 获取批次更新结果
-          */
+     *
+     * @param batchIndex 批次号
+     * @return 批次更新结果
+     */
     public int[] getUpdateCounts(int batchIndex) {
         int[] updateCounts = this.allUpdateCounts.get(batchIndex);
         return updateCounts != null ? updateCounts.clone() : null;
@@ -80,7 +88,9 @@ public class BatchUpdateResult {
 
     /**
      * 获取错误批次号
-          */
+     *
+     * @return 错误批次号
+     */
     public int[] getErrorBatchIndexes() {
         return this.allErrorsInfo.keySet().stream().mapToInt(Integer::intValue).toArray();
     }

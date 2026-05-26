@@ -255,11 +255,13 @@ class JdbcOperationSupport {
                         result.recordErrorBatch(batchIndex, updateCounts, e);
                         if (!quietly) {
                             result.interrupt();
-                            return result;
+                            break;
                         }
                     }
-                    stmt.clearBatch();
-                    batchIndex++;
+                    finally {
+                        stmt.clearBatch();
+                        batchIndex++;
+                    }
                 }
             }
             return result;

@@ -146,21 +146,6 @@ class JdbcOperationSupport {
         return queryFirstInternal(conn, sql, params, (rs, rowNumber) -> rs.getObject(1, clazz));
     }
 
-    /**
-     * 查询第一行第一列并转换为 boolean
-     *
-     * <p>
-     * <b>注：如果查询结果为空，则返回 {@code false}。</b>
-     *
-     * @param conn   数据库连接
-     * @param sql    SQL
-     * @param params 参数
-     */
-    static Boolean queryFirstBoolean(Connection conn, String sql, Object[] params)
-            throws SQLException {
-        return queryFirst(conn, sql, params, (rs, rowNumber) -> rs.getBoolean(1));
-    }
-
     // #endregion
 
     // #region - update & batchUpdate

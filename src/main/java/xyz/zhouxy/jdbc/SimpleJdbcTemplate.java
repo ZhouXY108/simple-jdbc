@@ -133,7 +133,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             final Boolean result = JdbcOperationSupport
-                    .queryFirstBoolean(conn, sql, params);
+                    .queryFirst(conn, sql, params, Boolean.class);
             return Boolean.TRUE.equals(result);
         }
     }
@@ -339,7 +339,8 @@ public class SimpleJdbcTemplate implements JdbcOperations {
         @Override
         public boolean queryBoolean(String sql, Object[] params)
                 throws SQLException {
-            final Boolean result = JdbcOperationSupport.queryFirstBoolean(this.conn, sql, params);
+            final Boolean result = JdbcOperationSupport
+                    .queryFirst(this.conn, sql, params, Boolean.class);
             return Boolean.TRUE.equals(result);
         }
 

@@ -60,6 +60,9 @@ import xyz.zhouxy.plusone.commons.annotation.StaticFactoryMethod;
  */
 public class DefaultBeanRowMapper<T> implements RowMapper<T> {
 
+    /** JavaBean 类型 */
+    private final Class<T> beanType;
+
     /** Bean 的无参构造器 */
     private final Constructor<T> constructor;
 
@@ -69,9 +72,11 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
     /** 列名与 setter 的映射 */
     private final Map<String, Method> colSetterMap;
 
-    private DefaultBeanRowMapper(Constructor<T> constructor,
+    private DefaultBeanRowMapper(Class<T> beanType,
+                                 Constructor<T> constructor,
                                  Map<String, PropertyDescriptor> colPropertyMap,
                                  Map<String, Method> colSetterMap) {
+        this.beanType = beanType;
         this.constructor = constructor;
         this.colPropertyMap = colPropertyMap;
         this.colSetterMap = colSetterMap;
@@ -109,7 +114,7 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
 
             final Map<String, PropertyDescriptor> colPropertyMap = buildColPropertyMap(beanType, propertyColMap);
             final Map<String, Method> colSetterMap = buildColSetterMap(colPropertyMap);
-            return new DefaultBeanRowMapper<>(constructor, colPropertyMap, colSetterMap);
+            return new DefaultBeanRowMapper<>(beanType, constructor, colPropertyMap, colSetterMap);
         }
         catch (IntrospectionException e) {
             throw new SQLException("There is an exception occurs during introspection.", e);
@@ -140,7 +145,7 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
             return newInstance;
         }
         catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
-            throw new SQLException(e);
+            throw new SQLException("Could not map row to " + beanType.getName(), e);
         }
     }
 

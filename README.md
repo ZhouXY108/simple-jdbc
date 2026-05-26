@@ -11,7 +11,7 @@
 - `query`：**最基础的查询方法**。可使用 `ResultHandler` 将查询结果映射为 Java 对象。
 - `queryList`：**查询列表**。可使用 `RowMapper` 将结果的每一行数据映射为 Java 对象，返回列表。
 - `queryFirst`：**查询，并获取第一行数据**。一般可以结合 `LIMIT 1` 使用。可使用 `RowMapper` 将结果的第一行数据映射为 Java 对象，返回 `Optional`。
-- `queryAsBoolean`：**查询，并获取第一行数据的第一个字段**，并转换为布尔类型。如果结果为空，则返回 `false`。
+- `queryBoolean`：**获取第一行数据的第一个字段，并转换为布尔类型**。如果结果为空，则返回 `false`。
 
 ### 结果映射
 
@@ -24,8 +24,7 @@
 
 - `int update`：**执行 DML**，包括 `INSERT`、`UPDATE`、`DELETE` 等。返回受影响行数。
 - `<T> List<T> update`：**执行 DML**，自动生成的字段将使用 `rowMapper` 进行映射，并返回列表。
-- `List<int[]> batchUpdate`：**分批次执行 DML**，返回每个批次的每条 SQL 语句影响的行数。
-- `List<int[]> batchUpdateAndIgnoreException`：**分批次执行 DML，如果某个批次出现异常，继续执行下一个批次**。返回每个批次的每条 SQL 语句影响的行数。
+- `List<int[]> batchUpdate`：**分批次执行 DML**，返回分批执行的结果。
 
 ## 事务
 
@@ -54,7 +53,7 @@ SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
 
 查询
 ```java
-// 查询
+// 查询（使用 ResultHandler 处理全部结果）
 List<Account> list = jdbcTemplate.query(
     "SELECT * FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
     buildParams("admin%", "0000"),
@@ -74,7 +73,19 @@ List<Account> list = jdbcTemplate.query(
     }
 );
 
-// 查询列表
+// 查询列表（单列）
+List<String> usernames = jdbcTemplate.queryList(
+    "SELECT username FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
+    buildParams("admin%", "0000"),
+    String.class
+);
+// 查询列表（使用 DefaultBeanRowMapper 进行映射）
+List<Account> list = jdbcTemplate.queryList(
+    "SELECT * FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
+    buildParams("admin%", "0000"),
+    RowMapper.beanRowMapper(Account.class)
+);
+// 查询列表（使用自定义 RowMapper 进行映射）
 List<Account> list = jdbcTemplate.queryList(
     "SELECT * FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
     buildParams("admin%", "0000"),
@@ -101,14 +112,8 @@ Optional<Account> account = jdbcTemplate.queryFirst(
     )
 )
 
-// 查询一行数据，并获取第一个字段
-OptionalInt age = jdbcTemplate.queryFirstInt(
-    "SELECT age FROM view_account WHERE deleted = 0 AND id = ?",
-    buildParams(10000L)
-);
-
 // 查询 boolean
-boolean exists = jdbcTemplate.queryAsBoolean(
+boolean exists = jdbcTemplate.queryBoolean(
     "SELECT EXISTS(SELECT 1 FROM account WHERE deleted = 0 AND id = ? LIMIT 1)",
     buildParams(10000L)
 );
@@ -123,7 +128,7 @@ int affectedRows = jdbcTemplate.update(
 );
 
 // 执行 DML，并获取生成的主键
-List<Pair<Long, LocalDateTime>> keys = jdbcTemplate.update(
+List<Pair<Long, LocalDateTime>> keys = jdbcTemplate.updateAndReturnKeys(
     "INSERT INTO account (username, password, org_no) VALUES (?, ?, ?)",
     buildParams("admin", "123456", "0000"),
     (rs, rowNum) -> Pair.of(
@@ -135,7 +140,7 @@ List<Pair<Long, LocalDateTime>> keys = jdbcTemplate.update(
 
 批量更新
 ```java
-jdbcTemplate.batchUpdate(
+BatchUpdateResult result = jdbcTemplate.batchUpdate(
     "INSERT INTO account (username, password, org_no) VALUES (?, ?, ?)",
     buildBatchParams(accountList, account -> buildParams(
         account.getUsername(),

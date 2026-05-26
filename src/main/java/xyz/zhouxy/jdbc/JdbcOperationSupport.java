@@ -243,15 +243,7 @@ class JdbcOperationSupport {
                         result.recordSuccessBatch(batchIndex, updateCounts);
                     }
                     catch (Exception e) {
-                        final int[] updateCounts;
-                        if (e instanceof BatchUpdateException) {
-                            updateCounts = ((BatchUpdateException) e).getUpdateCounts();
-                        }
-                        else {
-                            int n = (itemIndex >= paramsSize && indexInBatch != 0) ? indexInBatch : batchSize;
-                            updateCounts = new int[n];
-                            Arrays.fill(updateCounts, UNKNOWN_COUNT);
-                        }
+                        final int[] updateCounts = getUpdateCountsInternal(paramsSize, batchSize, itemIndex, indexInBatch, e);
                         result.recordErrorBatch(batchIndex, updateCounts, e);
                         if (!quietly) {
                             result.interrupt();
@@ -266,6 +258,23 @@ class JdbcOperationSupport {
             }
             return result;
         }
+    }
+
+    private static int[] getUpdateCountsInternal(final int paramsSize,
+                                                 final int batchSize,
+                                                 final int itemIndex,
+                                                 final int indexInBatch,
+                                                 final Exception e) {
+        final int[] updateCounts;
+        if (e instanceof BatchUpdateException) {
+            updateCounts = ((BatchUpdateException) e).getUpdateCounts();
+        }
+        else {
+            int n = (itemIndex >= paramsSize && indexInBatch != 0) ? indexInBatch : batchSize;
+            updateCounts = new int[n];
+            Arrays.fill(updateCounts, UNKNOWN_COUNT);
+        }
+        return updateCounts;
     }
 
     // #endregion

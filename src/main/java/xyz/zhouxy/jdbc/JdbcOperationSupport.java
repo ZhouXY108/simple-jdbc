@@ -225,19 +225,19 @@ class JdbcOperationSupport {
         }
 
         final int paramsSize = params.size();
-        int batchCount = (paramsSize + batchSize - 1) / batchSize;
+        final int batchCount = (paramsSize + batchSize - 1) / batchSize;
 
         final BatchUpdateResult result = new BatchUpdateResult(paramsSize, batchCount, batchSize);
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            int i = 0;
+            int itemIndex = 0;
             int batchIndex = 0;
             for (Object[] ps : params) {
-                i++;
+                itemIndex++;
                 fillStatement(stmt, ps);
                 stmt.addBatch();
-                final int indexInBatch = i % batchSize;
-                if (indexInBatch == 0 || i >= paramsSize) {
+                final int indexInBatch = itemIndex % batchSize;
+                if (indexInBatch == 0 || itemIndex >= paramsSize) {
                     try {
                         int[] updateCounts = stmt.executeBatch();
                         result.recordSuccessBatch(batchIndex, updateCounts);
@@ -248,7 +248,7 @@ class JdbcOperationSupport {
                             updateCounts = ((BatchUpdateException) e).getUpdateCounts();
                         }
                         else {
-                            int n = (i >= paramsSize && indexInBatch != 0) ? indexInBatch : batchSize;
+                            int n = (itemIndex >= paramsSize && indexInBatch != 0) ? indexInBatch : batchSize;
                             updateCounts = new int[n];
                             Arrays.fill(updateCounts, UNKNOWN_COUNT);
                         }

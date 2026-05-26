@@ -204,7 +204,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
             final boolean autoCommit = conn.getAutoCommit();
             try {
                 conn.setAutoCommit(false);
-                operations.accept(new JdbcExecutor(conn));
+                operations.accept(new TransactionJdbcExecutor(conn));
                 conn.commit();
             }
             catch (Exception e) {
@@ -240,7 +240,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
             final boolean autoCommit = conn.getAutoCommit();
             try {
                 conn.setAutoCommit(false);
-                if (operations.test(new JdbcExecutor(conn))) {
+                if (operations.test(new TransactionJdbcExecutor(conn))) {
                     conn.commit();
                 }
                 else {
@@ -264,11 +264,11 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
     // #endregion
 
-    private static final class JdbcExecutor implements JdbcOperations {
+    private static final class TransactionJdbcExecutor implements JdbcOperations {
 
         private final Connection conn;
 
-        private JdbcExecutor(Connection conn) {
+        private TransactionJdbcExecutor(Connection conn) {
             this.conn = conn;
         }
 

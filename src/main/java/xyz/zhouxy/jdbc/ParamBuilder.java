@@ -1,5 +1,5 @@
 /*
- * Copyright 2026-present the original author or authors.
+ * Copyright 2026-present ZhouXY
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ import xyz.zhouxy.plusone.commons.util.OptionalTools;
  * JDBC 参数构造器，将数据转换为 {@code Object[]} 类型，以传给 {@link PreparedStatement}
  * </p>
  *
- * @author ZhouXY108 <luquanlion@outlook.com>
+ * @author ZhouXY
  * @since 1.0.0
  */
 public class ParamBuilder {

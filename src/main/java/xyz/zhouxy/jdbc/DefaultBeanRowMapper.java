@@ -1,5 +1,5 @@
 /*
- * Copyright 2026-present the original author or authors.
+ * Copyright 2026-present ZhouXY
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ import xyz.zhouxy.plusone.commons.annotation.StaticFactoryMethod;
  * <li>实际使用中还是建议针对目标类型自定义 {@link RowMapper}。</li>
  * </ul>
  * </p>
- * @author ZhouXY108 <luquanlion@outlook.com>
+ * @author ZhouXY
  * @since 1.0.0
  */
 public class DefaultBeanRowMapper<T> implements RowMapper<T> {

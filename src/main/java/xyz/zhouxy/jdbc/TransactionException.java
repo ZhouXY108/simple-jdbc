@@ -1,5 +1,5 @@
 /*
- * Copyright 2026-present the original author or authors.
+ * Copyright 2026-present ZhouXY
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ package xyz.zhouxy.jdbc;
  * <p>
  * 用于包装事务执行过程中发生的原始异常
  *
- * @author ZhouXY108 <luquanlion@outlook.com>
+ * @author ZhouXY
  */
 public class TransactionException extends Exception {
     private static final long serialVersionUID = 87276230526383501L;

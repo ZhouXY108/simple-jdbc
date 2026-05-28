@@ -177,7 +177,7 @@ class JdbcOperationSupport {
      * @param rowMapper 行数据映射逻辑
      *
      * @return generated keys
-     * @throws SQLException 执行 SQL 遇到异常情况将抛出
+     * @throws SQLException 数据库执行异常
      */
     static <T> List<T> updateAndReturnKeys(Connection conn, String sql, Object[] params, RowMapper<T> rowMapper)
             throws SQLException {

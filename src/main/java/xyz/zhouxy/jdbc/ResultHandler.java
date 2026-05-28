@@ -34,6 +34,11 @@ public interface ResultHandler<T> {
 
     /**
      * 将 {@link ResultSet} 转换为指定类型的对象
+     *
+     * @param resultSet {@link ResultSet}
+     * @return 转换后的对象
+     *
+     * @throws SQLException 数据库执行异常
      */
     T handle(ResultSet resultSet) throws SQLException;
 }

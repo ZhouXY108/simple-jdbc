@@ -53,12 +53,29 @@ public interface RowMapper<T> {
         return result;
     };
 
-    /** 默认实现的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。 */
+    /**
+     * 默认实现的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。
+     *
+     * @param beanType Java Bean 的类型
+     * @param <T> Java Bean 的类型
+     *
+     * @return {@link DefaultBeanRowMapper}
+     * @throws SQLException 如果创建 {@link DefaultBeanRowMapper} 失败
+     */
     static <T> RowMapper<T> beanRowMapper(Class<T> beanType) throws SQLException {
         return DefaultBeanRowMapper.of(beanType);
     }
 
-    /** 默认实现的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。 */
+    /**
+     * 默认实现的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。
+     *
+     * @param beanType Java Bean 的类型
+     * @param propertyColMap Java Bean 属性名与数据库列名的映射关系
+     * @param <T> Java Bean 的类型
+     *
+     * @return {@link DefaultBeanRowMapper}
+     * @throws SQLException 如果创建 {@link DefaultBeanRowMapper} 失败
+     */
     static <T> RowMapper<T> beanRowMapper(Class<T> beanType, Map<String, String> propertyColMap)
             throws SQLException {
         return DefaultBeanRowMapper.of(beanType, propertyColMap);

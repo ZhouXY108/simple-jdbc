@@ -54,8 +54,8 @@ import xyz.zhouxy.plusone.commons.annotation.StaticFactoryMethod;
  * <li>JavaBean 属性仅支持引用类型，不支持基本数据类型。</li>
  * <li>实际使用中还是建议针对目标类型自定义 {@link RowMapper}。</li>
  * </ul>
- * </p>
- * @author ZhouXY
+
+* @author ZhouXY
  * @since 1.0.0
  */
 public class DefaultBeanRowMapper<T> implements RowMapper<T> {

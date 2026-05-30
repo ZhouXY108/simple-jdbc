@@ -29,14 +29,27 @@ import javax.sql.DataSource;
 import xyz.zhouxy.plusone.commons.util.AssertTools;
 
 /**
- * SimpleJdbcTemplate
+ * JDBC 操作的模板类，对原生 JDBC 进行轻量封装，提供查询、更新、批量操作等便捷方法。
  *
  * <p>
- * 对 JDBC 的简单封装，方便数据库操作，支持事务，支持批量操作，支持自定义结果集映射
+ * 主要能力：
+ * <ul>
+ * <li>查询：支持 {@link ResultHandler} 自定义结果处理、{@link RowMapper} 行映射等多种方式</li>
+ * <li>更新：执行 INSERT / UPDATE / DELETE，支持返回自增主键</li>
+ * <li>批量操作：通过 {@link #batchUpdate} 分批执行 DML，支持静默模式（遇错继续）和
+ *     非静默模式（遇错即中断）</li>
+ * <li>事务：通过 {@link #transaction()} 获取 {@link TransactionTemplate} 执行</li>
+ * </ul>
+ *
+ * <p>
+ * 线程安全：本类无内部可变状态，线程安全。所依赖的 {@link DataSource}
+ * 需自行保证线程安全。
  *
  * @author ZhouXY
  * @since 1.0.0
+ * @see JdbcOperations
  * @see TransactionTemplate
+ * @see ParamBuilder
  */
 public class SimpleJdbcTemplate implements JdbcOperations {
 

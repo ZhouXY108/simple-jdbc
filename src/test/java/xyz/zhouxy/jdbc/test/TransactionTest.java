@@ -16,9 +16,10 @@ import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 import xyz.zhouxy.jdbc.TransactionException;
 
 /**
- * 事务 API 测试：executeTransaction、commitIfTrue。
+ * 事务 API 测试：通过 {@link xyz.zhouxy.jdbc.TransactionTemplate#execute} 和
+ * {@link xyz.zhouxy.jdbc.TransactionTemplate#commitIfTrue} 测试事务提交与回滚。
  */
-@DisplayName("SimpleJdbcTemplate 事务操作")
+@DisplayName("TransactionTemplate 事务操作")
 class TransactionTest extends BaseH2Test {
 
     private static final Logger logger = LoggerFactory.getLogger(TransactionTest.class);
@@ -28,14 +29,14 @@ class TransactionTest extends BaseH2Test {
         resetDatabase();
     }
 
-    // ==================== executeTransaction 正常提交 ====================
+    // ==================== execute 正常提交 ====================
 
     @Test
-    @DisplayName("executeTransaction：正常提交，数据持久化")
+    @DisplayName("execute：正常提交，数据持久化")
     void testExecuteTransactionCommit() throws Exception {
         SimpleJdbcTemplate template = createTemplate();
 
-        template.executeTransaction((JdbcOperations ops) -> {
+        template.transaction().execute((JdbcOperations ops) -> {
             ops.update("INSERT INTO users (username, email, age, balance, active) VALUES (?, ?, ?, ?, ?)",
                     buildParams("txUser1", "tx1@test.com", 25, 1000L, true));
             ops.update("UPDATE users SET balance = ? WHERE username = ?",
@@ -56,10 +57,10 @@ class TransactionTest extends BaseH2Test {
         logger.info("事务提交验证通过");
     }
 
-    // ==================== executeTransaction 异常回滚 ====================
+    // ==================== execute 异常回滚 ====================
 
     @Test
-    @DisplayName("executeTransaction：异常回滚，数据恢复原状")
+    @DisplayName("execute：异常回滚，数据恢复原状")
     void testExecuteTransactionRollback() throws Exception {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -69,7 +70,7 @@ class TransactionTest extends BaseH2Test {
                 buildParams("alice"), Long.class);
 
         TransactionException ex = assertThrows(TransactionException.class, () ->
-                template.executeTransaction((JdbcOperations ops) -> {
+                template.transaction().execute((JdbcOperations ops) -> {
                     ops.update("UPDATE users SET balance = ? WHERE username = ?",
                             buildParams(0L, "alice"));
                     ops.update("INSERT INTO users (username, email) VALUES (?, ?)",
@@ -99,12 +100,12 @@ class TransactionTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("executeTransaction：SQL 异常触发回滚")
+    @DisplayName("execute：SQL 异常触发回滚")
     void testExecuteTransactionSqlExceptionRollback() {
         SimpleJdbcTemplate template = createTemplate();
 
         assertThrows(TransactionException.class, () ->
-                template.executeTransaction((JdbcOperations ops) -> {
+                template.transaction().execute((JdbcOperations ops) -> {
                     ops.update("INSERT INTO users (username) VALUES (?)",
                             buildParams("validUser"));
                     // 错误的 SQL
@@ -120,14 +121,14 @@ class TransactionTest extends BaseH2Test {
         });
     }
 
-    // ==================== commitIfTrue 返回 true 提交 ====================
+    // ==================== commitIfTrue：返回 true 提交 ====================
 
     @Test
     @DisplayName("commitIfTrue：返回 true 提交事务")
     void testCommitIfTrueCommit() throws Exception {
         SimpleJdbcTemplate template = createTemplate();
 
-        template.commitIfTrue((JdbcOperations ops) -> {
+        template.transaction().commitIfTrue((JdbcOperations ops) -> {
             ops.update("INSERT INTO users (username, email) VALUES (?, ?)",
                     buildParams("cftUser", "cft@test.com"));
             return true;
@@ -147,7 +148,7 @@ class TransactionTest extends BaseH2Test {
     void testCommitIfFalseRollback() throws Exception {
         SimpleJdbcTemplate template = createTemplate();
 
-        template.commitIfTrue((JdbcOperations ops) -> {
+        template.transaction().commitIfTrue((JdbcOperations ops) -> {
             ops.update("INSERT INTO users (username, email) VALUES (?, ?)",
                     buildParams("cffUser", "cff@test.com"));
             return false;
@@ -168,7 +169,7 @@ class TransactionTest extends BaseH2Test {
         SimpleJdbcTemplate template = createTemplate();
 
         assertThrows(TransactionException.class, () ->
-                template.commitIfTrue((JdbcOperations ops) -> {
+                template.transaction().commitIfTrue((JdbcOperations ops) -> {
                     ops.update("INSERT INTO users (username) VALUES (?)",
                             buildParams("exUser"));
                     throw new IllegalStateException("条件不满足");
@@ -186,11 +187,11 @@ class TransactionTest extends BaseH2Test {
     // ==================== 事务内查询可见性 ====================
 
     @Test
-    @DisplayName("executeTransaction：事务内可查询到未提交的数据")
+    @DisplayName("execute：事务内可查询到未提交的数据")
     void testTransactionVisibility() throws Exception {
         SimpleJdbcTemplate template = createTemplate();
 
-        template.executeTransaction((JdbcOperations ops) -> {
+        template.transaction().execute((JdbcOperations ops) -> {
             ops.update("INSERT INTO users (username, email) VALUES (?, ?)",
                     buildParams("visible", "visible@test.com"));
 
@@ -207,13 +208,13 @@ class TransactionTest extends BaseH2Test {
     // ==================== 边界情况 ====================
 
     @Test
-    @DisplayName("executeTransaction：空操作（无异常）正常提交")
+    @DisplayName("execute：空操作（无异常）正常提交")
     void testExecuteTransactionEmpty() throws Exception {
         SimpleJdbcTemplate template = createTemplate();
 
         // 空操作不应抛异常
         assertDoesNotThrow(() ->
-                template.executeTransaction(ops -> { /* no-op */ }));
+                template.transaction().execute(ops -> { /* no-op */ }));
 
         // 数据应保持不变
         int count = template.query("SELECT COUNT(*) FROM users",
@@ -222,12 +223,12 @@ class TransactionTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("executeTransaction：null 操作抛异常")
+    @DisplayName("execute：null 操作抛异常")
     @SuppressWarnings("null")
     void testExecuteTransactionNullOps() {
         SimpleJdbcTemplate template = createTemplate();
 
         assertThrows(Exception.class, () ->
-                template.executeTransaction(null));
+                template.transaction().execute(null));
     }
 }

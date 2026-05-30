@@ -68,7 +68,9 @@ Maven 依赖：
 
 ## 4. 事务
 
-- **`executeTransaction(consumer)`**：执行事务。传入 `ThrowingConsumer<JdbcOperations>`，若内部无异常则提交，有异常则回滚。
+通过 `TransactionTemplate` 管理事务，可直接创建或通过 `SimpleJdbcTemplate.transaction()` 获取。
+
+- **`execute(consumer)`**：执行事务。传入 `ThrowingConsumer<JdbcOperations>`，若内部无异常则提交，有异常则回滚。
 - **`commitIfTrue(predicate)`**：执行事务。传入 `ThrowingPredicate<JdbcOperations>`，返回 `true` 提交，返回 `false` 或抛异常则回滚。
 
 ## 5. 参数构建
@@ -246,7 +248,7 @@ if (result.getStatus() == BatchUpdateStatus.COMPLETED_WITH_ERRORS) {
 ### 6.4 事务
 
 ```java
-jdbcTemplate.executeTransaction(jdbc -> {
+jdbcTemplate.transaction().execute(jdbc -> {
     ...
     jdbc.update(...);
     ...
@@ -255,7 +257,7 @@ jdbcTemplate.executeTransaction(jdbc -> {
     // 无异常则自动提交
 });
 
-jdbcTemplate.commitIfTrue(jdbc -> {
+jdbcTemplate.transaction().commitIfTrue(jdbc -> {
     ...
     jdbc.update(...);
     ...

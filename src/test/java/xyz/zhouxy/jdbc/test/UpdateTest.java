@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static xyz.zhouxy.jdbc.ParamBuilder.buildParams;
 
 import java.sql.SQLException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -166,6 +167,32 @@ class UpdateTest extends BaseH2Test {
 
         assertThrows(SQLException.class, () ->
                 template.update("UPDAT users SET x = 1"));
+    }
+
+    @Test
+    @DisplayName("update：使用 Instant 类型参数填充 TIMESTAMP 列")
+    void testUpdateWithInstantParam() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        Instant now = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
+
+        String sql = "INSERT INTO users (username, email, created_at) VALUES (?, ?, ?)";
+        int rows = template.update(sql,
+                buildParams("instant_user", "instant@example.com", now));
+
+        assertEquals(1, rows);
+
+        // 验证存储的值与原始 Instant 一致
+        java.sql.Timestamp stored = template.query(
+                "SELECT created_at FROM users WHERE username = ?",
+                buildParams("instant_user"),
+                rs -> {
+                    rs.next();
+                    return rs.getTimestamp(1);
+                });
+
+        assertNotNull(stored);
+        assertEquals(java.sql.Timestamp.from(now), stored);
     }
 
     // ==================== updateAndReturnKeys ====================

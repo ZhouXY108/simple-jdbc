@@ -78,4 +78,17 @@ public class BatchUpdateErrorInfo {
         return errorType;
     }
 
+    /**
+     * 返回该错误信息的字符串表示，包含批次索引、错误类型和错误消息。
+     *
+     * @return 格式为 {@code "BatchUpdateErrorInfo{batchIndex=..., errorType=..., message=...}"} 的字符串
+     */
+    @Override
+    public String toString() {
+        return "BatchUpdateErrorInfo{"
+                + "batchIndex=" + batchIndex
+                + ", errorType=" + errorType.getName()
+                + ", message=" + cause.getMessage()
+                + "}";
+    }
 }

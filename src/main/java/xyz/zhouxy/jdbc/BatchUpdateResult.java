@@ -230,10 +230,10 @@ public class BatchUpdateResult {
     @Override
     public String toString() {
         return "BatchUpdateResult ["
-                + "total=" + total
-                + ", batchCount=" + batchCount
+                + "status=" + status
+                + ", total=" + total
                 + ", batchSize=" + batchSize
-                + ", status=" + status
+                + ", batchCount=" + batchCount
                 + ", completeBatchCount=" + completeBatchCount
                 + ", successBatchCount=" + successBatchCount
                 + ", errorBatchCount=" + getErrorBatchCount()

@@ -22,20 +22,57 @@ import java.util.Map;
 /**
  * 批量更新结果
  *
+ * <p>
+ * 封装 {@code batchUpdate} 操作的执行结果，包含：
+ * <ul>
+ *   <li>整体执行状态 {@link BatchUpdateStatus}</li>
+ *   <li>批次统计信息（总数据量、批次数、成功/失败/剩余批次数）</li>
+ *   <li>各批次的更新结果及各错误批次的异常信息</li>
+ * </ul>
+ *
  * @author ZhouXY
+ *
+ * @see BatchUpdateStatus
+ * @see BatchUpdateErrorInfo
+ * @see JdbcOperations#batchUpdate(String, java.util.Collection, int)
+ * @see JdbcOperations#batchUpdate(String, java.util.Collection, int, boolean)
  */
 public class BatchUpdateResult {
+    /**
+     * 总数据量
+     */
     private final int total;
+    /**
+     * 批次数量
+     */
     private final int batchCount;
+    /**
+     * 批次大小
+     */
     private final int batchSize;
 
+    /**
+     * 本次分批更新的状态
+     */
     private BatchUpdateStatus status = BatchUpdateStatus.SUCCESS;
 
+    /**
+     * 所有批次的更新结果
+     */
     private Map<Integer, int[]> allUpdateCounts;
+    /**
+     * 所有出错的批次的错误信息
+     */
     private Map<Integer, BatchUpdateErrorInfo> allErrorsInfo;
 
+    /**
+     * 成功批次数量
+     */
     private int successBatchCount;
 
+    /**
+     * 完成批次数量
+     */
     private int completeBatchCount;
 
     BatchUpdateResult(int total, int batchCount, int batchSize) {
@@ -76,7 +113,7 @@ public class BatchUpdateResult {
     }
 
     /**
-     * 获取批次更新结果
+     * 获取指定批次更新结果
      *
      * @param batchIndex 批次号
      * @return 批次更新结果
@@ -87,7 +124,7 @@ public class BatchUpdateResult {
     }
 
     /**
-     * 获取错误批次号
+     * 获取所有出错的批次号
      *
      * @return 错误批次号
      */
@@ -96,7 +133,7 @@ public class BatchUpdateResult {
     }
 
     /**
-     * 获取错误批次信息
+     * 获取指定批次的错误信息
      *
      * @param batchIndex 批次号
      * @return 批次错误信息
@@ -106,7 +143,7 @@ public class BatchUpdateResult {
     }
 
     /**
-     * 获取所有错误批次信息
+     * 获取所有出错的批次的错误信息
      *
      * @return 批次错误信息
      */
@@ -142,9 +179,9 @@ public class BatchUpdateResult {
     }
 
     /**
-     * 获取批次更新状态
+     * 获取批量更新状态
      *
-     * @return 批次更新状态
+     * @return 批量更新状态
      */
     public BatchUpdateStatus getStatus() {
         return status;
@@ -180,12 +217,16 @@ public class BatchUpdateResult {
     /**
      * 获取剩余批次数量
      *
+     * <p>
+     * 一般是中断后未执行的批次数量
+     *
      * @return 剩余批次数量
      */
     public int getRemainingBatchCount() {
         return batchCount - successBatchCount - getErrorBatchCount();
     }
 
+    /** {@inheritDoc} */
     @Override
     public String toString() {
         return "BatchUpdateResult ["

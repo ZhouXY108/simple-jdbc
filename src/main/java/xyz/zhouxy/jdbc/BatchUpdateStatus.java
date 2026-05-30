@@ -20,7 +20,12 @@ import xyz.zhouxy.plusone.commons.base.IWithIntCode;
 /**
  * 批量更新状态
  *
+ * <p>
+ * 用于表示批量更新操作的整体执行状态
+ *
  * @author ZhouXY
+ * @see BatchUpdateResult
+ * @see BatchUpdateResult#getStatus()
  */
 public enum BatchUpdateStatus implements IWithIntCode {
 
@@ -30,12 +35,20 @@ public enum BatchUpdateStatus implements IWithIntCode {
     SUCCESS(0, "成功"),
 
     /**
-     * 部分成功
+     * 执行完成，部分批次失败
+     *
+     * <p>
+     * 通常出现在 batchUpdate 的静默模式下：遇到执行失败的批次时不中断，继续执行后续批次，最终状态为此值。
+     *
+     * @see BatchUpdateResult#getErrorBatchIndexes()
      */
-    COMPLETED_WITH_ERRORS(-1, "部分成功"),
+    COMPLETED_WITH_ERRORS(-1, "执行完成，部分批次失败"),
 
     /**
      * 中断
+     *
+     * <p>
+     * 通常出现在 batchUpdate 的非静默模式下：遇到执行失败的批次时立即中断，不再执行后续批次。
      */
     INTERRUPTED(-2, "中断"),
     ;
@@ -48,18 +61,26 @@ public enum BatchUpdateStatus implements IWithIntCode {
         this.description = description;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public int getCode() {
         return code;
     }
 
     /**
-     * @return the description
+     * 获取状态的可读描述
+     *
+     * @return 描述信息
      */
     public String getDescription() {
         return description;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String toString() {
         return "BatchUpdateStatus ["

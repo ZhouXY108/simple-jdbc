@@ -1,64 +1,124 @@
 # SimpleJDBC
 
-对 JDBC 的简单封装。
+SimpleJDBC 是一个轻量级 JDBC 工具库，提供简洁的 API 用于执行 SQL 查询、更新、批量操作及事务管理，适用于未引入 ORM 框架、直接使用原生 JDBC 的项目。
 
-之前遇到的一个老项目，没有引入任何 ORM 框架，对数据库的操作几乎都在写原生 JDBC。故自己写了几个工具类，对 JDBC 进行简单封装。
+## 1. 快速开始
 
-## 查询
+**要求 JDK 8+。**
 
-### 查询方法
+Maven 依赖：
 
-- `query`：**最基础的查询方法**。可使用 `ResultHandler` 将查询结果映射为 Java 对象。
-- `queryList`：**查询列表**。可使用 `RowMapper` 将结果的每一行数据映射为 Java 对象，返回列表。
-- `queryFirst`：**查询，并获取第一行数据**。一般可以结合 `LIMIT 1` 使用。可使用 `RowMapper` 将结果的第一行数据映射为 Java 对象，返回 `Optional`。
-- `queryBoolean`：**获取第一行数据的第一个字段，并转换为布尔类型**。如果结果为空，则返回 `false`。
+```xml
+<dependency>
+    <groupId>xyz.zhouxy.jdbc</groupId>
+    <artifactId>simple-jdbc</artifactId>
+    <version>${simple-jdbc.version}</version>
+</dependency>
+```
 
-### 结果映射
+> 本项目基于 **Apache License 2.0** 开源。
 
-- `ResultHandler` 用于处理查询结果，自定义逻辑将完整的 `ResultSet` 映射为 Java 对象。 *结果可以是任意类型（包括集合）。*
-- `RowMapper` 用于将 `ResultSet` 中的一行数据映射为 Java 对象。
-  - `RowMapper#HASH_MAP_MAPPER`：将 `ResultSet` 中的一行数据映射为 `HashMap`。
-  - `RowMapper#beanRowMapper`：返回将 `ResultSet` 转换为 Java Bean 的默认实现。
+## 2. 查询
 
-## 更新
+### 2.1 查询方法
 
-- `int update`：**执行 DML**，包括 `INSERT`、`UPDATE`、`DELETE` 等。返回受影响行数。
-- `<T> List<T> update`：**执行 DML**，自动生成的字段将使用 `rowMapper` 进行映射，并返回列表。
-- `List<int[]> batchUpdate`：**分批次执行 DML**，返回分批执行的结果。
+所有查询方法均使用 `Object[]` 作为参数，并提供了无参便捷重载（适用于不含占位符的 SQL）。
 
-## 事务
+| 方法 | 说明 |
+|---|---|
+| `query(sql, params, resultHandler)` | 最基础的查询，通过 `ResultHandler` 自定义映射逻辑 |
+| `queryList(sql, params, rowMapper)` | 查询列表，通过 `RowMapper` 逐行映射 |
+| `queryList(sql, params, Class)` | 单列查询列表，每行取第一列转为指定类型 |
+| `queryList(sql, params)` | 查询列表，每行转为 `Map<String, Object>` |
+| `queryFirst(sql, params, rowMapper)` | 查询第一行，通过 `RowMapper` 映射，返回 `Optional` |
+| `queryFirst(sql, params, Class)` | 查询第一行第一列，返回 `Optional<T>` |
+| `queryFirst(sql, params)` | 查询第一行，返回 `Optional<Map<String, Object>>` |
+| `queryBoolean(sql, params)` | 查询第一行第一列并转为 boolean，结果为空返回 `false` |
 
-- `executeTransaction`：**执行事务**。传入一个 `ThrowingConsumer` 函数，入参是一个 `JdbcOperations` 对象，在 `ThrowingConsumer` 内使用该入参执行 jdbc 操作。如果 `ThrowingConsumer` 内部有异常抛出，这些操作将被回滚。
+> 以上方法均有不含 `params` 的便捷重载，例如 `queryList(sql, rowMapper)`、`queryFirst(sql, Class)` 等，适用于无参数 SQL。
 
-- `commitIfTrue`：**执行事务**。传入一个 `ThrowingPredicate` 函数，入参是一个 `JdbcOperations` 对象，在 `ThrowingPredicate` 内使用该入参执行 jdbc 操作。如果`ThrowingPredicate` 返回 `true`，则提交事务；如果返回 `false` 或有异常抛出，则回滚这些操作。
+### 2.2 结果映射
 
-## 参数构建
+- **`ResultHandler`**：处理完整的 `ResultSet`，自定义逻辑将结果映射为任意类型（包括集合）。
+- **`RowMapper`**：将 `ResultSet` 中的一行数据映射为 Java 对象。
+  - `RowMapper.HASH_MAP_MAPPER`：每行映射为 `HashMap<String, Object>`。
+  - `RowMapper.beanRowMapper(Class)`：默认的 Bean 映射，属性名（小驼峰） ↔ 列名（小写蛇形）。
+  - `RowMapper.beanRowMapper(Class, Map<String, String>)`：自定义属性名与列名映射的 Bean 映射。
 
-此项目中的所有查询和更新的方法，都**不使用可变长入参**，避免强行将 SQL 语句的参数列表放在最后，也避免和数组发生歧义。
+## 3. 更新
 
-### 构建参数列表
+所有更新方法同样提供了无参便捷重载。
 
-可使用 `ParamBuilder#buildParams` 构建 `Object[]` 数组作为 SQL 的参数列表。该方法会自动将 `Optional` 中的值“拆”出来。
+| 方法 | 说明 |
+|---|---|
+| `update(sql, params)` | 执行 DML（INSERT / UPDATE / DELETE），返回受影响行数 |
+| `updateAndReturnKeys(sql, params, rowMapper)` | 执行 DML 并返回自动生成的键，通过 `RowMapper` 映射 |
+| `batchUpdate(sql, params, batchSize)` | 分批执行 DML，遇错即中断 |
+| `batchUpdate(sql, params, batchSize, quietly)` | 分批执行 DML；`quietly=true` 遇错不中断，全部执行完毕 |
 
-### 批量构建参数列表
+### BatchUpdateResult
 
-使用 `ParamBuilder#buildBatchParams`，将使用传入的函数，将集合中的每一个元素转为 `Object[]`，并返回一个 `List<Object[]>`。
+`batchUpdate` 返回 `BatchUpdateResult`，包含：
 
-## 示例
+- `getStatus()`：批次状态（`SUCCESS` / `COMPLETED_WITH_ERRORS` / `INTERRUPTED`）
+- `getTotal()`：总数据量
+- `getBatchCount()`：总批次数
+- `getSuccessBatchCount()` / `getErrorBatchCount()`：成功/失败批次数
+- `getBatchUpdateErrorInfo(batchIndex)`：获取指定批次的错误详情
 
-创建 SimpleJdbcTemplate 对象
+## 4. 事务
+
+- **`executeTransaction(consumer)`**：执行事务。传入 `ThrowingConsumer<JdbcOperations>`，若内部无异常则提交，有异常则回滚。
+- **`commitIfTrue(predicate)`**：执行事务。传入 `ThrowingPredicate<JdbcOperations>`，返回 `true` 提交，返回 `false` 或抛异常则回滚。
+
+## 5. 参数构建
+
+此项目中所有方法都**不使用可变长参数**，避免强制将参数列表放在 SQL 语句末尾，也避免与数组产生歧义。
+
+### 5.1 构建参数列表
+
+使用 `ParamBuilder.buildParams(...)` 构建 `Object[]` 作为 SQL 参数。该方法会自动将 `Optional` 值拆箱。
+
+```java
+import static xyz.zhouxy.jdbc.ParamBuilder.buildParams;
+
+buildParams("admin%", "0000");           // → Object[]{"admin%", "0000"}
+buildParams(Optional.of("hello"));        // → Object[]{"hello"}
+buildParams(Optional.empty());            // → Object[]{null}
+```
+
+### 5.2 批量构建参数列表
+
+使用 `ParamBuilder.buildBatchParams(collection, func)` 将集合中每个元素转为 `Object[]`，返回 `List<Object[]>`。
+
+```java
+import static xyz.zhouxy.jdbc.ParamBuilder.buildBatchParams;
+import static xyz.zhouxy.jdbc.ParamBuilder.buildParams;
+
+buildBatchParams(accountList, account -> buildParams(
+    account.getUsername(),
+    account.getPassword(),
+    account.getOrgNo()
+));
+```
+
+## 6. 示例
+
+创建 `SimpleJdbcTemplate` 对象：
+
 ```java
 SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
 ```
 
-查询
+### 6.1 查询
+
 ```java
 // 查询（使用 ResultHandler 处理全部结果）
-List<Account> list = jdbcTemplate.query(
+List<Account> accounts = jdbcTemplate.query(
     "SELECT * FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
     buildParams("admin%", "0000"),
     rs -> {
-        List<T> result = new ArrayList<>();
+        List<Account> result = new ArrayList<>();
         while (rs.next()) {
             result.add(new Account(
                 rs.getLong("id"),
@@ -79,14 +139,16 @@ List<String> usernames = jdbcTemplate.queryList(
     buildParams("admin%", "0000"),
     String.class
 );
+
 // 查询列表（使用 DefaultBeanRowMapper 进行映射）
-List<Account> list = jdbcTemplate.queryList(
+List<Account> accounts = jdbcTemplate.queryList(
     "SELECT * FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
     buildParams("admin%", "0000"),
     RowMapper.beanRowMapper(Account.class)
 );
+
 // 查询列表（使用自定义 RowMapper 进行映射）
-List<Account> list = jdbcTemplate.queryList(
+List<Account> accounts = jdbcTemplate.queryList(
     "SELECT * FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
     buildParams("admin%", "0000"),
     (rs, rowNum) -> new Account(
@@ -109,17 +171,25 @@ Optional<Account> account = jdbcTemplate.queryFirst(
         rs.getString("password"),
         rs.getString("org_no"),
         rs.getTimestamp("create_time"),
+        rs.getTimestamp("update_time")
     )
-)
+);
 
 // 查询 boolean
 boolean exists = jdbcTemplate.queryBoolean(
-    "SELECT EXISTS(SELECT 1 FROM account WHERE deleted = 0 AND id = ? LIMIT 1)",
+    "SELECT EXISTS(SELECT 1 FROM account WHERE deleted = 0 AND id = ?)",
     buildParams(10000L)
+);
+
+// 无参数 SQL 可直接省略 params
+List<Account> allAccounts = jdbcTemplate.queryList(
+    "SELECT * FROM account WHERE deleted = 0",
+    RowMapper.beanRowMapper(Account.class)
 );
 ```
 
-更新
+### 6.2 更新
+
 ```java
 // 执行 DML
 int affectedRows = jdbcTemplate.update(
@@ -138,8 +208,10 @@ List<Pair<Long, LocalDateTime>> keys = jdbcTemplate.updateAndReturnKeys(
 );
 ```
 
-批量更新
+### 6.3 批量更新
+
 ```java
+// 默认：遇错即中断
 BatchUpdateResult result = jdbcTemplate.batchUpdate(
     "INSERT INTO account (username, password, org_no) VALUES (?, ?, ?)",
     buildBatchParams(accountList, account -> buildParams(
@@ -147,11 +219,32 @@ BatchUpdateResult result = jdbcTemplate.batchUpdate(
         account.getPassword(),
         account.getOrgNo()
     )),
-    100 // 每100条数据一个批次
+    100 // 每 100 条数据一个批次
 );
+
+// 静默模式：遇错不中断，全部执行完毕后统一检查结果
+BatchUpdateResult result = jdbcTemplate.batchUpdate(
+    "INSERT INTO account (username, password, org_no) VALUES (?, ?, ?)",
+    buildBatchParams(accountList, account -> buildParams(
+        account.getUsername(),
+        account.getPassword(),
+        account.getOrgNo()
+    )),
+    100,
+    true // quietly = true，遇错不中断
+);
+
+// 检查批量更新结果
+if (result.getStatus() == BatchUpdateStatus.COMPLETED_WITH_ERRORS) {
+    for (int idx : result.getErrorBatchIndexes()) {
+        BatchUpdateErrorInfo err = result.getBatchUpdateErrorInfo(idx);
+        System.err.println("批次 " + idx + " 失败: " + err.getCause().getMessage());
+    }
+}
 ```
 
-事务
+### 6.4 事务
+
 ```java
 jdbcTemplate.executeTransaction(jdbc -> {
     ...
@@ -159,6 +252,7 @@ jdbcTemplate.executeTransaction(jdbc -> {
     ...
     jdbc.update(...);
     ...
+    // 无异常则自动提交
 });
 
 jdbcTemplate.commitIfTrue(jdbc -> {
@@ -182,4 +276,8 @@ jdbcTemplate.commitIfTrue(jdbc -> {
 });
 ```
 
->**！！！本项目不比成熟的工具，如若使用请自行承担风险。建议仅作为 JDBC 的学习参考。**
+> **！！！本项目不比成熟的工具，如若使用请自行承担风险。**
+>
+> - **线程安全**：`SimpleJdbcTemplate` 无内部状态，线程安全。但所依赖的 `DataSource` 需自行保证线程安全。
+> - **连接管理**：每次操作自动从 `DataSource` 获取连接并在操作完成后关闭，无需手动管理。
+> - **适用场景**：不适合高并发或大数据量场景，建议仅用于学习参考或小型项目。

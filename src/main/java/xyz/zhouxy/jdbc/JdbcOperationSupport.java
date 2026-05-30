@@ -230,20 +230,26 @@ class JdbcOperationSupport {
         final BatchUpdateResult result = new BatchUpdateResult(paramsSize, batchCount, batchSize);
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            // 表示第几条数据，1, 2, 3, ..., paramsSize
             int itemIndex = 0;
+            // 表示第几个批次，0, 1, ..., batchCount-1
             int batchIndex = 0;
+
             for (Object[] ps : params) {
                 itemIndex++;
                 fillStatement(stmt, ps);
                 stmt.addBatch();
-                final int indexInBatch = itemIndex % batchSize;
-                if (indexInBatch == 0 || itemIndex >= paramsSize) {
+
+                // 表示当前数据在批次中的索引，1, 2, 3, ..., batchSize-1, batchSize
+                final int indexInBatch = (itemIndex - 1) % batchSize + 1;
+
+                if (indexInBatch == batchSize || itemIndex == paramsSize) {
                     try {
                         int[] updateCounts = stmt.executeBatch();
                         result.recordSuccessBatch(batchIndex, updateCounts);
                     }
                     catch (Exception e) {
-                        final int[] updateCounts = getUpdateCountsInternal(paramsSize, batchSize, itemIndex, indexInBatch, e);
+                        final int[] updateCounts = getUpdateCountsOnError(indexInBatch, e);
                         result.recordErrorBatch(batchIndex, updateCounts, e);
                         if (!quietly) {
                             result.interrupt();
@@ -260,18 +266,13 @@ class JdbcOperationSupport {
         }
     }
 
-    private static int[] getUpdateCountsInternal(final int paramsSize,
-                                                 final int batchSize,
-                                                 final int itemIndex,
-                                                 final int indexInBatch,
-                                                 final Exception e) {
+    private static int[] getUpdateCountsOnError(final int indexInBatch, final Exception e) {
         final int[] updateCounts;
         if (e instanceof BatchUpdateException) {
             updateCounts = ((BatchUpdateException) e).getUpdateCounts();
         }
         else {
-            int n = (itemIndex >= paramsSize && indexInBatch != 0) ? indexInBatch : batchSize;
-            updateCounts = new int[n];
+            updateCounts = new int[indexInBatch];
             Arrays.fill(updateCounts, UNKNOWN_COUNT);
         }
         return updateCounts;

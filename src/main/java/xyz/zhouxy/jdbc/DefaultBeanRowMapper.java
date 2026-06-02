@@ -42,7 +42,7 @@ import xyz.zhouxy.plusone.commons.annotation.StaticFactoryMethod;
  * DefaultBeanRowMapper
  *
  * <p>
- * 默认实现的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。
+ * 将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper} 的基础实现。
  * </p>
  *
  * <p>

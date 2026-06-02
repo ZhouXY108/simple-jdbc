@@ -1,6 +1,6 @@
-# SimpleJDBC
+# Simple JDBC
 
-`SimpleJDBC` 是一个轻量级的 JDBC 工具库，旨在提供简洁、易用的 API 以执行 SQL 查询、更新、批量操作及事务管理。它专为未引入繁重 ORM 框架、希望直接操作原生 JDBC 且追求开发效率的项目而设计。
+`Simple JDBC` 提供了一套轻量级的 JDBC 封装工具类，是作者在对传统遗留项目进行改造时设计。该项目未引入 ORM 框架，原本的数据库交互高度依赖原生 JDBC API，导致存在大量冗余的样板代码（Boilerplate Code）。本项目通过抽象底层数据库操作，简化了连接管理、SQL 执行与结果集处理流程，提升数据访问层的开发效率与代码可维护性。
 
 > 注：本项目基于 [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) 开源协议发布。
 

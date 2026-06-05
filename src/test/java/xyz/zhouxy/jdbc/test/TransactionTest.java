@@ -231,4 +231,15 @@ class TransactionTest extends BaseH2Test {
         assertThrows(Exception.class, () ->
                 template.transaction().execute(null));
     }
+
+    // ==================== TransactionException ====================
+
+    @Test
+    @DisplayName("TransactionException：双参构造器")
+    void testTransactionExceptionWithMessage() {
+        RuntimeException cause = new RuntimeException("原始异常");
+        TransactionException ex = new TransactionException("自定义消息", cause);
+        assertEquals("自定义消息", ex.getMessage());
+        assertSame(cause, ex.getCause());
+    }
 }

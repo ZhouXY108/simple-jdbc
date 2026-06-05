@@ -59,6 +59,11 @@ public class SimpleJdbcTemplate implements JdbcOperations {
     @Nonnull
     private final TransactionTemplate transactionTemplate;
 
+    /**
+     * 构造一个 {@code SimpleJdbcTemplate} 实例
+     *
+     * @param dataSource 数据源，用于获取数据库连接；不可为 {@code null}
+     */
     public SimpleJdbcTemplate(@Nonnull DataSource dataSource) {
         AssertTools.checkNotNull(dataSource);
         this.dataSource = dataSource;
@@ -199,6 +204,14 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
     // #region - transaction
 
+    /**
+     * 获取事务模板
+     *
+     * <p>
+     * 返回的 {@link TransactionTemplate} 与当前模板共享同一个 {@link DataSource}。
+     *
+     * @return 事务模板
+     */
     public TransactionTemplate transaction() {
         return this.transactionTemplate;
     }

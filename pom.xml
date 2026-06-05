@@ -5,7 +5,7 @@
 
     <groupId>xyz.zhouxy.jdbc</groupId>
     <artifactId>simple-jdbc</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0-RC3</version>
 
     <name>Simple JDBC</name>
     <description>对 JDBC 的简单封装。</description>

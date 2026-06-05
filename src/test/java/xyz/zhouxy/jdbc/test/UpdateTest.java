@@ -21,6 +21,8 @@ import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 
 /**
  * 更新 API 测试：update、updateAndReturnKeys。
+ *
+ * <p>内部按 PreparedStatement（有参数）和 Statement（无参数）路径组织。</p>
  */
 @DisplayName("SimpleJdbcTemplate 更新操作")
 class UpdateTest extends BaseH2Test {
@@ -33,6 +35,7 @@ class UpdateTest extends BaseH2Test {
     }
 
     // ==================== update ====================
+    // --- PreparedStatement 路径（有参数） ---
 
     @Test
     @DisplayName("update：INSERT 操作返回影响行数 1")
@@ -121,52 +124,16 @@ class UpdateTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("update：DELETE 全表")
-    void testUpdateDeleteAll() throws SQLException {
-        SimpleJdbcTemplate template = createTemplate();
-
-        int rows = template.update("DELETE FROM users");
-
-        logger.info("DELETE 全表影响行数: {}", rows);
-        assertEquals(5, rows);
-
-        // 验证表为空
-        int count = template.query("SELECT COUNT(*) FROM users",
-                rs -> { rs.next(); return rs.getInt(1); });
-        assertEquals(0, count);
-    }
-
-    @Test
-    @DisplayName("update：null 参数数组")
-    void testUpdateWithNullParams() throws SQLException {
+    @DisplayName("update：参数中包含 null 元素")
+    void testUpdateWithNullElement() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
         int rows = template.update(
                 "DELETE FROM users WHERE username = ?",
                 new Object[]{ null });
 
-        // 因为 DELETE ? 中参数 null 不会匹配任何行
+        // 参数 null 不匹配任何行
         assertEquals(0, rows);
-    }
-
-    @Test
-    @DisplayName("update：无参数重载")
-    void testUpdateNoParams() throws SQLException {
-        SimpleJdbcTemplate template = createTemplate();
-
-        int rows = template.update(
-                "UPDATE users SET balance = 9999 WHERE username = 'alice'");
-
-        assertEquals(1, rows);
-    }
-
-    @Test
-    @DisplayName("update：语法错误抛出 SQLException")
-    void testUpdateInvalidSql() {
-        SimpleJdbcTemplate template = createTemplate();
-
-        assertThrows(SQLException.class, () ->
-                template.update("UPDAT users SET x = 1"));
     }
 
     @Test
@@ -195,7 +162,56 @@ class UpdateTest extends BaseH2Test {
         assertEquals(java.sql.Timestamp.from(now), stored);
     }
 
+    // --- update / Statement 路径（无参数） ---
+
+    @Test
+    @DisplayName("update：无参数重载")
+    void testUpdateNoParams() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        int rows = template.update(
+                "UPDATE users SET balance = 9999 WHERE username = 'alice'");
+
+        assertEquals(1, rows);
+    }
+
+    @Test
+    @DisplayName("update：DELETE 全表（无参数）")
+    void testUpdateDeleteAll() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        int rows = template.update("DELETE FROM users");
+
+        logger.info("DELETE 全表影响行数: {}", rows);
+        assertEquals(5, rows);
+
+        // 验证表为空
+        int count = template.query("SELECT COUNT(*) FROM users",
+                rs -> { rs.next(); return rs.getInt(1); });
+        assertEquals(0, count);
+    }
+
+    @Test
+    @DisplayName("update：params 为 null，走 Statement 路径")
+    void testUpdateWithParamsNull() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        int rows = template.update("DELETE FROM users", (Object[]) null);
+
+        assertEquals(5, rows);
+    }
+
+    @Test
+    @DisplayName("update：语法错误抛出 SQLException")
+    void testUpdateInvalidSql() {
+        SimpleJdbcTemplate template = createTemplate();
+
+        assertThrows(SQLException.class, () ->
+                template.update("UPDAT users SET x = 1"));
+    }
+
     // ==================== updateAndReturnKeys ====================
+    // --- PreparedStatement 路径（有参数） ---
 
     @Test
     @DisplayName("updateAndReturnKeys：INSERT 返回自增主键")
@@ -231,6 +247,8 @@ class UpdateTest extends BaseH2Test {
         assertEquals(2, keys.size());
     }
 
+    // --- updateAndReturnKeys / Statement 路径（无参数） ---
+
     @Test
     @DisplayName("updateAndReturnKeys：无参数重载")
     void testUpdateAndReturnKeysNoParams() throws SQLException {
@@ -239,6 +257,20 @@ class UpdateTest extends BaseH2Test {
         List<Long> keys = template.updateAndReturnKeys(
                 "INSERT INTO users (username) VALUES ('jack')",
                 (rs, rowNumber) -> rs.getLong(1));
+
+        assertEquals(1, keys.size());
+        assertTrue(keys.get(0) > 0);
+    }
+
+    @Test
+    @DisplayName("updateAndReturnKeys：params 为 null，走 Statement 路径")
+    void testUpdateAndReturnKeysWithParamsNull() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        RowMapper<Long> rowMapper = (rs, rowNumber) -> rs.getLong(1);
+        List<Long> keys = template.updateAndReturnKeys(
+                "INSERT INTO users (username) VALUES ('null_test')",
+                null, rowMapper);
 
         assertEquals(1, keys.size());
         assertTrue(keys.get(0) > 0);

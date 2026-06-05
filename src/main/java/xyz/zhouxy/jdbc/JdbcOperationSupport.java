@@ -203,7 +203,7 @@ class JdbcOperationSupport {
         }
         else {
             try (Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate(sql);
+                stmt.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
                 try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                     final ResultHandler<List<T>> resultHandler = ResultHandler.mapToList(rowMapper);
                     return resultHandler.handle(generatedKeys);

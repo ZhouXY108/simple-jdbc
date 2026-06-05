@@ -6,7 +6,7 @@
 
 ---
 
-## ✨ 核心特性
+## 1. ✨ 核心特性
 
 - **轻量无依赖**：基于原生 JDBC 封装，无第三方重量级依赖。
 - **API 简洁**：提供丰富的快捷方法，大幅减少样板代码。
@@ -16,13 +16,13 @@
 
 ---
 
-## 📦 快速开始
+## 2. 📦 快速开始
 
-### 环境要求
+### 2.1 环境要求
 
 - **JDK 8** 或更高版本
 
-### 添加 Maven 依赖
+### 2.2 添加 Maven 依赖
 
 将以下配置添加到您的 `pom.xml` 中：
 
@@ -34,16 +34,18 @@
 </dependency>
 ```
 
-### 初始化
+### 2.3 初始化
 
 ```java
 SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
 ```
 
-### 1. 查询操作
+> 💡 关于与数据库连接池（如 HikariCP、Druid、DBCP 2 等）的集成方式，请参见「[连接池集成](#7-连接池集成)」章节。
+
+### 2.4 查询操作
 
 ```java
-// 1.1 基础查询（使用 ResultHandler 处理全部结果）
+// 基础查询（使用 ResultHandler 处理全部结果）
 List<Account> accounts = jdbcTemplate.query(
     "SELECT * FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
     buildParams("admin%", "0000"),
@@ -63,21 +65,21 @@ List<Account> accounts = jdbcTemplate.query(
     }
 );
 
-// 1.2 查询列表（单列）
+// 查询列表（单列）
 List<String> usernames = jdbcTemplate.queryList(
     "SELECT username FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
     buildParams("admin%", "0000"),
     String.class
 );
 
-// 1.3 查询列表（使用内置 Bean 映射）
+// 查询列表（使用内置 Bean 映射）
 List<Account> mappedAccounts = jdbcTemplate.queryList(
     "SELECT * FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
     buildParams("admin%", "0000"),
     RowMapper.beanRowMapper(Account.class)
 );
 
-// 1.4 查询列表（使用自定义 RowMapper 映射）
+// 查询列表（使用自定义 RowMapper 映射）
 List<Account> customMappedAccounts = jdbcTemplate.queryList(
     "SELECT * FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
     buildParams("admin%", "0000"),
@@ -91,7 +93,7 @@ List<Account> customMappedAccounts = jdbcTemplate.queryList(
     )
 );
 
-// 1.5 查询单行数据
+// 查询单行数据
 Optional<Account> account = jdbcTemplate.queryFirst(
     "SELECT * FROM account WHERE deleted = 0 AND id = ?",
     buildParams(10000L),
@@ -102,29 +104,31 @@ Optional<Account> account = jdbcTemplate.queryFirst(
     )
 );
 
-// 1.6 查询 Boolean 值
+// 查询 Boolean 值
 boolean exists = jdbcTemplate.queryBoolean(
     "SELECT EXISTS(SELECT 1 FROM account WHERE deleted = 0 AND id = ?)",
     buildParams(10000L)
 );
 
-// 1.7 无参数 SQL 可直接省略 params 参数
+// 无参数 SQL 可直接省略 params 参数
 List<Account> allAccounts = jdbcTemplate.queryList(
     "SELECT * FROM account WHERE deleted = 0",
     RowMapper.beanRowMapper(Account.class)
 );
 ```
 
-### 2. 更新操作
+> 📖 完整的方法列表与映射策略说明请参见「[3. 数据查询](#3-🔍-数据查询-query)」章节。
+
+### 2.5 更新操作
 
 ```java
-// 2.1 执行常规 DML
+// 执行常规 DML
 int affectedRows = jdbcTemplate.update(
     "UPDATE account SET deleted = 1 WHERE id = ?",
     buildParams(10000L)
 );
 
-// 2.2 执行 DML 并获取生成的主键
+// 执行 DML 并获取生成的主键
 // 注：按 JDBC 规范可获取自增 ID，能否获取其他值取决于具体数据库及其 JDBC Driver 实现。
 List<Pair<Long, LocalDateTime>> keys = jdbcTemplate.updateAndReturnKeys(
     "INSERT INTO account (username, password, org_no) VALUES (?, ?, ?)",
@@ -136,10 +140,12 @@ List<Pair<Long, LocalDateTime>> keys = jdbcTemplate.updateAndReturnKeys(
 );
 ```
 
-### 3. 批量更新操作
+> 📖 完整的方法列表与批量更新结果说明请参见「[4. 数据更新](#4-✏️-数据更新-update)」章节。
+
+### 2.6 批量更新操作
 
 ```java
-// 3.1 默认模式：遇错即中断
+// 默认模式：遇错即中断
 BatchUpdateResult result = jdbcTemplate.batchUpdate(
     "INSERT INTO account (username, password, org_no) VALUES (?, ?, ?)",
     buildBatchParams(accountList, account -> buildParams(
@@ -150,7 +156,7 @@ BatchUpdateResult result = jdbcTemplate.batchUpdate(
     100 // 每 100 条数据为一个批次
 );
 
-// 3.2 静默模式：遇错不中断，全部执行完毕后统一检查
+// 静默模式：遇错不中断，全部执行完毕后统一检查
 BatchUpdateResult quietResult = jdbcTemplate.batchUpdate(
     "INSERT INTO account (username, password, org_no) VALUES (?, ?, ?)",
     buildBatchParams(accountList, account -> buildParams(
@@ -162,7 +168,7 @@ BatchUpdateResult quietResult = jdbcTemplate.batchUpdate(
     true // quietly = true，遇错不中断
 );
 
-// 3.3 检查批量更新结果
+// 检查批量更新结果
 if (quietResult.getStatus() == BatchUpdateStatus.COMPLETED_WITH_ERRORS) {
     for (int idx : quietResult.getErrorBatchIndexes()) {
         BatchUpdateErrorInfo err = quietResult.getBatchUpdateErrorInfo(idx);
@@ -171,10 +177,12 @@ if (quietResult.getStatus() == BatchUpdateStatus.COMPLETED_WITH_ERRORS) {
 }
 ```
 
-### 4. 事务管理
+> 📖 批量更新的详细结果说明请参见「[4.2 批量更新结果](#42-批量更新结果-batchupdateresult)」章节。
+
+### 2.7 事务管理
 
 ```java
-// 4.1 自动提交/回滚事务
+// 自动提交/回滚事务
 jdbcTemplate.transaction().execute(jdbc -> {
     ...
     jdbc.update(...);
@@ -184,7 +192,7 @@ jdbcTemplate.transaction().execute(jdbc -> {
     // 内部无异常抛出则自动提交，抛出异常则自动回滚
 });
 
-// 4.2 根据返回值控制事务
+// 根据返回值控制事务
 jdbcTemplate.transaction().commitIfTrue(jdbc -> {
     ...
     jdbc.update(...);
@@ -206,44 +214,13 @@ jdbcTemplate.transaction().commitIfTrue(jdbc -> {
 });
 ```
 
----
-
-## 🛠️ 参数构建
-
-为避免与数组产生歧义并规范 API 设计，`JdbcOperations` 中的所有方法均不使用可变长参数（Varargs），而是统一使用 `Object[]` 作为参数传递。您可以使用内置的 `ParamBuilder` 快速构建参数。
-
-### 1. 构建单条参数列表
-
-使用 `ParamBuilder.buildParams(...)` 构建 `Object[]`。该方法会自动将 `Optional` 值进行拆箱处理。
-
-```java
-import static xyz.zhouxy.jdbc.ParamBuilder.buildParams;
-
-buildParams("admin%", "0000");           // 返回 Object[]{"admin%", "0000"}
-buildParams(Optional.of("hello"));       // 返回 Object[]{"hello"}
-buildParams(Optional.empty());           // 返回 Object[]{null}
-```
-
-### 2. 批量构建参数列表
-
-使用 `ParamBuilder.buildBatchParams(collection, func)` 将集合中的每个元素转换为 `Object[]`，最终返回 `List<Object[]>`。
-
-```java
-import static xyz.zhouxy.jdbc.ParamBuilder.buildBatchParams;
-import static xyz.zhouxy.jdbc.ParamBuilder.buildParams;
-
-List<Object[]> batchParams = buildBatchParams(accountList, account -> buildParams(
-    account.getUsername(),
-    account.getPassword(),
-    account.getOrgNo()
-));
-```
+> 📖 事务方法的详细说明请参见「[5. 事务管理](#5-🔄-事务管理-transaction)」章节。
 
 ---
 
-## 🔍 数据查询 (Query)
+## 3. 🔍 数据查询 (Query)
 
-### 查询方法列表
+### 3.1 查询方法列表
 
 | 方法签名 | 说明 |
 | :--- | :--- |
@@ -258,7 +235,7 @@ List<Object[]> batchParams = buildBatchParams(accountList, account -> buildParam
 
 *💡 提示：以上方法均有省略 `params` 的重载（如 `queryList(sql, rowMapper)`），适用于不含占位符的 SQL 语句。*
 
-### 结果映射策略
+### 3.2 结果映射策略
 
 - **`ResultHandler`**：处理完整的 `ResultSet`，允许自定义逻辑将结果集映射为任意类型（包括集合）。
 - **`RowMapper`**：将 `ResultSet` 中的单行数据映射为 Java 对象。内置以下默认实现：
@@ -269,11 +246,11 @@ List<Object[]> batchParams = buildBatchParams(accountList, account -> buildParam
 
 ---
 
-## ✏️ 数据更新 (Update)
+## 4. ✏️ 数据更新 (Update)
 
 所有更新方法同样提供了无参重载。
 
-### 更新方法列表
+### 4.1 更新方法列表
 
 | 方法签名 | 说明 |
 | :--- | :--- |
@@ -282,7 +259,7 @@ List<Object[]> batchParams = buildBatchParams(accountList, account -> buildParam
 | `batchUpdate(sql, params, batchSize)` | 分批执行 DML，遇到错误立即中断。 |
 | `batchUpdate(sql, params, batchSize, quietly)` | 分批执行 DML；若 `quietly=true`，则遇到错误不中断，直至全部执行完毕。 |
 
-### 批量更新结果 (`BatchUpdateResult`)
+### 4.2 批量更新结果 (BatchUpdateResult)
 
 `batchUpdate` 方法返回 `BatchUpdateResult` 对象，包含以下信息：
 
@@ -300,16 +277,151 @@ List<Object[]> batchParams = buildBatchParams(accountList, account -> buildParam
 
 ---
 
-## 🔄 事务管理 (Transaction)
+## 5. 🔄 事务管理 (Transaction)
 
 通过 `TransactionTemplate` 管理事务，可直接实例化或通过 `SimpleJdbcTemplate.transaction()` 获取。
+
+事务模板的核心机制如下：
+
+- **共享连接**：事务内的所有 JDBC 操作共享同一个数据库连接，确保操作在同一事务上下文中执行。
+- **自动提交管理**：进入事务时关闭连接的自动提交模式，事务结束后恢复原始状态。
+- **异常处理**：操作中抛出异常时自动执行回滚，并将原始异常包装为 `TransactionException` 抛出。
+
+### 5.1 获取事务模板
+
+```java
+// 方式一：通过 SimpleJdbcTemplate 获取
+TransactionTemplate tx = jdbcTemplate.transaction();
+
+// 方式二：直接实例化
+TransactionTemplate tx = new TransactionTemplate(dataSource);
+```
+
+### 5.2 事务方法
 
 - **`execute(consumer)`**：执行事务。传入 `ThrowingConsumer<JdbcOperations>`，若内部代码无异常抛出则自动提交，发生异常则回滚。
 - **`commitIfTrue(predicate)`**：执行事务。传入 `ThrowingPredicate<JdbcOperations>`，根据返回值决定事务走向：返回 `true` 提交，返回 `false` 或抛出异常则回滚。
 
 ---
 
-## ⚠️ 注意事项与适用场景
+## 6. 🛠️ 参数构建
+
+为避免与数组产生歧义并规范 API 设计，`JdbcOperations` 中的所有方法均不使用可变长参数（Varargs），而是统一使用 `Object[]` 作为参数传递。您可以使用内置的 `ParamBuilder` 快速构建参数。
+
+### 6.1 构建单条参数列表
+
+使用 `ParamBuilder.buildParams(...)` 构建 `Object[]`。该方法会自动将 `Optional` 值进行拆箱处理。
+
+```java
+import static xyz.zhouxy.jdbc.ParamBuilder.buildParams;
+
+buildParams("admin%", "0000");           // 返回 Object[]{"admin%", "0000"}
+buildParams(Optional.of("hello"));       // 返回 Object[]{"hello"}
+buildParams(Optional.empty());           // 返回 Object[]{null}
+```
+
+### 6.2 批量构建参数列表
+
+使用 `ParamBuilder.buildBatchParams(collection, func)` 将集合中的每个元素转换为 `Object[]`，最终返回 `List<Object[]>`。
+
+```java
+import static xyz.zhouxy.jdbc.ParamBuilder.buildBatchParams;
+import static xyz.zhouxy.jdbc.ParamBuilder.buildParams;
+
+List<Object[]> batchParams = buildBatchParams(accountList, account -> buildParams(
+    account.getUsername(),
+    account.getPassword(),
+    account.getOrgNo()
+));
+```
+
+---
+
+## 7. 📌 连接池集成
+
+`SimpleJdbcTemplate` 仅依赖标准的 `javax.sql.DataSource` 接口，可与任何主流数据库连接池集成。以下为常用连接池的配置示例。
+
+### 7.1 使用 HikariCP
+
+> [HikariCP](https://github.com/brettwooldridge/HikariCP) 是目前性能最优的数据库连接池之一，推荐在新项目中优先使用。
+
+```xml
+<!-- Maven 依赖 -->
+<dependency>
+    <groupId>com.zaxxer</groupId>
+    <artifactId>HikariCP</artifactId>
+    <version>${hikaricp.version}</version>
+</dependency>
+```
+
+```java
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
+// 配置 HikariCP 连接池
+HikariConfig config = new HikariConfig();
+config.setJdbcUrl("jdbc:mysql://localhost:3306/your_database");
+config.setUsername("your_username");
+config.setPassword("your_password");
+// 其他连接池参数按需配置
+
+DataSource dataSource = new HikariDataSource(config);
+SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
+```
+
+### 7.2 使用 Druid
+
+> [Druid](https://github.com/alibaba/druid) 是阿里巴巴开源的数据库连接池，提供了内置的监控和扩展能力，在中文社区中广泛采用。
+
+```xml
+<!-- Maven 依赖 -->
+<dependency>
+    <groupId>com.alibaba</groupId>
+    <artifactId>druid</artifactId>
+    <version>${druid.version}</version>
+</dependency>
+```
+
+```java
+import com.alibaba.druid.pool.DruidDataSource;
+
+DruidDataSource dataSource = new DruidDataSource();
+dataSource.setUrl("jdbc:mysql://localhost:3306/your_database");
+dataSource.setUsername("your_username");
+dataSource.setPassword("your_password");
+// 其他连接池参数按需配置
+
+SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
+```
+
+### 7.3 使用 DBCP 2
+
+> [DBCP 2](https://commons.apache.org/proper/commons-dbcp/) 是 Apache Commons 提供的数据库连接池，适用于需要依赖轻量的场景。
+
+```xml
+<!-- Maven 依赖 -->
+<dependency>
+    <groupId>org.apache.commons</groupId>
+    <artifactId>commons-dbcp2</artifactId>
+    <version>${dbcp2.version}</version>
+</dependency>
+```
+
+```java
+import org.apache.commons.dbcp2.BasicDataSource;
+
+BasicDataSource dataSource = new BasicDataSource();
+dataSource.setUrl("jdbc:mysql://localhost:3306/your_database");
+dataSource.setUsername("your_username");
+dataSource.setPassword("your_password");
+// 其他连接池参数按需配置
+
+SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
+```
+
+---
+
+## 8. ⚠️ 注意事项与适用场景
 
 1. **风险提示**：本项目定位为轻量级工具，相较于成熟的 ORM 框架（如 MyBatis、Hibernate），其功能覆盖面和生态相对有限。**在生产环境使用前，请务必进行充分的测试，使用风险自行承担。**
 2. **线程安全**：`SimpleJdbcTemplate` 本身无内部状态，是**线程安全**的。但请确保其底层依赖的 `DataSource`（如 HikariCP、Druid 等连接池）已正确配置并保证线程安全。

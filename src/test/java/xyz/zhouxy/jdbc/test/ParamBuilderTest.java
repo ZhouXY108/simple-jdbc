@@ -10,6 +10,9 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.function.Function;
 
 import org.junit.jupiter.api.DisplayName;
@@ -154,6 +157,29 @@ class ParamBuilderTest {
         assertEquals("plain", result[8]);
         assertEquals(999, result[9]);
         assertNull(result[10]);
+    }
+
+    // --------------------------------------------------------------------
+    // #endregion
+    // ====================================================================
+
+    // ====================================================================
+    // #region - buildParams：Temporal 时间类型
+    // --------------------------------------------------------------------
+
+    @Test
+    @DisplayName("buildParams：Temporal 类型（LocalDate / LocalTime / LocalDateTime）")
+    void testBuildParamsTemporal() {
+        LocalDate date = LocalDate.of(2024, 6, 15);
+        LocalTime time = LocalTime.of(14, 30, 0);
+        LocalDateTime dateTime = LocalDateTime.of(date, time);
+
+        Object[] result = buildParams(date, time, dateTime);
+
+        assertEquals(3, result.length);
+        assertSame(date, result[0]);
+        assertSame(time, result[1]);
+        assertSame(dateTime, result[2]);
     }
 
     // --------------------------------------------------------------------

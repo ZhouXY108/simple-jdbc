@@ -37,8 +37,6 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.collect.Lists;
-
 /**
  * JdbcOperationSupport
  *
@@ -184,18 +182,13 @@ class JdbcOperationSupport {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         assertRowMapperNotNull(rowMapper);
-        final List<T> result = Lists.newArrayListWithCapacity(4);
         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             fillStatement(stmt, params);
             stmt.executeUpdate();
             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-                int rowNumber = 0;
-                while (generatedKeys.next()) {
-                    T e = rowMapper.mapRow(generatedKeys, rowNumber++);
-                    result.add(e);
-                }
+                final ResultHandler<List<T>> resultHandler = ResultHandler.mapToList(rowMapper);
+                return resultHandler.handle(generatedKeys);
             }
-            return result;
         }
     }
 
@@ -324,15 +317,7 @@ class JdbcOperationSupport {
                                                  @Nullable Object[] params,
                                                  @Nonnull RowMapper<T> rowMapper)
             throws SQLException {
-        return queryInternal(conn, sql, params, rs -> {
-            List<T> result = Lists.newArrayList();
-            int rowNumber = 0;
-            while (rs.next()) {
-                T e = rowMapper.mapRow(rs, rowNumber++);
-                result.add(e);
-            }
-            return result;
-        });
+        return queryInternal(conn, sql, params, ResultHandler.mapToList(rowMapper));
     }
 
     /**

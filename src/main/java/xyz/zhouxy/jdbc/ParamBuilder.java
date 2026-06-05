@@ -17,6 +17,7 @@
 package xyz.zhouxy.jdbc;
 
 import java.sql.PreparedStatement;
+import java.time.temporal.Temporal;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -51,22 +52,39 @@ public class ParamBuilder {
             return EMPTY_OBJECT_ARRAY;
         }
         return Arrays.stream(params)
-                .map(param -> {
-                    if (param instanceof Optional) {
-                        return OptionalTools.orElseNull((Optional<?>) param);
-                    }
-                    if (param instanceof OptionalInt) {
-                        return OptionalTools.toInteger((OptionalInt) param);
-                    }
-                    if (param instanceof OptionalLong) {
-                        return OptionalTools.toLong((OptionalLong) param);
-                    }
-                    if (param instanceof OptionalDouble) {
-                        return OptionalTools.toDouble((OptionalDouble) param);
-                    }
-                    return param;
-                })
+                .map(ParamBuilder::handleItem)
                 .toArray();
+    }
+
+    private static Object handleItem(Object param) {
+        if (param == null) {
+            return null;
+        }
+        if (param instanceof CharSequence) {
+            return param.toString();
+        }
+        if (param instanceof Number) {
+            return param;
+        }
+        if (param instanceof Boolean) {
+            return param;
+        }
+        if (param instanceof Temporal) {
+            return param;
+        }
+        if (param instanceof Optional) {
+            return OptionalTools.orElseNull((Optional<?>) param);
+        }
+        if (param instanceof OptionalInt) {
+            return OptionalTools.toInteger((OptionalInt) param);
+        }
+        if (param instanceof OptionalLong) {
+            return OptionalTools.toLong((OptionalLong) param);
+        }
+        if (param instanceof OptionalDouble) {
+            return OptionalTools.toDouble((OptionalDouble) param);
+        }
+        return param;
     }
 
     public static <T> List<Object[]> buildBatchParams(final Collection<T> c, final Function<T, Object[]> func) {

@@ -37,6 +37,8 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import xyz.zhouxy.plusone.commons.util.ArrayTools;
+
 /**
  * JdbcOperationSupport
  *
@@ -160,9 +162,16 @@ class JdbcOperationSupport {
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            fillStatement(stmt, params);
-            return stmt.executeUpdate();
+        if (ArrayTools.isNotEmpty(params)) {
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                fillStatement(stmt, params);
+                return stmt.executeUpdate();
+            }
+        }
+        else {
+            try (Statement stmt = conn.createStatement()) {
+                return stmt.executeUpdate(sql);
+            }
         }
     }
 
@@ -182,12 +191,23 @@ class JdbcOperationSupport {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         assertRowMapperNotNull(rowMapper);
-        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            fillStatement(stmt, params);
-            stmt.executeUpdate();
-            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-                final ResultHandler<List<T>> resultHandler = ResultHandler.mapToList(rowMapper);
-                return resultHandler.handle(generatedKeys);
+        if (ArrayTools.isNotEmpty(params)) {
+            try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                fillStatement(stmt, params);
+                stmt.executeUpdate();
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                    final ResultHandler<List<T>> resultHandler = ResultHandler.mapToList(rowMapper);
+                    return resultHandler.handle(generatedKeys);
+                }
+            }
+        }
+        else {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(sql);
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                    final ResultHandler<List<T>> resultHandler = ResultHandler.mapToList(rowMapper);
+                    return resultHandler.handle(generatedKeys);
+                }
             }
         }
     }
@@ -288,9 +308,17 @@ class JdbcOperationSupport {
                                        @Nullable Object[] params,
                                        @Nonnull ResultHandler<T> resultHandler)
             throws SQLException {
-        try (PreparedStatement stmt = createPreparedStatementInternal(conn, sql, params);
-             ResultSet rs = stmt.executeQuery()) {
-            return resultHandler.handle(rs);
+        if (ArrayTools.isNotEmpty(params)) {
+            try (PreparedStatement stmt = createPreparedStatementInternal(conn, sql, params);
+                 ResultSet rs = stmt.executeQuery()) {
+                return resultHandler.handle(rs);
+            }
+        }
+        else {
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(sql)) {
+                return resultHandler.handle(rs);
+            }
         }
     }
 

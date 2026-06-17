@@ -6,7 +6,7 @@
 
 ---
 
-## 1. ✨ 核心特性
+## 1. 核心特性
 
 - **轻量无依赖**：基于原生 JDBC 封装，无第三方重量级依赖。
 - **API 简洁**：提供丰富的快捷方法，大幅减少样板代码。
@@ -16,13 +16,22 @@
 
 ---
 
-## 2. 📦 快速开始
+## 2. 设计考量与边界
 
-### 2.1 环境要求
+`Simple JDBC` 不追求大而全，在功能设计上保持克制。以下是本项目的设计原则与功能边界：
+
+- **专注于基础 CRUD**：明确**不支持存储过程**的调用，所有 API 均围绕标准的增删改查操作设计。
+- **不提供分页 API**：不同数据库的分页方言差异巨大，且实际业务中的分页查询往往不是简单的 `LIMIT OFFSET`（存在如游标分页、延迟关联等深度优化空间）。为了保持轻量与灵活，分页 SQL 交由开发者根据具体数据库与业务场景自行编写。
+
+---
+
+## 3. 快速开始
+
+### 3.1 环境要求
 
 - **JDK 8** 或更高版本
 
-### 2.2 添加 Maven 依赖
+### 3.2 添加 Maven 依赖
 
 将以下配置添加到您的 `pom.xml` 中：
 
@@ -34,15 +43,15 @@
 </dependency>
 ```
 
-### 2.3 初始化
+### 3.3 初始化
 
 ```java
 SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
 ```
 
-> 💡 关于与数据库连接池（如 HikariCP、Druid、DBCP 2 等）的集成方式，请参见「[连接池集成](#7-连接池集成)」章节。
+> 💡 关于与数据库连接池（如 HikariCP、Druid、DBCP 2 等）的集成方式，请参见「[连接池集成](#8-连接池集成)」章节。
 
-### 2.4 查询操作
+### 3.4 查询操作
 
 ```java
 // 基础查询（使用 ResultHandler 处理全部结果）
@@ -117,9 +126,9 @@ List<Account> allAccounts = jdbcTemplate.queryList(
 );
 ```
 
-> 📖 完整的方法列表与映射策略说明请参见「[3. 数据查询](#3-🔍-数据查询-query)」章节。
+> 📖 完整的方法列表与映射策略说明请参见「[4. 数据查询](#4-数据查询-query)」章节。
 
-### 2.5 更新操作
+### 3.5 更新操作
 
 ```java
 // 执行常规 DML
@@ -140,9 +149,9 @@ List<Pair<Long, LocalDateTime>> keys = jdbcTemplate.updateAndReturnKeys(
 );
 ```
 
-> 📖 完整的方法列表与批量更新结果说明请参见「[4. 数据更新](#4-✏️-数据更新-update)」章节。
+> 📖 完整的方法列表与批量更新结果说明请参见「[5. 数据更新](#5-数据更新-update)」章节。
 
-### 2.6 批量更新操作
+### 3.6 批量更新操作
 
 ```java
 // 默认模式：遇错即中断
@@ -177,9 +186,9 @@ if (quietResult.getStatus() == BatchUpdateStatus.COMPLETED_WITH_ERRORS) {
 }
 ```
 
-> 📖 批量更新的详细结果说明请参见「[4.2 批量更新结果](#42-批量更新结果-batchupdateresult)」章节。
+> 📖 批量更新的详细结果说明请参见「[5.2 批量更新结果](#52-批量更新结果-batchupdateresult)」章节。
 
-### 2.7 事务管理
+### 3.7 事务管理
 
 ```java
 // 自动提交/回滚事务
@@ -214,13 +223,13 @@ jdbcTemplate.transaction().commitIfTrue(jdbc -> {
 });
 ```
 
-> 📖 事务方法的详细说明请参见「[5. 事务管理](#5-🔄-事务管理-transaction)」章节。
+> 📖 事务方法的详细说明请参见「[6. 事务管理](#6-事务管理-transaction)」章节。
 
 ---
 
-## 3. 🔍 数据查询 (Query)
+## 4. 数据查询 (Query)
 
-### 3.1 查询方法列表
+### 4.1 查询方法列表
 
 | 方法签名 | 说明 |
 | :--- | :--- |
@@ -235,7 +244,7 @@ jdbcTemplate.transaction().commitIfTrue(jdbc -> {
 
 *💡 提示：以上方法均有省略 `params` 的重载（如 `queryList(sql, rowMapper)`），适用于不含占位符的 SQL 语句。*
 
-### 3.2 结果映射策略
+### 4.2 结果映射策略
 
 - **`ResultHandler`**：处理完整的 `ResultSet`，允许自定义逻辑将结果集映射为任意类型（包括集合）。
 - **`RowMapper`**：将 `ResultSet` 中的单行数据映射为 Java 对象。内置以下默认实现：
@@ -246,11 +255,11 @@ jdbcTemplate.transaction().commitIfTrue(jdbc -> {
 
 ---
 
-## 4. ✏️ 数据更新 (Update)
+## 5. 数据更新 (Update)
 
 所有更新方法同样提供了无参重载。
 
-### 4.1 更新方法列表
+### 5.1 更新方法列表
 
 | 方法签名 | 说明 |
 | :--- | :--- |
@@ -259,7 +268,7 @@ jdbcTemplate.transaction().commitIfTrue(jdbc -> {
 | `batchUpdate(sql, params, batchSize)` | 分批执行 DML，遇到错误立即中断。 |
 | `batchUpdate(sql, params, batchSize, quietly)` | 分批执行 DML；若 `quietly=true`，则遇到错误不中断，直至全部执行完毕。 |
 
-### 4.2 批量更新结果 (BatchUpdateResult)
+### 5.2 批量更新结果 (BatchUpdateResult)
 
 `batchUpdate` 方法返回 `BatchUpdateResult` 对象，包含以下信息：
 
@@ -277,7 +286,7 @@ jdbcTemplate.transaction().commitIfTrue(jdbc -> {
 
 ---
 
-## 5. 🔄 事务管理 (Transaction)
+## 6. 事务管理 (Transaction)
 
 通过 `TransactionTemplate` 管理事务，可直接实例化或通过 `SimpleJdbcTemplate.transaction()` 获取。
 
@@ -287,7 +296,7 @@ jdbcTemplate.transaction().commitIfTrue(jdbc -> {
 - **自动提交管理**：进入事务时关闭连接的自动提交模式，事务结束后恢复原始状态。
 - **异常处理**：操作中抛出异常时自动执行回滚，并将原始异常包装为 `TransactionException` 抛出。
 
-### 5.1 获取事务模板
+### 6.1 获取事务模板
 
 ```java
 // 方式一：通过 SimpleJdbcTemplate 获取
@@ -297,18 +306,18 @@ TransactionTemplate tx = jdbcTemplate.transaction();
 TransactionTemplate tx = new TransactionTemplate(dataSource);
 ```
 
-### 5.2 事务方法
+### 6.2 事务方法
 
 - **`execute(consumer)`**：执行事务。传入 `ThrowingConsumer<JdbcOperations>`，若内部代码无异常抛出则自动提交，发生异常则回滚。
 - **`commitIfTrue(predicate)`**：执行事务。传入 `ThrowingPredicate<JdbcOperations>`，根据返回值决定事务走向：返回 `true` 提交，返回 `false` 或抛出异常则回滚。
 
 ---
 
-## 6. 🛠️ 参数构建
+## 7. 参数构建
 
 为避免与数组产生歧义并规范 API 设计，`JdbcOperations` 中的所有方法均不使用可变长参数（Varargs），而是统一使用 `Object[]` 作为参数传递。您可以使用内置的 `ParamBuilder` 快速构建参数。
 
-### 6.1 构建单条参数列表
+### 7.1 构建单条参数列表
 
 使用 `ParamBuilder.buildParams(...)` 构建 `Object[]`。该方法会自动将 `Optional` 值进行拆箱处理。
 
@@ -320,7 +329,7 @@ buildParams(Optional.of("hello"));       // 返回 Object[]{"hello"}
 buildParams(Optional.empty());           // 返回 Object[]{null}
 ```
 
-### 6.2 批量构建参数列表
+### 7.2 批量构建参数列表
 
 使用 `ParamBuilder.buildBatchParams(collection, func)` 将集合中的每个元素转换为 `Object[]`，最终返回 `List<Object[]>`。
 
@@ -337,11 +346,11 @@ List<Object[]> batchParams = buildBatchParams(accountList, account -> buildParam
 
 ---
 
-## 7. 📌 连接池集成
+## 8. 连接池集成
 
 `SimpleJdbcTemplate` 仅依赖标准的 `javax.sql.DataSource` 接口，可与任何主流数据库连接池集成。以下为常用连接池的配置示例。
 
-### 7.1 使用 HikariCP
+### 8.1 使用 HikariCP
 
 > [HikariCP](https://github.com/brettwooldridge/HikariCP) 是目前性能最优的数据库连接池之一，推荐在新项目中优先使用。
 
@@ -369,7 +378,7 @@ DataSource dataSource = new HikariDataSource(config);
 SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
 ```
 
-### 7.2 使用 Druid
+### 8.2 使用 Druid
 
 > [Druid](https://github.com/alibaba/druid) 是阿里巴巴开源的数据库连接池，提供了内置的监控和扩展能力，在中文社区中广泛采用。
 
@@ -394,7 +403,7 @@ dataSource.setPassword("your_password");
 SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
 ```
 
-### 7.3 使用 DBCP 2
+### 8.3 使用 DBCP 2
 
 > [DBCP 2](https://commons.apache.org/proper/commons-dbcp/) 是 Apache Commons 提供的数据库连接池，适用于需要依赖轻量的场景。
 
@@ -421,7 +430,7 @@ SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
 
 ---
 
-## 8. ⚠️ 注意事项与适用场景
+## 9. 注意事项与适用场景
 
 1. **风险提示**：本项目定位为轻量级工具，相较于成熟的 ORM 框架（如 MyBatis、Hibernate），其功能覆盖面和生态相对有限。**在生产环境使用前，请务必进行充分的测试，使用风险自行承担。**
 2. **线程安全**：`SimpleJdbcTemplate` 本身无内部状态，是**线程安全**的。但请确保其底层依赖的 `DataSource`（如 HikariCP、Druid 等连接池）已正确配置并保证线程安全。

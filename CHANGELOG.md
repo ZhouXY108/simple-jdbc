@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.0.0] - 2026-06-17
+
+### 重构
+- 移除 `plusone-commons` 及 Guava 依赖，内化 `AssertTools`、`NamingTools`、`ThrowingConsumer`、`ThrowingPredicate` 工具类
+- 将 `batchUpdate` 中断时对 `BatchUpdateResult` 的变更逻辑内化到 `BatchUpdateResult` 中
+
+### 测试
+- 添加 `ParamBuilderTest#buildParamsTemporal` 测试方法验证时间类型参数构建
+- 添加 `TransactionTest` 事务异常测试用例
+- 补充测试数据库初始化脚本注释
+
+### 文档
+- 新增 `CHANGELOG.md` 文件记录各版本更新内容
+- 优化 README 文档结构与内容
+- 补充 `ParamBuilder` 和 `SimpleJdbcTemplate` 的文档注释
+- 更新 `DefaultBeanRowMapper` 类文档注释，强调使用场景
+
+---
+
 ## [1.0.0-RC3] - 2026-06-05
 
 ### 新增

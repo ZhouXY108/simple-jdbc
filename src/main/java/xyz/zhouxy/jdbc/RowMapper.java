@@ -60,9 +60,9 @@ public interface RowMapper<T> {
      * @param <T> Java Bean 的类型
      *
      * @return {@link DefaultBeanRowMapper}
-     * @throws SQLException 如果创建 {@link DefaultBeanRowMapper} 失败
+     * @throws IllegalStateException 如果创建 {@link DefaultBeanRowMapper} 失败
      */
-    static <T> RowMapper<T> beanRowMapper(Class<T> beanType) throws SQLException {
+    static <T> RowMapper<T> beanRowMapper(Class<T> beanType) {
         return DefaultBeanRowMapper.of(beanType);
     }
 
@@ -74,10 +74,9 @@ public interface RowMapper<T> {
      * @param <T> Java Bean 的类型
      *
      * @return {@link DefaultBeanRowMapper}
-     * @throws SQLException 如果创建 {@link DefaultBeanRowMapper} 失败
+     * @throws IllegalStateException 如果创建 {@link DefaultBeanRowMapper} 失败
      */
-    static <T> RowMapper<T> beanRowMapper(Class<T> beanType, Map<String, String> propertyColMap)
-            throws SQLException {
+    static <T> RowMapper<T> beanRowMapper(Class<T> beanType, Map<String, String> propertyColMap) {
         return DefaultBeanRowMapper.of(beanType, propertyColMap);
     }
 }

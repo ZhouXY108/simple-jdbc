@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0] - Unreleased
+
+### ⚠️ 破坏性变更
+
+- **`DefaultBeanRowMapper.of()` 不再抛出 `SQLException`**：工厂方法在反射异常时改为抛出非受检异常 `IllegalStateException`。调用方如果 `catch (SQLException e)` 包裹 `of()` 调用，该捕获将失效，需移除相关 `catch` 块或改为捕获 `IllegalStateException`。
+
+### 文档
+
+- 优化 `DefaultBeanRowMapper` 类注释，明确性能限制和使用建议
+
+---
+
 ## [1.0.0] - 2026-06-17
 
 ### 重构

@@ -41,16 +41,17 @@ import xyz.zhouxy.jdbc.util.NamingTools;
  *
  * <p>
  * 将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper} 的基础实现。
- * <i>仅在对性能不敏感的场景下使用。</i>
+ * <p>
+ * <i>性能和规则上的限制都比较大，仅在对性能不敏感的场景下便捷使用，
+ * 一般情况下你应该自定义 {@link RowMapper}。</i>
  *
  * <p>
  * 说明：
  * <ul>
  * <li>使用反射获取类型信息，也是使用反射调用无参构造器和 {@code setter} 方法。</li>
- * <li>{@code propertyColMap} 未指定的列名和属性名的映射时，默认 JavaBean 的属性名为小驼峰，列名为小写蛇形命名。</li>
+ * <li>支持自定义列名和属性名的映射，当未指定 {@code propertyColMap} 时，默认 JavaBean 的属性名为小驼峰，列名为小写蛇形命名。</li>
  * <li>使用 {@link ResultSet#getObject(String, Class)} 从 {@link ResultSet} 中获取属性值。</li>
  * <li>JavaBean 属性仅支持引用类型，不支持基本数据类型。</li>
- * <li><b>实际使用中更建议针对目标类型自定义 {@link RowMapper}。</b></li>
  * </ul>
  *
  * @author ZhouXY
@@ -86,9 +87,9 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
      * @param <T>      Bean 类型
      * @param beanType Bean 类型
      * @return DefaultBeanRowMapper 对象
-     * @throws SQLException 创建 {@code DefaultBeanRowMapper} 出现错误的异常时抛出
+     * @throws IllegalStateException 创建 {@code DefaultBeanRowMapper} 出现错误的异常时抛出
      */
-    public static <T> DefaultBeanRowMapper<T> of(Class<T> beanType) throws SQLException {
+    public static <T> DefaultBeanRowMapper<T> of(Class<T> beanType) {
         return of(beanType, null);
     }
 
@@ -99,10 +100,10 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
      * @param beanType       Bean 类型
      * @param propertyColMap Bean 字段与列名的映射关系。key 是字段，value 是列名。
      * @return {@code DefaultBeanRowMapper} 对象
-     * @throws SQLException 创建 {@code DefaultBeanRowMapper} 出现错误的异常时抛出
+     * @throws IllegalStateException 创建 {@code DefaultBeanRowMapper} 出现错误的异常时抛出
      */
-    public static <T> DefaultBeanRowMapper<T> of(Class<T> beanType, @Nullable Map<String, String> propertyColMap)
-            throws SQLException {
+    public static <T> DefaultBeanRowMapper<T> of(Class<T> beanType,
+                                                 @Nullable Map<String, String> propertyColMap) {
         try {
             // 获取无参构造器
             Constructor<T> constructor = beanType.getDeclaredConstructor();
@@ -113,10 +114,10 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
             return new DefaultBeanRowMapper<>(beanType, constructor, colPropertyMap, colSetterMap);
         }
         catch (IntrospectionException e) {
-            throw new SQLException("There is an exception occurs during introspection.", e);
+            throw new IllegalStateException("There is an exception occurs during introspection.", e);
         }
         catch (NoSuchMethodException e) {
-            throw new SQLException("Could not find a no-args constructor in " + beanType.getName(), e);
+            throw new IllegalStateException("Could not find a no-args constructor in " + beanType.getName(), e);
         }
     }
 
@@ -141,7 +142,7 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
             return newInstance;
         }
         catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
-            throw new SQLException("Could not map row to " + beanType.getName(), e);
+            throw new IllegalStateException("Could not map row to " + beanType.getName(), e);
         }
     }
 

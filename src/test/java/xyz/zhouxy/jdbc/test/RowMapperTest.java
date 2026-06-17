@@ -137,9 +137,9 @@ class RowMapperTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("DefaultBeanRowMapper：无无参构造器的 Bean 抛出 SQLException")
+    @DisplayName("DefaultBeanRowMapper：无无参构造器的 Bean 抛出 IllegalStateException")
     void testDefaultBeanRowMapperNoNoArgConstructor() {
-        assertThrows(SQLException.class, () ->
+        assertThrows(IllegalStateException.class, () ->
                 DefaultBeanRowMapper.of(BeanWithoutNoArgConstructor.class));
     }
 

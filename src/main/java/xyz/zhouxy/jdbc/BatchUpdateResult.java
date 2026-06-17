@@ -52,6 +52,11 @@ public class BatchUpdateResult {
     private final int batchSize;
 
     /**
+     * 是否静默模式
+     */
+    private final boolean quietly;
+
+    /**
      * 本次分批更新的状态
      */
     private BatchUpdateStatus status = BatchUpdateStatus.SUCCESS;
@@ -75,10 +80,11 @@ public class BatchUpdateResult {
      */
     private int completeBatchCount;
 
-    BatchUpdateResult(int total, int batchCount, int batchSize) {
+    BatchUpdateResult(int total, int batchCount, int batchSize, boolean quietly) {
         this.total = total;
         this.batchCount = batchCount;
         this.batchSize = batchSize;
+        this.quietly = quietly;
 
         this.allUpdateCounts = new HashMap<>(batchCount);
         this.allErrorsInfo = new HashMap<>(batchCount);
@@ -101,15 +107,13 @@ public class BatchUpdateResult {
         this.allUpdateCounts.put(batchIndex, updateCounts);
         this.allErrorsInfo.put(batchIndex, new BatchUpdateErrorInfo(batchIndex, cause));
         if (this.status == BatchUpdateStatus.SUCCESS) {
-            this.status = BatchUpdateStatus.COMPLETED_WITH_ERRORS;
+            if (this.quietly) {
+                this.status = BatchUpdateStatus.COMPLETED_WITH_ERRORS;
+            }
+            else {
+                this.status = BatchUpdateStatus.INTERRUPTED;
+            }
         }
-    }
-
-    /**
-     * 中断
-     */
-    void interrupt() {
-        this.status = BatchUpdateStatus.INTERRUPTED;
     }
 
     /**

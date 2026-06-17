@@ -232,13 +232,13 @@ class JdbcOperationSupport {
         assertSqlNotNull(sql);
         checkArgument(batchSize > 0, "The batch size must be greater than 0.");
         if (params == null || params.isEmpty()) {
-            return new BatchUpdateResult(0, 0, batchSize);
+            return new BatchUpdateResult(0, 0, batchSize, quietly);
         }
 
         final int paramsSize = params.size();
         final int batchCount = (paramsSize + batchSize - 1) / batchSize;
 
-        final BatchUpdateResult result = new BatchUpdateResult(paramsSize, batchCount, batchSize);
+        final BatchUpdateResult result = new BatchUpdateResult(paramsSize, batchCount, batchSize, quietly);
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             // 表示第几条数据，1, 2, 3, ..., paramsSize
@@ -263,7 +263,6 @@ class JdbcOperationSupport {
                         final int[] updateCounts = getUpdateCountsOnError(indexInBatch, e);
                         result.recordErrorBatch(batchIndex, updateCounts, e);
                         if (!quietly) {
-                            result.interrupt();
                             break;
                         }
                     }

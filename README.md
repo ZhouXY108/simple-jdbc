@@ -114,6 +114,13 @@ Optional<Account> account = jdbcTemplate.queryFirst(
     )
 );
 
+// 查询单个值（所有 ResultSet.getObject 支持的类型）
+Long count = jdbcTemplate.queryFirst(
+    "SELECT COUNT(*) FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
+    buildParams("admin%", "0000"),
+    Long.class
+).orElse(0L);
+
 // 查询 Boolean 值
 boolean exists = jdbcTemplate.queryBoolean(
     "SELECT EXISTS(SELECT 1 FROM account WHERE deleted = 0 AND id = ?)",

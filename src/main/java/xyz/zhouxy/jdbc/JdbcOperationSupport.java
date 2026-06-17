@@ -93,14 +93,14 @@ class JdbcOperationSupport {
     }
 
     /**
-     * 执行查询，返回结果映射为指定的类型。当结果为单列时使用
+     * 执行查询，只取结果集每行第一列的值，映射为指定类型并返回列表
      *
      * @param conn   数据库连接
      * @param sql    SQL
      * @param params 参数
      * @param clazz  将结果映射为指定的类型
      */
-    static <T> List<T> queryList(Connection conn, String sql, Object[] params, Class<T> clazz)
+    static <T> List<T> queryValues(Connection conn, String sql, Object[] params, Class<T> clazz)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
@@ -129,14 +129,15 @@ class JdbcOperationSupport {
     }
 
     /**
-     * 查询第一行第一列，并转换为指定类型
+     * 执行查询，只取结果集第一行第一列的值，映射为指定类型并返回
      *
+     * @param conn   数据库连接
      * @param <T>    目标类型
      * @param sql    SQL
      * @param params 参数
      * @param clazz  目标类型
      */
-    static <T> T queryFirst(Connection conn, String sql, Object[] params, Class<T> clazz)
+    static <T> T queryValue(Connection conn, String sql, Object[] params, Class<T> clazz)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);

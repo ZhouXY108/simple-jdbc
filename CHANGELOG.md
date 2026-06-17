@@ -6,6 +6,25 @@
 
 - **`DefaultBeanRowMapper.of()` 不再抛出 `SQLException`**：工厂方法在反射异常时改为抛出非受检异常 `IllegalStateException`。调用方如果 `catch (SQLException e)` 包裹 `of()` 调用，该捕获将失效，需移除相关 `catch` 块或改为捕获 `IllegalStateException`。
 
+### 新增
+
+- `queryValueOrDefault(sql, params, Class<T>, T defaultValue)`：查询单行单列，结果为空时返回指定默认值
+- `queryValueOrDefault(sql, Class<T>, T defaultValue)`：无参数重载
+- 补充 `QueryTest` 中 `queryValueOrDefault` 单元测试 6 个
+
+### 重构
+
+**将单列查询方法标记为过时，消除 Class 参数重载歧义**
+
+- `queryList(sql, params, Class<T>)` → 已过时，请使用 `queryValues(sql, params, Class<T>)`
+  语义明确为"多行单列 → 值列表"，不与整行 `RowMapper` 重载混淆
+- `queryFirst(sql, params, Class<T>)` → 已过时，请使用 `queryValue(sql, params, Class<T>)`
+  语义明确为"单行单列 → 单值"，不与整行 `RowMapper` 重载混淆
+- 同时将对应的无参数重载标记为过时：
+  - `queryList(sql, Class<T>)` → 请使用 `queryValues(sql, Class<T>)`
+  - `queryFirst(sql, Class<T>)` → 请使用 `queryValue(sql, Class<T>)`
+- 旧方法将在后续版本中移除
+
 ### 文档
 
 - 优化 `DefaultBeanRowMapper` 类注释，明确性能限制和使用建议

@@ -87,17 +87,18 @@ public interface JdbcOperations {
             throws SQLException;
 
     /**
-     * 执行查询，返回结果映射为指定的类型。当结果为单列时使用
+     * 执行查询，只取结果集每行第一列的值，映射为指定类型并返回列表。
+     * 适用于 {@code SELECT single_column FROM ...} 单列查询场景。
      *
-     * @param <T>    目标类型
+     * @param <T>    目标类型（对应结果集第一列的 Java 类型）
      * @param sql    SQL
      * @param params 参数
      * @param clazz  目标类型
      *
-     * @return 映射结果。如果查询结果为空，则返回空列表
+     * @return 每一行第一列的值列表。如果查询结果为空，则返回空列表
      * @throws SQLException SQL异常
      */
-    <T> List<T> queryList(String sql, Object[] params, Class<T> clazz)
+    <T> List<T> queryValues(String sql, Object[] params, Class<T> clazz)
             throws SQLException;
 
     /**
@@ -128,18 +129,39 @@ public interface JdbcOperations {
     }
 
     /**
-     * 执行查询，返回结果映射为指定的类型。当结果为单列时使用
+     * 执行查询，只取结果集每行第一列的值，映射为指定类型并返回列表。
+     * 适用于 {@code SELECT single_column FROM ...} 单列查询场景。
      *
      * @param <T>   目标类型
      * @param sql   SQL
      * @param clazz 将结果映射为指定的类型
      *
-     * @return 查询结果
+     * @return 每一行第一列的值列表。如果查询结果为空，则返回空列表
      * @throws SQLException SQL 异常
      */
+    default <T> List<T> queryValues(String sql, Class<T> clazz)
+            throws SQLException {
+        return queryValues(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz);
+    }
+
+    /**
+     * @deprecated 自 1.1.0 起，请使用 {@link #queryValues(String, Object[], Class)}。
+     *             此方法将在后续版本中移除。
+     */
+    @Deprecated
+    default <T> List<T> queryList(String sql, Object[] params, Class<T> clazz)
+            throws SQLException {
+        return queryValues(sql, params, clazz);
+    }
+
+    /**
+     * @deprecated 自 1.1.0 起，请使用 {@link #queryValues(String, Class)}。
+     *             此方法将在后续版本中移除。
+     */
+    @Deprecated
     default <T> List<T> queryList(String sql, Class<T> clazz)
             throws SQLException {
-        return queryList(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz);
+        return queryValues(sql, clazz);
     }
 
     /**
@@ -174,17 +196,18 @@ public interface JdbcOperations {
             throws SQLException;
 
     /**
-     * 查询第一行第一列，并转换为指定类型
+     * 执行查询，只取结果集第一行第一列的值，映射为指定类型并返回。
+     * 适用于 {@code SELECT single_column FROM ... WHERE ...} 单列单行查询场景。
      *
      * @param <T>    目标类型
      * @param sql    SQL
      * @param params 参数
      * @param clazz  目标类型
      *
-     * @return 查询结果
+     * @return 第一行第一列的值。如果查询结果为空，则返回 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    <T> Optional<T> queryFirst(String sql, Object[] params, Class<T> clazz)
+    <T> Optional<T> queryValue(String sql, Object[] params, Class<T> clazz)
             throws SQLException;
 
     /**
@@ -215,18 +238,39 @@ public interface JdbcOperations {
     }
 
     /**
-     * 查询第一行第一列，并转换为指定类型
+     * 执行查询，只取结果集第一行第一列的值，映射为指定类型并返回。
+     * 适用于 {@code SELECT single_column FROM ... WHERE ...} 单列单行查询场景。
      *
      * @param <T>   目标类型
      * @param sql   SQL
      * @param clazz 目标类型
      *
-     * @return 第一行第一列的值，如果查询结果为空，则返回 {@code Optional#empty()}
+     * @return 第一行第一列的值，如果查询结果为空，则返回 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
+    default <T> Optional<T> queryValue(String sql, Class<T> clazz)
+            throws SQLException {
+        return queryValue(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz);
+    }
+
+    /**
+     * @deprecated 自 1.1.0 起，请使用 {@link #queryValue(String, Object[], Class)}。
+     *             此方法将在后续版本中移除。
+     */
+    @Deprecated
+    default <T> Optional<T> queryFirst(String sql, Object[] params, Class<T> clazz)
+            throws SQLException {
+        return queryValue(sql, params, clazz);
+    }
+
+    /**
+     * @deprecated 自 1.1.0 起，请使用 {@link #queryValue(String, Class)}。
+     *             此方法将在后续版本中移除。
+     */
+    @Deprecated
     default <T> Optional<T> queryFirst(String sql, Class<T> clazz)
             throws SQLException {
-        return queryFirst(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz);
+        return queryValue(sql, clazz);
     }
 
     /**
@@ -240,6 +284,43 @@ public interface JdbcOperations {
     default Optional<Map<String, Object>> queryFirst(String sql)
             throws SQLException {
         return queryFirst(sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
+    }
+
+    /**
+     * 执行查询，只取结果集第一行第一列的值，映射为指定类型并返回。
+     * 如果查询结果为空，则返回指定的默认值。
+     * 适用于 {@code SELECT COUNT(*)}、{@code SELECT MAX(...)} 等聚合查询场景。
+     *
+     * @param <T>          目标类型
+     * @param sql          SQL
+     * @param params       参数
+     * @param clazz        目标类型
+     * @param defaultValue 查询结果为空时返回的默认值
+     *
+     * @return 第一行第一列的值，如果查询结果为空则返回 {@code defaultValue}
+     * @throws SQLException SQL 异常
+     */
+    default <T> T queryValueOrDefault(String sql, Object[] params, Class<T> clazz, T defaultValue)
+            throws SQLException {
+        return queryValue(sql, params, clazz).orElse(defaultValue);
+    }
+
+    /**
+     * 执行查询，只取结果集第一行第一列的值，映射为指定类型并返回。
+     * 如果查询结果为空，则返回指定的默认值。
+     * 适用于 {@code SELECT COUNT(*)}、{@code SELECT MAX(...)} 等聚合查询场景。
+     *
+     * @param <T>          目标类型
+     * @param sql          SQL
+     * @param clazz        目标类型
+     * @param defaultValue 查询结果为空时返回的默认值
+     *
+     * @return 第一行第一列的值，如果查询结果为空则返回 {@code defaultValue}
+     * @throws SQLException SQL 异常
+     */
+    default <T> T queryValueOrDefault(String sql, Class<T> clazz, T defaultValue)
+            throws SQLException {
+        return queryValueOrDefault(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz, defaultValue);
     }
 
     /**

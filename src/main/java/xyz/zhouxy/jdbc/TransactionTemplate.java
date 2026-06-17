@@ -181,9 +181,9 @@ public class TransactionTemplate {
 
         /** {@inheritDoc} */
         @Override
-        public <T> List<T> queryList(String sql, Object[] params, Class<T> clazz)
+        public <T> List<T> queryValues(String sql, Object[] params, Class<T> clazz)
                 throws SQLException {
-            return JdbcOperationSupport.queryList(this.conn, sql, params, clazz);
+            return JdbcOperationSupport.queryValues(this.conn, sql, params, clazz);
         }
 
         /** {@inheritDoc} */
@@ -207,9 +207,9 @@ public class TransactionTemplate {
 
         /** {@inheritDoc} */
         @Override
-        public <T> Optional<T> queryFirst(String sql, Object[] params, Class<T> clazz)
+        public <T> Optional<T> queryValue(String sql, Object[] params, Class<T> clazz)
                 throws SQLException {
-            final T result = JdbcOperationSupport.queryFirst(this.conn, sql, params, clazz);
+            final T result = JdbcOperationSupport.queryValue(this.conn, sql, params, clazz);
             return Optional.ofNullable(result);
         }
 
@@ -227,7 +227,7 @@ public class TransactionTemplate {
         public boolean queryBoolean(String sql, Object[] params)
                 throws SQLException {
             final Boolean result = JdbcOperationSupport
-                    .queryFirst(this.conn, sql, params, Boolean.class);
+                    .queryValue(this.conn, sql, params, Boolean.class);
             return Boolean.TRUE.equals(result);
         }
 

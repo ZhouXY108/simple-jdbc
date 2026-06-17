@@ -78,7 +78,7 @@ List<Account> accounts = jdbcTemplate.query(
 );
 
 // 查询列表（单列）
-List<String> usernames = jdbcTemplate.queryList(
+List<String> usernames = jdbcTemplate.queryValues(
     "SELECT username FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
     buildParams("admin%", "0000"),
     String.class
@@ -117,11 +117,18 @@ Optional<Account> account = jdbcTemplate.queryFirst(
 );
 
 // 查询单个值（所有 ResultSet.getObject 支持的类型）
-Long count = jdbcTemplate.queryFirst(
+Long count = jdbcTemplate.queryValue(
     "SELECT COUNT(*) FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
     buildParams("admin%", "0000"),
     Long.class
 ).orElse(0L);
+// 或者
+Long count = jdbcTemplate.queryValueOrDefault(
+    "SELECT COUNT(*) FROM account WHERE deleted = 0 AND username LIKE ? AND org_no = ?",
+    buildParams("admin%", "0000"),
+    Long.class,
+    0L
+);
 
 // 查询 Boolean 值
 boolean exists = jdbcTemplate.queryBoolean(
@@ -245,14 +252,15 @@ jdbcTemplate.transaction().commitIfTrue(jdbc -> {
 | :--- | :--- |
 | `query(sql, params, resultHandler)` | 最基础的查询，通过 `ResultHandler` 自定义完整的映射逻辑。 |
 | `queryList(sql, params, rowMapper)` | 查询列表，通过 `RowMapper` 逐行映射。 |
-| `queryList(sql, params, Class)` | 单列查询列表，每行提取第一列并转换为指定类型。 |
 | `queryList(sql, params)` | 查询列表，每行自动转换为 `Map<String, Object>`。 |
 | `queryFirst(sql, params, rowMapper)` | 查询第一行，通过 `RowMapper` 映射，返回 `Optional<T>`。 |
-| `queryFirst(sql, params, Class)` | 查询第一行第一列，返回 `Optional<T>`。 |
 | `queryFirst(sql, params)` | 查询第一行，返回 `Optional<Map<String, Object>>`。 |
+| `queryValues(sql, params, Class)` | 单列查询列表，每行提取第一列并转换为指定类型。 |
+| `queryValue(sql, params, Class)` | 查询第一行第一列，返回 `Optional<T>`。 |
+| `queryValueOrDefault(sql, params, Class, default)` | 查询第一行第一列，结果为空时返回默认值。适用于 COUNT/SUM 等聚合查询。 |
 | `queryBoolean(sql, params)` | 查询第一行第一列并转换为 `boolean`，若结果为空则返回 `false`。 |
 
-*💡 提示：以上方法均有省略 `params` 的重载（如 `queryList(sql, rowMapper)`），适用于不含占位符的 SQL 语句。*
+*💡 提示：以上方法均有省略 `params` 的重载（如 `queryList(sql, rowMapper)`），适用于不含占位符的 SQL 语句。`queryValues`、`queryValue`、`queryValueOrDefault` 同理。*
 
 ### 4.2 结果映射策略
 

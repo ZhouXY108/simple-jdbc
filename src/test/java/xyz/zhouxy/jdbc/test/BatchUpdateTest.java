@@ -199,7 +199,7 @@ class BatchUpdateTest extends BaseH2Test {
     void testBatchUpdateQuietlyFalseInterrupted() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        int count0 = template.queryFirst("SELECT COUNT(*) FROM users", Integer.class)
+        int count0 = template.queryValue("SELECT COUNT(*) FROM users", Integer.class)
                 .orElse(0);
 
         List<Object[]> params = buildBatchParams(userListContainingInvalidData, a -> new Object[] { a.getUsername(), a.getEmail(), a.getAge(), a.getBalance(), a.getActive() });
@@ -231,7 +231,7 @@ class BatchUpdateTest extends BaseH2Test {
         assertNull(result.getUpdateCounts(3));
         assertNull(result.getUpdateCounts(4));
 
-        Optional<Integer> count8 = template.queryFirst("SELECT COUNT(*) FROM users", Integer.class);
+        Optional<Integer> count8 = template.queryValue("SELECT COUNT(*) FROM users", Integer.class);
         assertEquals(count0 + 8, count8.get().intValue());
     }
 
@@ -242,7 +242,7 @@ class BatchUpdateTest extends BaseH2Test {
     void testBatchUpdateQuietlyTrue() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        int count0 = template.queryFirst("SELECT COUNT(*) FROM users", Integer.class)
+        int count0 = template.queryValue("SELECT COUNT(*) FROM users", Integer.class)
                 .orElse(0);
 
         List<Object[]> params = buildBatchParams(userListContainingInvalidData, a -> new Object[] { a.getUsername(), a.getEmail(), a.getAge(), a.getBalance(), a.getActive() });
@@ -261,7 +261,7 @@ class BatchUpdateTest extends BaseH2Test {
         assertArrayEquals(new int[] { Statement.EXECUTE_FAILED, 1, 1 }, result.getUpdateCounts(3));
         assertArrayEquals(new int[] { 1 }, result.getUpdateCounts(4));
 
-        Optional<Integer> count11 = template.queryFirst("SELECT COUNT(*) FROM users", Integer.class);
+        Optional<Integer> count11 = template.queryValue("SELECT COUNT(*) FROM users", Integer.class);
         assertEquals(count0 + 11, count11.get().intValue());
     }
 

@@ -44,12 +44,12 @@ class TransactionTest extends BaseH2Test {
         });
 
         // 验证事务已提交
-        Optional<String> newUser = template.queryFirst(
+        Optional<String> newUser = template.queryValue(
                 "SELECT username FROM users WHERE username = ?",
                 buildParams("txUser1"), String.class);
         assertTrue(newUser.isPresent());
 
-        Optional<Long> balance = template.queryFirst(
+        Optional<Long> balance = template.queryValue(
                 "SELECT balance FROM users WHERE username = ?",
                 buildParams("alice"), Long.class);
         assertEquals(Long.valueOf(99999L), balance.orElse(null));
@@ -65,7 +65,7 @@ class TransactionTest extends BaseH2Test {
         SimpleJdbcTemplate template = createTemplate();
 
         // 记录原始 balance
-        Optional<Long> originalBalance = template.queryFirst(
+        Optional<Long> originalBalance = template.queryValue(
                 "SELECT balance FROM users WHERE username = ?",
                 buildParams("alice"), Long.class);
 
@@ -85,13 +85,13 @@ class TransactionTest extends BaseH2Test {
         assertEquals("模拟业务异常", ex.getCause().getMessage());
 
         // 验证更新已回滚
-        Optional<Long> currentBalance = template.queryFirst(
+        Optional<Long> currentBalance = template.queryValue(
                 "SELECT balance FROM users WHERE username = ?",
                 buildParams("alice"), Long.class);
         assertEquals(originalBalance.orElse(null), currentBalance.orElse(null));
 
         // 验证插入已回滚
-        Optional<String> rolledBackUser = template.queryFirst(
+        Optional<String> rolledBackUser = template.queryValue(
                 "SELECT username FROM users WHERE username = ?",
                 buildParams("txUser2"), String.class);
         assertFalse(rolledBackUser.isPresent());
@@ -114,7 +114,7 @@ class TransactionTest extends BaseH2Test {
 
         // 验证插入已回滚
         assertDoesNotThrow(() -> {
-            Optional<String> user = template.queryFirst(
+            Optional<String> user = template.queryValue(
                     "SELECT username FROM users WHERE username = ?",
                     buildParams("validUser"), String.class);
             assertFalse(user.isPresent());
@@ -135,7 +135,7 @@ class TransactionTest extends BaseH2Test {
         });
 
         // 验证数据已持久化
-        Optional<String> user = template.queryFirst(
+        Optional<String> user = template.queryValue(
                 "SELECT username FROM users WHERE username = ?",
                 buildParams("cftUser"), String.class);
         assertTrue(user.isPresent());
@@ -155,7 +155,7 @@ class TransactionTest extends BaseH2Test {
         });
 
         // 验证数据已回滚
-        Optional<String> user = template.queryFirst(
+        Optional<String> user = template.queryValue(
                 "SELECT username FROM users WHERE username = ?",
                 buildParams("cffUser"), String.class);
         assertFalse(user.isPresent());
@@ -177,7 +177,7 @@ class TransactionTest extends BaseH2Test {
 
         // 验证回滚
         assertDoesNotThrow(() -> {
-            Optional<String> user = template.queryFirst(
+            Optional<String> user = template.queryValue(
                     "SELECT username FROM users WHERE username = ?",
                     buildParams("exUser"), String.class);
             assertFalse(user.isPresent());
@@ -196,7 +196,7 @@ class TransactionTest extends BaseH2Test {
                     buildParams("visible", "visible@test.com"));
 
             // 在同一事务内可以查询到刚插入的数据
-            Optional<String> user = ops.queryFirst(
+            Optional<String> user = ops.queryValue(
                     "SELECT username FROM users WHERE username = ?",
                     buildParams("visible"), String.class);
             assertTrue(user.isPresent());

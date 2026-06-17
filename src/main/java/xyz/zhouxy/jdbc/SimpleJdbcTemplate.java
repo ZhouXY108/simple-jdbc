@@ -96,10 +96,10 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
     /** {@inheritDoc} */
     @Override
-    public <T> List<T> queryList(String sql, Object[] params, Class<T> clazz)
+    public <T> List<T> queryValues(String sql, Object[] params, Class<T> clazz)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.queryList(conn, sql, params, clazz);
+            return JdbcOperationSupport.queryValues(conn, sql, params, clazz);
         }
     }
 
@@ -128,10 +128,10 @@ public class SimpleJdbcTemplate implements JdbcOperations {
 
     /** {@inheritDoc} */
     @Override
-    public <T> Optional<T> queryFirst(String sql, Object[] params, Class<T> clazz)
+    public <T> Optional<T> queryValue(String sql, Object[] params, Class<T> clazz)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            final T result = JdbcOperationSupport.queryFirst(conn, sql, params, clazz);
+            final T result = JdbcOperationSupport.queryValue(conn, sql, params, clazz);
             return Optional.ofNullable(result);
         }
     }
@@ -153,7 +153,7 @@ public class SimpleJdbcTemplate implements JdbcOperations {
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             final Boolean result = JdbcOperationSupport
-                    .queryFirst(conn, sql, params, Boolean.class);
+                    .queryValue(conn, sql, params, Boolean.class);
             return Boolean.TRUE.equals(result);
         }
     }

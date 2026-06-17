@@ -18,7 +18,7 @@ import xyz.zhouxy.jdbc.ResultHandler;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 
 /**
- * 查询 API 测试：query、queryList、queryFirst、queryBoolean。
+ * 查询 API 测试：query、queryList、queryFirst、queryValues、queryValue、queryBoolean。
  */
 @DisplayName("SimpleJdbcTemplate 查询操作")
 class QueryTest extends BaseH2Test {
@@ -119,28 +119,28 @@ class QueryTest extends BaseH2Test {
         assertEquals(5, users.size());
     }
 
-    // ==================== queryList(Class) ====================
+    // ==================== queryValues(Class) ====================
 
     @Test
-    @DisplayName("queryList(Class)：单列查询返回 String 列表")
-    void testQueryListWithClassString() throws SQLException {
+    @DisplayName("queryValues(Class)：单列查询返回 String 列表")
+    void testQueryValuesWithClassString() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        List<String> usernames = template.queryList(
+        List<String> usernames = template.queryValues(
                 "SELECT username FROM users ORDER BY id",
                 String.class);
 
-        logger.info("queryList(Class) 返回用户名: {}", usernames);
+        logger.info("queryValues(Class) 返回用户名: {}", usernames);
         assertEquals(5, usernames.size());
         assertTrue(usernames.contains("alice"));
     }
 
     @Test
-    @DisplayName("queryList(Class)：空结果集返回空列表")
-    void testQueryListEmptyResult() throws SQLException {
+    @DisplayName("queryValues(Class)：空结果集返回空列表")
+    void testQueryValuesEmptyResult() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        List<String> result = template.queryList(
+        List<String> result = template.queryValues(
                 "SELECT username FROM users WHERE id = ?",
                 buildParams(999), String.class);
 
@@ -215,14 +215,14 @@ class QueryTest extends BaseH2Test {
         assertTrue(user.isPresent());
     }
 
-    // ==================== queryFirst(Class) ====================
+    // ==================== queryValue(Class) ====================
 
     @Test
-    @DisplayName("queryFirst(Class)：查询第一行第一列")
-    void testQueryFirstWithClass() throws SQLException {
+    @DisplayName("queryValue(Class)：查询第一行第一列")
+    void testQueryValueWithClass() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        Optional<String> username = template.queryFirst(
+        Optional<String> username = template.queryValue(
                 "SELECT username FROM users ORDER BY id",
                 String.class);
 
@@ -231,11 +231,11 @@ class QueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("queryFirst(Class)：空结果返回 Optional.empty()")
-    void testQueryFirstClassEmpty() throws SQLException {
+    @DisplayName("queryValue(Class)：空结果返回 Optional.empty()")
+    void testQueryValueClassEmpty() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        Optional<String> result = template.queryFirst(
+        Optional<String> result = template.queryValue(
                 "SELECT username FROM users WHERE id = ?",
                 buildParams(999), String.class);
 
@@ -244,11 +244,11 @@ class QueryTest extends BaseH2Test {
 
 
     @Test
-    @DisplayName("queryFirst + Class：统计总行数")
-    void testQueryFirstWithClass_queryCount() throws SQLException {
+    @DisplayName("queryValue + Class：统计总行数")
+    void testQueryValueWithClass_queryCount() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        int count = template.queryFirst(
+        int count = template.queryValue(
                 "SELECT COUNT(*) FROM users",
                 new Object[0],
                 Integer.class)
@@ -259,11 +259,11 @@ class QueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("queryFirst + Class：聚合求和")
-    void testQueryFirstWithClass_queryAggregation() throws SQLException {
+    @DisplayName("queryValue + Class：聚合求和")
+    void testQueryValueWithClass_queryAggregation() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        Long totalBalance = template.queryFirst(
+        Long totalBalance = template.queryValue(
                 "SELECT SUM(balance) FROM users",
                 new Object[0],
                 Long.class)
@@ -271,6 +271,81 @@ class QueryTest extends BaseH2Test {
 
         logger.info("query 聚合 balance 总和: {}", totalBalance);
         assertNotNull(totalBalance);
+    }
+
+    // ==================== queryValueOrDefault ====================
+
+    @Test
+    @DisplayName("queryValueOrDefault：有结果时返回值")
+    void testQueryValueOrDefaultWithResult() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        String username = template.queryValueOrDefault(
+                "SELECT username FROM users WHERE id = ?",
+                new Object[]{1}, String.class, "default");
+
+        assertEquals("alice", username);
+    }
+
+    @Test
+    @DisplayName("queryValueOrDefault：无结果时返回默认值")
+    void testQueryValueOrDefaultWithDefault() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        String username = template.queryValueOrDefault(
+                "SELECT username FROM users WHERE id = ?",
+                new Object[]{999}, String.class, "unknown");
+
+        assertEquals("unknown", username);
+    }
+
+    @Test
+    @DisplayName("queryValueOrDefault：COUNT 聚合查询")
+    void testQueryValueOrDefaultCount() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        long count = template.queryValueOrDefault(
+                "SELECT COUNT(*) FROM users",
+                new Object[0], Long.class, 0L);
+
+        assertEquals(5L, count);
+    }
+
+    @Test
+    @DisplayName("queryValueOrDefault：SUM 聚合查询")
+    void testQueryValueOrDefaultSum() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        long totalBalance = template.queryValueOrDefault(
+                "SELECT SUM(balance) FROM users",
+                new Object[0], Long.class, 0L);
+
+        assertTrue(totalBalance > 0);
+        logger.info("queryValueOrDefault SUM 结果: {}", totalBalance);
+    }
+
+    @Test
+    @DisplayName("queryValueOrDefault：无参数重载")
+    void testQueryValueOrDefaultNoParams() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        long count = template.queryValueOrDefault(
+                "SELECT COUNT(*) FROM users",
+                Long.class, 0L);
+
+        assertEquals(5L, count);
+    }
+
+    @Test
+    @DisplayName("queryValueOrDefault：空表 COUNT 返回默认值 0")
+    void testQueryValueOrDefaultEmptyTable() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        long count = template.queryValueOrDefault(
+                "SELECT COUNT(*) FROM users WHERE id = ?",
+                new Object[]{999}, Long.class, 0L);
+
+        assertEquals(0L, count);
     }
 
     // ==================== queryFirst(Map) ====================
@@ -385,7 +460,7 @@ class QueryTest extends BaseH2Test {
         SimpleJdbcTemplate template = createTemplate();
 
         assertThrows(SQLException.class, () ->
-                template.queryList("SELECT * FROM non_existent_table",
+                template.queryValues("SELECT * FROM non_existent_table",
                         new Object[0], String.class));
     }
 
@@ -395,7 +470,7 @@ class QueryTest extends BaseH2Test {
         SimpleJdbcTemplate template = createTemplate();
 
         assertThrows(SQLException.class, () ->
-                template.queryList("SELEC * FROM users",
+                template.queryValues("SELEC * FROM users",
                         new Object[0], String.class));
     }
 

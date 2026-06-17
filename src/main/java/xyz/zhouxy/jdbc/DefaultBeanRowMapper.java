@@ -34,9 +34,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.CaseFormat;
-
-import xyz.zhouxy.plusone.commons.annotation.StaticFactoryMethod;
+import xyz.zhouxy.jdbc.util.NamingTools;
 
 /**
  * DefaultBeanRowMapper
@@ -90,7 +88,6 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
      * @return DefaultBeanRowMapper 对象
      * @throws SQLException 创建 {@code DefaultBeanRowMapper} 出现错误的异常时抛出
      */
-    @StaticFactoryMethod(DefaultBeanRowMapper.class)
     public static <T> DefaultBeanRowMapper<T> of(Class<T> beanType) throws SQLException {
         return of(beanType, null);
     }
@@ -104,7 +101,6 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
      * @return {@code DefaultBeanRowMapper} 对象
      * @throws SQLException 创建 {@code DefaultBeanRowMapper} 出现错误的异常时抛出
      */
-    @StaticFactoryMethod(DefaultBeanRowMapper.class)
     public static <T> DefaultBeanRowMapper<T> of(Class<T> beanType, @Nullable Map<String, String> propertyColMap)
             throws SQLException {
         try {
@@ -167,14 +163,14 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
         // Bean 的属性名为小驼峰，对应的列名为下划线
         Function<? super PropertyDescriptor, String> keyMapper;
         if (propertyColMap == null || propertyColMap.isEmpty()) {
-            keyMapper = p -> CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, p.getName());
+            keyMapper = p -> NamingTools.camelToSnake(p.getName());
         }
         else {
             keyMapper = p -> {
                 String propertyName = p.getName();
                 String colName = propertyColMap.get(propertyName);
                 return colName != null ? colName
-                    : CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, propertyName);
+                    : NamingTools.camelToSnake(propertyName);
             };
         }
         return Arrays.stream(propertyDescriptors)

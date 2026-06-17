@@ -235,11 +235,28 @@ class TransactionTest extends BaseH2Test {
     // ==================== TransactionException ====================
 
     @Test
+    @DisplayName("TransactionException：单参构造器（仅 cause）")
+    void testTransactionExceptionSingleArg() {
+        RuntimeException cause = new RuntimeException("原始异常");
+        TransactionException ex = new TransactionException(cause);
+        assertEquals("Transaction failed during execution", ex.getMessage());
+        assertSame(cause, ex.getCause());
+    }
+
+    @Test
     @DisplayName("TransactionException：双参构造器")
     void testTransactionExceptionWithMessage() {
         RuntimeException cause = new RuntimeException("原始异常");
         TransactionException ex = new TransactionException("自定义消息", cause);
         assertEquals("自定义消息", ex.getMessage());
         assertSame(cause, ex.getCause());
+    }
+
+    @Test
+    @DisplayName("TransactionException：null cause")
+    void testTransactionExceptionNullCause() {
+        TransactionException ex = new TransactionException(null);
+        assertEquals("Transaction failed during execution", ex.getMessage());
+        assertNull(ex.getCause());
     }
 }

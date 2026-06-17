@@ -6,6 +6,7 @@ import static xyz.zhouxy.jdbc.ParamBuilder.*;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -15,8 +16,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Lists;
 
 import xyz.zhouxy.jdbc.BatchUpdateErrorInfo;
 import xyz.zhouxy.jdbc.BatchUpdateResult;
@@ -170,7 +169,7 @@ class BatchUpdateTest extends BaseH2Test {
     // #region - 包含错误数据
     // ================================
 
-    final List<User> userListContainingInvalidData = Lists.newArrayList(
+    final List<User> userListContainingInvalidData = Arrays.asList(
             // batch 0
             new User("test_0001", "test_0001@example.com", 1, 1L, true),
             new User("test_0002", "test_0002@example.com", 1, 1L, true),

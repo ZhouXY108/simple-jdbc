@@ -15,8 +15,6 @@
  */
 package xyz.zhouxy.jdbc;
 
-import xyz.zhouxy.plusone.commons.base.IWithIntCode;
-
 /**
  * 批量更新状态
  *
@@ -27,7 +25,7 @@ import xyz.zhouxy.plusone.commons.base.IWithIntCode;
  * @see BatchUpdateResult
  * @see BatchUpdateResult#getStatus()
  */
-public enum BatchUpdateStatus implements IWithIntCode {
+public enum BatchUpdateStatus {
 
     /**
      * 成功
@@ -62,9 +60,10 @@ public enum BatchUpdateStatus implements IWithIntCode {
     }
 
     /**
-     * {@inheritDoc}
+     * 获取状态码
+     *
+     * @return 状态码
      */
-    @Override
     public int getCode() {
         return code;
     }

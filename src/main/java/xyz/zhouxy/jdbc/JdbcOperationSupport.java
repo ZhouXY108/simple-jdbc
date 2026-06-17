@@ -16,8 +16,8 @@
 
 package xyz.zhouxy.jdbc;
 
-import static xyz.zhouxy.plusone.commons.util.AssertTools.checkArgument;
-import static xyz.zhouxy.plusone.commons.util.AssertTools.checkArgumentNotNull;
+import static xyz.zhouxy.jdbc.util.AssertTools.checkArgument;
+import static xyz.zhouxy.jdbc.util.AssertTools.checkArgumentNotNull;
 
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
@@ -36,8 +36,6 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import xyz.zhouxy.plusone.commons.util.ArrayTools;
 
 /**
  * JdbcOperationSupport
@@ -162,7 +160,7 @@ class JdbcOperationSupport {
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
-        if (ArrayTools.isNotEmpty(params)) {
+        if (params != null && params.length > 0) {
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 fillStatement(stmt, params);
                 return stmt.executeUpdate();
@@ -191,7 +189,7 @@ class JdbcOperationSupport {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         assertRowMapperNotNull(rowMapper);
-        if (ArrayTools.isNotEmpty(params)) {
+        if (params != null && params.length > 0) {
             try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                 fillStatement(stmt, params);
                 stmt.executeUpdate();
@@ -308,7 +306,7 @@ class JdbcOperationSupport {
                                        @Nullable Object[] params,
                                        @Nonnull ResultHandler<T> resultHandler)
             throws SQLException {
-        if (ArrayTools.isNotEmpty(params)) {
+        if (params != null && params.length > 0) {
             try (PreparedStatement stmt = createPreparedStatementInternal(conn, sql, params);
                  ResultSet rs = stmt.executeQuery()) {
                 return resultHandler.handle(rs);

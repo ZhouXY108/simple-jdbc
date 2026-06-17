@@ -6,35 +6,19 @@ You may obtain a copy of the License at:
 https://www.apache.org/licenses/LICENSE-2.0
 
 ================================================================================
-Third-Party Dependencies
-================================================================================
-
-1. plusone-commons (xyz.zhouxy.plusone:plusone-commons)
-   Copyright ZhouXY
-   Licensed under the Apache License, Version 2.0
-
-2. Google Guava (com.google.guava:guava)
-   Copyright (C) The Guava Authors
-   Licensed under the Apache License, Version 2.0
-
-3. JSR-305 Annotations (com.google.code.findbugs:jsr305)
-   Copyright (C) FindBugs
-   Licensed under the Apache License, Version 2.0
-
-================================================================================
 Test Dependencies (Not included in distribution)
 ================================================================================
 
-4. JUnit Jupiter (org.junit.jupiter:junit-jupiter)
+1. JUnit Jupiter (org.junit.jupiter:junit-jupiter)
    Copyright 2015-2026 JUnit Team
    Licensed under the Eclipse Public License 2.0
 
-5. Logback (ch.qos.logback:logback-classic)
+2. Logback (ch.qos.logback:logback-classic)
    Copyright (C) 1999-2026, QOS.ch
    Licensed under the Eclipse Public License 1.0
    and GNU Lesser General Public License 2.1
 
-6. H2 Database (com.h2database:h2)
+3. H2 Database (com.h2database:h2)
    Copyright 1999-2026 H2 Database Project
    Licensed under the MPL 2.0 and EPL 1.0
 
@@ -42,6 +26,6 @@ Test Dependencies (Not included in distribution)
 Notes
 ================================================================================
 
-- This project is a lightweight JDBC wrapper designed for legacy projects 
+- This project is a lightweight JDBC wrapper designed for legacy projects
   without ORM frameworks.
 - For learning and reference purposes only.

@@ -26,9 +26,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
-import xyz.zhouxy.plusone.commons.function.ThrowingConsumer;
-import xyz.zhouxy.plusone.commons.function.ThrowingPredicate;
-import xyz.zhouxy.plusone.commons.util.AssertTools;
+import xyz.zhouxy.jdbc.util.AssertTools;
 
 /**
  * 事务模板，提供事务执行能力。
@@ -64,7 +62,12 @@ public class TransactionTemplate {
     @Nonnull
     private final DataSource dataSource;
 
-    public TransactionTemplate(@Nonnull DataSource dataSource) {
+    /**
+     * 构造一个 {@code TransactionTemplate} 实例
+     *
+     * @param dataSource 数据源，用于获取数据库连接；不可为 {@code null}
+     */
+    public TransactionTemplate(DataSource dataSource) {
         AssertTools.checkNotNull(dataSource);
         this.dataSource = dataSource;
     }

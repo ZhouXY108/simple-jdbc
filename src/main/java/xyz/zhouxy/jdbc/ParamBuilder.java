@@ -29,10 +29,7 @@ import java.util.OptionalLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import xyz.zhouxy.plusone.commons.collection.CollectionTools;
-import xyz.zhouxy.plusone.commons.util.ArrayTools;
-import xyz.zhouxy.plusone.commons.util.AssertTools;
-import xyz.zhouxy.plusone.commons.util.OptionalTools;
+import xyz.zhouxy.jdbc.util.AssertTools;
 
 /**
  * ParamBuilder
@@ -66,7 +63,7 @@ public class ParamBuilder {
      * @return 参数数组
      */
     public static Object[] buildParams(final Object... params) {
-        if (ArrayTools.isEmpty(params)) {
+        if (params == null || params.length == 0) {
             return EMPTY_OBJECT_ARRAY;
         }
         return Arrays.stream(params)
@@ -91,16 +88,16 @@ public class ParamBuilder {
             return param;
         }
         if (param instanceof Optional) {
-            return OptionalTools.orElseNull((Optional<?>) param);
+            return ((Optional<?>) param).orElse(null);
         }
         if (param instanceof OptionalInt) {
-            return OptionalTools.toInteger((OptionalInt) param);
+            return ((OptionalInt) param).isPresent() ? ((OptionalInt) param).getAsInt() : null;
         }
         if (param instanceof OptionalLong) {
-            return OptionalTools.toLong((OptionalLong) param);
+            return ((OptionalLong) param).isPresent() ? ((OptionalLong) param).getAsLong() : null;
         }
         if (param instanceof OptionalDouble) {
-            return OptionalTools.toDouble((OptionalDouble) param);
+            return ((OptionalDouble) param).isPresent() ? ((OptionalDouble) param).getAsDouble() : null;
         }
         return param;
     }
@@ -121,7 +118,7 @@ public class ParamBuilder {
     public static <T> List<Object[]> buildBatchParams(final Collection<T> c, final Function<T, Object[]> func) {
         AssertTools.checkNotNull(c, "The collection can not be null.");
         AssertTools.checkNotNull(func, "The func can not be null.");
-        if (CollectionTools.isEmpty(c)) {
+        if (c.isEmpty()) {
             return Collections.emptyList();
         }
         return c.stream().map(func).collect(Collectors.toList());

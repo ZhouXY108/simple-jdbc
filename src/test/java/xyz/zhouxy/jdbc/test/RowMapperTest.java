@@ -157,6 +157,63 @@ class RowMapperTest extends BaseH2Test {
         assertEquals("alice", user.get().getUsername());
     }
 
+    // ==================== DefaultBeanRowMapper 连续大写缩写映射 ====================
+
+    @Test
+    @DisplayName("DefaultBeanRowMapper：连续大写缩写属性正确映射为 snake_case")
+    void testDefaultBeanRowMapperAcronymMapping() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        // 创建测试表，列名使用 snake_case
+        template.update("CREATE TABLE acronym_test ("
+                + "id BIGINT AUTO_INCREMENT PRIMARY KEY,"
+                + "home_url VARCHAR(100),"
+                + "xml_parser VARCHAR(100),"
+                + "parse_url VARCHAR(100),"
+                + "user_id VARCHAR(100),"
+                + "parse_html VARCHAR(100),"
+                + "multi_http_client VARCHAR(100))");
+        template.update(
+                "INSERT INTO acronym_test (home_url, xml_parser, parse_url, user_id, parse_html, multi_http_client)"
+                        + " VALUES (?, ?, ?, ?, ?, ?)",
+                new Object[]{"https://example.com", "SAXParser", "/api/v1",
+                        "user-001", "<div>test</div>", "ApacheHttpClient"});
+
+        RowMapper<AcronymBean> rowMapper = RowMapper.beanRowMapper(AcronymBean.class);
+        Optional<AcronymBean> result = template.queryFirst(
+                "SELECT * FROM acronym_test WHERE id = ?",
+                new Object[]{1L}, rowMapper);
+
+        assertTrue(result.isPresent());
+        AcronymBean bean = result.get();
+        assertEquals("https://example.com", bean.getHomeURL());
+        assertEquals("SAXParser", bean.getXmlParser());
+        assertEquals("/api/v1", bean.getParseURL());
+        assertEquals("user-001", bean.getUserID());
+        assertEquals("<div>test</div>", bean.getParseHTML());
+        assertEquals("ApacheHttpClient", bean.getMultiHttpClient());
+
+        logger.info("缩写映射: homeURL={}, xmlParser={}, parseURL={}, userID={}, parseHTML={}, multiHttpClient={}",
+                bean.getHomeURL(), bean.getXmlParser(), bean.getParseURL(),
+                bean.getUserID(), bean.getParseHTML(), bean.getMultiHttpClient());
+    }
+
+    @Test
+    @DisplayName("DefaultBeanRowMapper：纯小写属性名映射为同名列")
+    void testDefaultBeanRowMapperAllLowercaseMapping() throws SQLException {
+        // 通过 User Bean 验证纯小写属性映射（username → username, email → email）
+        SimpleJdbcTemplate template = createTemplate();
+        RowMapper<User> rowMapper = RowMapper.beanRowMapper(User.class);
+
+        Optional<User> user = template.queryFirst(
+                "SELECT username, email FROM users WHERE username = ?",
+                new Object[]{"alice"}, rowMapper);
+
+        assertTrue(user.isPresent());
+        assertEquals("alice", user.get().getUsername());
+        assertEquals("alice@example.com", user.get().getEmail());
+    }
+
     // ==================== HASH_MAP_MAPPER ====================
 
     @Test
@@ -251,6 +308,76 @@ class RowMapperTest extends BaseH2Test {
 
         public void setName(String name) {
             this.name = name;
+        }
+    }
+
+    /**
+     * 包含连续大写缩写属性的 Bean，用于验证 camelToSnake 的缩写处理。
+     *
+     * <p>覆盖场景：
+     * <ul>
+     * <li>homeURL — 缩写在末尾（三字母 URL）</li>
+     * <li>xmlParser — 缩写在前（三字母 XML）</li>
+     * <li>parseURL — 缩写在末尾</li>
+     * <li>userID — 两字母缩写在末尾（ID）</li>
+     * <li>parseHTML — 四字母缩写在末尾（HTML）</li>
+     * <li>multiHttpClient — 缩写夹在词中（HTTP）</li>
+     * </ul>
+     */
+    public static class AcronymBean {
+        private String homeURL;
+        private String xmlParser;
+        private String parseURL;
+        private String userID;
+        private String parseHTML;
+        private String multiHttpClient;
+
+        public String getHomeURL() {
+            return homeURL;
+        }
+
+        public void setHomeURL(String homeURL) {
+            this.homeURL = homeURL;
+        }
+
+        public String getXmlParser() {
+            return xmlParser;
+        }
+
+        public void setXmlParser(String xmlParser) {
+            this.xmlParser = xmlParser;
+        }
+
+        public String getParseURL() {
+            return parseURL;
+        }
+
+        public void setParseURL(String parseURL) {
+            this.parseURL = parseURL;
+        }
+
+        public String getUserID() {
+            return userID;
+        }
+
+        public void setUserID(String userID) {
+            this.userID = userID;
+        }
+
+        public String getParseHTML() {
+            return parseHTML;
+        }
+
+        public void setParseHTML(String parseHTML) {
+            this.parseHTML = parseHTML;
+        }
+
+        public String getMultiHttpClient() {
+            return multiHttpClient;
+        }
+
+        public void setMultiHttpClient(String multiHttpClient) {
+            this.multiHttpClient = multiHttpClient;
         }
     }
 }

@@ -26,7 +26,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
-import xyz.zhouxy.plusone.commons.util.AssertTools;
+import xyz.zhouxy.jdbc.util.AssertTools;
 
 /**
  * JDBC 操作的模板类，对原生 JDBC 进行轻量封装，提供查询、更新、批量操作等便捷方法。

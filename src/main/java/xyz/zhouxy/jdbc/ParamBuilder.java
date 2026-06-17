@@ -107,7 +107,7 @@ public class ParamBuilder {
      *
      * <p>
      * 将集合中的每个元素通过 {@code func} 映射为 {@code Object[]}，
-     * 最终返回 {@code List<Object[]>}，用于 {@link #batchUpdate} 批量操作。
+     * 最终返回 {@code List<Object[]>}，用于 {@code batchUpdate} 批量操作。
      *
      * @param <T>  集合元素类型
      * @param c    待转换的集合

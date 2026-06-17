@@ -41,19 +41,19 @@ import xyz.zhouxy.jdbc.util.NamingTools;
  *
  * <p>
  * 将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper} 的基础实现。
- * </p>
+ * <i>仅在对性能不敏感的场景下使用。</i>
  *
  * <p>
  * 说明：
  * <ul>
  * <li>使用反射获取类型信息，也是使用反射调用无参构造器和 {@code setter} 方法。</li>
  * <li>{@code propertyColMap} 未指定的列名和属性名的映射时，默认 JavaBean 的属性名为小驼峰，列名为小写蛇形命名。</li>
- * <li>从{@link ResultSet} 中获取属性值时，使用 {@link ResultSet#getObject(String, Class)} 获取。</li>
+ * <li>使用 {@link ResultSet#getObject(String, Class)} 从 {@link ResultSet} 中获取属性值。</li>
  * <li>JavaBean 属性仅支持引用类型，不支持基本数据类型。</li>
- * <li>实际使用中还是建议针对目标类型自定义 {@link RowMapper}。</li>
+ * <li><b>实际使用中更建议针对目标类型自定义 {@link RowMapper}。</b></li>
  * </ul>
-
-* @author ZhouXY
+ *
+ * @author ZhouXY
  * @since 1.0.0
  */
 public class DefaultBeanRowMapper<T> implements RowMapper<T> {

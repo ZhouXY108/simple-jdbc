@@ -26,6 +26,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
+import xyz.zhouxy.jdbc.function.ThrowingBiConsumer;
+import xyz.zhouxy.jdbc.function.ThrowingBiPredicate;
+import xyz.zhouxy.jdbc.function.ThrowingConsumer;
+import xyz.zhouxy.jdbc.function.ThrowingPredicate;
+import xyz.zhouxy.jdbc.namedparam.NamedParamJdbcOperations;
 import xyz.zhouxy.jdbc.util.AssertTools;
 
 /**
@@ -41,10 +46,24 @@ import xyz.zhouxy.jdbc.util.AssertTools;
  * <pre>{@code
  * TransactionTemplate tx = new TransactionTemplate(dataSource);
  *
- * // 消费者模式：无异常自动提交
+ * // 纯位置参数
  * tx.execute(ops -> {
  *     ops.update("INSERT INTO ...", buildParams(...));
  *     ops.update("UPDATE ...", buildParams(...));
+ * });
+ *
+ * // 纯命名参数
+ * tx.executeNamed(nops -> {
+ *     nops.update("INSERT INTO users(name, age) VALUES(#{name}, #{age})",
+ *             Map.of("name", "Alice", "age", 25));
+ * });
+ *
+ * // 混用两种参数风格
+ * tx.execute((ops, nops) -> {
+ *     ops.update("UPDATE accounts SET balance = ? WHERE id = ?",
+ *             new Object[]{100, 1});
+ *     nops.update("INSERT INTO logs(msg, user) VALUES(#{msg}, #{user})",
+ *             Map.of("msg", "transfer", "user", "Alice"));
  * });
  *
  * // 谓词模式：返回 true 提交，false 回滚
@@ -52,6 +71,9 @@ import xyz.zhouxy.jdbc.util.AssertTools;
  *     ops.update("UPDATE ...", buildParams(...));
  *     return ops.queryBoolean("SELECT ...", buildParams(...));
  * });
+ * // commitIfTrue 同样提供命名参数和混用两种重载：
+ * //   commitIfTrueNamed(nops -> {...})       — 纯命名参数谓词
+ * //   commitIfTrue((ops, nops) -> {...})     — 混用位置与命名参数谓词
  * }</pre>
  *
  * @author ZhouXY
@@ -106,6 +128,48 @@ public class TransactionTemplate {
     }
 
     /**
+     * 执行事务（纯命名参数）。如果未发生异常，则提交事务；当有异常发生时，回滚事务
+     *
+     * <p>
+     * 适用于事务中所有 SQL 都使用命名参数（{@code #{paramName}}）的场景。
+     * 如需混用位置参数和命名参数，请使用 {@link #execute(ThrowingBiConsumer)}。
+     * </p>
+     *
+     * @param <E>                   异常类型
+     * @param operations            事务操作
+     * @throws SQLException         SQL 异常
+     * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
+     * @since 1.1.0
+     */
+    public <E extends Exception> void executeNamed(
+            @Nonnull final ThrowingConsumer<NamedParamJdbcOperations, E> operations)
+            throws TransactionException, SQLException {
+        AssertTools.checkNotNull(operations, "Operations can not be null.");
+        execute(ops -> operations.accept((NamedParamJdbcOperations) ops));
+    }
+
+    /**
+     * 执行事务（混用位置参数与命名参数）。如果未发生异常，则提交事务；当有异常发生时，回滚事务
+     *
+     * <p>
+     * 回调同时提供 {@link JdbcOperations} 和 {@link NamedParamJdbcOperations}，
+     * 可在同一事务中按需选择位置参数或命名参数风格。
+     * </p>
+     *
+     * @param <E>                   异常类型
+     * @param operations            事务操作
+     * @throws SQLException         SQL 异常
+     * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
+     * @since 1.1.0
+     */
+    public <E extends Exception> void execute(
+            @Nonnull final ThrowingBiConsumer<JdbcOperations, NamedParamJdbcOperations, E> operations)
+            throws TransactionException, SQLException {
+        AssertTools.checkNotNull(operations, "Operations can not be null.");
+        execute(ops -> operations.accept(ops, (NamedParamJdbcOperations) ops));
+    }
+
+    /**
      * 执行事务。
      * 如果 {@code operations} 返回 {@code true}，则提交事务；
      * 如果抛出异常，或返回 {@code false}，则回滚事务
@@ -140,6 +204,42 @@ public class TransactionTemplate {
         }
     }
 
+    /**
+     * 执行事务（纯命名参数）。
+     * 如果 {@code operations} 返回 {@code true}，则提交事务；
+     * 如果抛出异常，或返回 {@code false}，则回滚事务
+     *
+     * @param <E>                   事务中的异常
+     * @param operations            事务操作
+     * @throws SQLException         数据库异常
+     * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
+     * @since 1.1.0
+     */
+    public <E extends Exception> void commitIfTrueNamed(
+            @Nonnull final ThrowingPredicate<NamedParamJdbcOperations, E> operations)
+            throws SQLException, TransactionException {
+        AssertTools.checkNotNull(operations, "Operations can not be null.");
+        commitIfTrue(ops -> operations.test((NamedParamJdbcOperations) ops));
+    }
+
+    /**
+     * 执行事务（混用位置参数与命名参数）。
+     * 如果 {@code operations} 返回 {@code true}，则提交事务；
+     * 如果抛出异常，或返回 {@code false}，则回滚事务
+     *
+     * @param <E>                   事务中的异常
+     * @param operations            事务操作
+     * @throws SQLException         数据库异常
+     * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
+     * @since 1.1.0
+     */
+    public <E extends Exception> void commitIfTrue(
+            @Nonnull final ThrowingBiPredicate<JdbcOperations, NamedParamJdbcOperations, E> operations)
+            throws SQLException, TransactionException {
+        AssertTools.checkNotNull(operations, "Operations can not be null.");
+        commitIfTrue(ops -> operations.test(ops, (NamedParamJdbcOperations) ops));
+    }
+
     private void rollbackSilently(Connection conn, Exception e) {
         try {
             conn.rollback();
@@ -151,12 +251,19 @@ public class TransactionTemplate {
 
     // #region - TransactionJdbcExecutor
 
-    private static final class TransactionJdbcExecutor implements JdbcOperations {
+    private static final class TransactionJdbcExecutor
+            implements JdbcOperations, NamedParamJdbcOperations {
 
         private final Connection conn;
 
         private TransactionJdbcExecutor(Connection conn) {
             this.conn = conn;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public JdbcOperations getJdbcOperations() {
+            return this;
         }
 
         // #region - query

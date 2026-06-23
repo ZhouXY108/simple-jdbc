@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -140,7 +141,7 @@ class BatchUpdateTest extends BaseH2Test {
         SimpleJdbcTemplate template = createTemplate();
 
         BatchUpdateResult result = template.batchUpdate(
-                INSERT_SQL, null, 10);
+                INSERT_SQL, (Collection<Object[]>) null, 10);
 
         assertEquals(0, result.getTotal());
         assertEquals(0, result.getBatchCount());
@@ -281,6 +282,17 @@ class BatchUpdateTest extends BaseH2Test {
         List<Object[]> params = buildBatchParams(userListContainingInvalidData, a -> new Object[] { a.getUsername(), a.getEmail(), a.getAge(), a.getBalance(), a.getActive() });
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
                 () -> template.batchUpdate(INSERT_SQL, params, -1, true));
+        assertEquals("The batch size must be greater than 0.", e.getMessage());
+    }
+
+    @Test
+    @DisplayName("batchUpdate：batchSize == 0，参数校验不通过")
+    void testBatchUpdateWithBatchSizeZero() {
+        SimpleJdbcTemplate template = createTemplate();
+
+        List<Object[]> params = buildBatchParams(userListContainingInvalidData, a -> new Object[] { a.getUsername(), a.getEmail(), a.getAge(), a.getBalance(), a.getActive() });
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> template.batchUpdate(INSERT_SQL, params, 0, true));
         assertEquals("The batch size must be greater than 0.", e.getMessage());
     }
 

@@ -23,6 +23,30 @@ Test Dependencies (Not included in distribution)
    Licensed under the MPL 2.0 and EPL 1.0
 
 ================================================================================
+Code Inclusions
+================================================================================
+
+This product includes code from MyBatis (https://mybatis.org/):
+
+1. GenericTokenParser
+   - Source: org.apache.ibatis.parsing.GenericTokenParser (MyBatis v3.6.0)
+   - Local path: src/main/java/xyz/zhouxy/jdbc/util/GenericTokenParser.java
+
+2. TokenHandler
+   - Source: org.apache.ibatis.parsing.TokenHandler (MyBatis v3.6.0)
+   - Local path: src/main/java/xyz/zhouxy/jdbc/util/TokenHandler.java
+
+   Copyright 2009-2023 the original author or authors.
+   Licensed under the Apache License, Version 2.0.
+
+   Tracking Strategy: The included code is a minimal, stable utility (token parser)
+   that has not changed significantly across MyBatis versions. The project will
+   monitor MyBatis release notes (https://github.com/mybatis/mybatis-3/releases)
+   for any security or bug fixes related to GenericTokenParser or TokenHandler,
+   and apply corresponding updates as needed. The current version is pinned at
+   MyBatis v3.6.0.
+
+================================================================================
 Notes
 ================================================================================
 

@@ -270,7 +270,7 @@ class UpdateTest extends BaseH2Test {
         RowMapper<Long> rowMapper = (rs, rowNumber) -> rs.getLong(1);
         List<Long> keys = template.updateAndReturnKeys(
                 "INSERT INTO users (username) VALUES ('null_test')",
-                null, rowMapper);
+                (Object[]) null, rowMapper);
 
         assertEquals(1, keys.size());
         assertTrue(keys.get(0) > 0);

@@ -26,6 +26,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
+import xyz.zhouxy.jdbc.namedparam.NamedParamJdbcOperations;
 import xyz.zhouxy.jdbc.util.AssertTools;
 
 /**
@@ -51,7 +52,7 @@ import xyz.zhouxy.jdbc.util.AssertTools;
  * @see TransactionTemplate
  * @see ParamBuilder
  */
-public class SimpleJdbcTemplate implements JdbcOperations {
+public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperations {
 
     @Nonnull
     private final DataSource dataSource;
@@ -198,6 +199,16 @@ public class SimpleJdbcTemplate implements JdbcOperations {
             return JdbcOperationSupport
                     .batchUpdate(conn, sql, params, batchSize, quietly);
         }
+    }
+
+    // #endregion
+
+    // #region - NamedParamJdbcOperations
+
+    /** {@inheritDoc} */
+    @Override
+    public JdbcOperations getJdbcOperations() {
+        return this;
     }
 
     // #endregion

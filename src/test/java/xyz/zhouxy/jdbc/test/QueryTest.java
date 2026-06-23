@@ -210,7 +210,7 @@ class QueryTest extends BaseH2Test {
 
         Optional<User> user = template.queryFirst(
                 "SELECT * FROM users ORDER BY id",
-                null, new UserRowMapper());
+                (Object[]) null, new UserRowMapper());
 
         assertTrue(user.isPresent());
     }

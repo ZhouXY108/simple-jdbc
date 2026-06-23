@@ -71,7 +71,33 @@ public class ParamBuilder {
                 .toArray();
     }
 
-    private static Object handleItem(Object param) {
+    /**
+     * 处理单个参数值，进行必要的类型转换与拆箱。
+     *
+     * <p>
+     * 此方法由 {@link #buildParams(Object...)} 内部调用，
+     * 同时也被 {@link xyz.zhouxy.jdbc.namedparam.NamedParamSql} 在构建时使用，
+     * 以确保命名参数的值经过与位置参数相同的处理逻辑。
+     * </p>
+     *
+     * <p>
+     * 处理规则：
+     * </p>
+     * <ul>
+     *   <li>{@code null} → {@code null}</li>
+     *   <li>{@link CharSequence} → {@link CharSequence#toString()}</li>
+     *   <li>{@link Number}、{@link Boolean}、{@link java.time.temporal.Temporal} → 直接透传</li>
+     *   <li>{@link java.util.Optional}、{@link java.util.OptionalInt}、
+     *       {@link java.util.OptionalLong}、{@link java.util.OptionalDouble} → 拆箱，
+     *       空值返回 {@code null}</li>
+     *   <li>其他类型 → 直接返回</li>
+     * </ul>
+     *
+     * @param param 原始参数值，可为 {@code null}
+     * @return 处理后的参数值，可为 {@code null}
+     * @since 1.0.0
+     */
+    public static Object handleItem(Object param) {
         if (param == null) {
             return null;
         }

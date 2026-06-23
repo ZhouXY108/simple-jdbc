@@ -5,16 +5,26 @@
 ### ⚠️ 破坏性变更
 
 - **`DefaultBeanRowMapper.of()` 不再抛出 `SQLException`**：工厂方法在反射异常时改为抛出非受检异常 `IllegalStateException`。调用方如果 `catch (SQLException e)` 包裹 `of()` 调用，该捕获将失效，需移除相关 `catch` 块或改为捕获 `IllegalStateException`。
+- **`ThrowingConsumer` 与 `ThrowingPredicate` 迁移至 `xyz.zhouxy.jdbc.function` 子包**：需更新 import 路径。
 
 ### 新增
 
 - `queryValueOrDefault(sql, params, Class<T>, T defaultValue)`：查询单行单列，结果为空时返回指定默认值
 - `queryValueOrDefault(sql, Class<T>, T defaultValue)`：无参数重载
-- 补充 `QueryTest` 中 `queryValueOrDefault` 单元测试 6 个
+- 命名参数 JDBC 操作支持（`#{paramName}` 风格）：
+  - `NamedParamJdbcOperations` 接口：提供查询、更新、批量操作的命名参数重载
+  - `NamedParamSql`：SQL 模板解析（`#{param}` → `?`），支持参数名自省
+  - `PreparedSql`：预构建的命名参数 SQL，提供链式 Builder
+  - `SimpleJdbcTemplate` 同时实现 `JdbcOperations` 与 `NamedParamJdbcOperations`
+- `TransactionTemplate` 新增命名参数事务方法：`executeNamed` / `commitIfTrueNamed`（纯命名参数回调），以及双参数回调重载（混用位置与命名参数）
+- `GenericTokenParser` / `TokenHandler`：通用占位符解析工具（来自 MyBatis v3.6.0）
+- `ThrowingBiConsumer` / `ThrowingBiPredicate`：双参数可抛异常函数式接口
+- `ParamBuilder.handleItem` 方法由 `private` 提升为 `public`
+- 补充命名参数查询、更新、批量操作的完整单元测试
 
 ### 重构
 
-**将单列查询方法标记为过时，消除 Class 参数重载歧义**
+**将原来的单列查询方法标记为过时，消除 Class 参数重载歧义**
 
 - `queryList(sql, params, Class<T>)` → 已过时，请使用 `queryValues(sql, params, Class<T>)`
   语义明确为"多行单列 → 值列表"，不与整行 `RowMapper` 重载混淆
@@ -28,6 +38,8 @@
 ### 文档
 
 - 优化 `DefaultBeanRowMapper` 类注释，明确性能限制和使用建议
+- 更新 README，补充命名参数使用说明和示例
+- 更新 NOTICE，声明 MyBatis 代码引用及许可
 
 ---
 

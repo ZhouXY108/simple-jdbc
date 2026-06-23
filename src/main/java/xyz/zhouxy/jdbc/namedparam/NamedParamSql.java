@@ -99,31 +99,30 @@ public final class NamedParamSql {
     }
 
     /**
-     * 创建 {@link Builder} 实例。
-     *
-     * <p>
-     * 等价于 {@link #of(String)}，提供 builder 风格的构建方式。
-     * </p>
-     *
-     * @return Builder 实例
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    /**
      * 解析命名参数 SQL，创建纯模板实例。
      *
      * <p>
      * 仅解析 SQL 中的 {@code #{paramName}} 为 {@code ?} 并记录参数名顺序，
-     * 不绑定参数值。参数值后续通过 {@link #toArgs(Map)} 绑定。
+     * 不绑定参数值。参数值后续通过 {@link #toArgs(Map)} 或
+     * {@link #toBatchArgs(List)} 延迟绑定。
      * </p>
      *
      * @param sql 包含命名参数（格式：{@code #{paramName}}）的 SQL，不可为 {@code null}
      * @return 构建完成的 {@link NamedParamSql} 模板实例
+     * @throws IllegalArgumentException 如果 sql 为 {@code null}
      */
     public static NamedParamSql of(String sql) {
-        return builder().sql(sql).build();
+        AssertTools.checkNotNull(sql, "sql must not be null");
+
+        final List<String> names = new ArrayList<>();
+        final TokenHandler handler = content -> {
+            names.add(content);
+            return "?";
+        };
+        final GenericTokenParser parser = new GenericTokenParser("#{", "}", handler);
+        final String parsedSql = parser.parse(sql);
+
+        return new NamedParamSql(parsedSql, names);
     }
 
     /**
@@ -196,60 +195,5 @@ public final class NamedParamSql {
 
     // #endregion
 
-    // #region - Builder
 
-    /**
-     * {@link NamedParamSql} 的构建器。
-     *
-     * <p>
-     * 仅用于解析 SQL 并记录参数名顺序，不绑定参数值。
-     * 如需链式绑定参数值，请使用 {@link #prepare()} 获取 {@link PreparedSql.Builder}。
-     * </p>
-     */
-    public static final class Builder {
-        private String sql;
-
-        private Builder() {
-        }
-
-        /**
-         * 设置 SQL 语句。
-         *
-         * @param sql SQL 语句，其中命名参数以 {@code #{}} 包含，不可为 {@code null}
-         * @return 当前 Builder 实例
-         */
-        public Builder sql(String sql) {
-            AssertTools.checkNotNull(sql, "sql must not be null");
-            this.sql = sql;
-            return this;
-        }
-
-        /**
-         * 构建 {@link NamedParamSql} 模板实例。
-         *
-         * <p>
-         * 解析 SQL 中的 {@code #{paramName}} 为 {@code ?}，并记录参数名出现顺序。
-         * 不绑定参数值。
-         * </p>
-         *
-         * @return 构建完成的 {@link NamedParamSql} 模板实例
-         */
-        public NamedParamSql build() {
-            AssertTools.checkNotNull(sql, "sql must be set before build");
-
-            final List<String> names = new ArrayList<>();
-
-            final TokenHandler handler = content -> {
-                names.add(content);
-                return "?";
-            };
-
-            final GenericTokenParser parser = new GenericTokenParser("#{", "}", handler);
-            final String parsedSql = parser.parse(sql);
-
-            return new NamedParamSql(parsedSql, names);
-        }
-    }
-
-    // #endregion
 }

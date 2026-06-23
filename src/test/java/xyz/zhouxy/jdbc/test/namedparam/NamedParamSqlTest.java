@@ -40,20 +40,13 @@ import xyz.zhouxy.jdbc.namedparam.PreparedSql;
 @DisplayName("NamedParamSql / PreparedSql 命名参数 SQL")
 class NamedParamSqlTest {
 
-    // ==================== NamedParamSql.builder 校验 ====================
+    // ==================== NamedParamSql：of(null) 校验 ====================
 
     @Test
-    @DisplayName("sql(null) 抛异常")
-    void testSqlNull() {
+    @DisplayName("of(null) 抛异常")
+    void testOfNull() {
         assertThrows(Exception.class,
-                () -> NamedParamSql.builder().sql(null));
-    }
-
-    @Test
-    @DisplayName("build() 时未设置 sql 抛异常")
-    void testBuildWithoutSql() {
-        assertThrows(Exception.class,
-                () -> NamedParamSql.builder().build());
+                () -> NamedParamSql.of(null));
     }
 
     // ==================== NamedParamSql：解析无命名参数 ====================
@@ -179,19 +172,6 @@ class NamedParamSqlTest {
                 Collections.singletonMap("a", 1));
         assertThrows(IllegalArgumentException.class,
                 () -> nps.toBatchArgs(batchParams));
-    }
-
-    // ==================== NamedParamSql：builder() 等价于 of() ====================
-
-    @Test
-    @DisplayName("builder().sql().build() 等价于 of()")
-    void testBuilderEqualsOf() {
-        String sql = "SELECT * FROM users WHERE name = #{name} AND age = #{age}";
-        NamedParamSql ofResult = NamedParamSql.of(sql);
-        NamedParamSql builderResult = NamedParamSql.builder().sql(sql).build();
-
-        assertEquals(ofResult.getSql(), builderResult.getSql());
-        assertEquals(ofResult.getParamNames(), builderResult.getParamNames());
     }
 
     // ==================== NamedParamSql：不可变性 ====================

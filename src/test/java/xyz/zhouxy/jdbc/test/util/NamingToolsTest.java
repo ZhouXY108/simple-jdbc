@@ -29,7 +29,7 @@ import xyz.zhouxy.jdbc.util.NamingTools;
  * {@link NamingTools#camelToSnake(String)} 单元测试。
  */
 @DisplayName("NamingTools 命名转换")
-class NamingToolsTests {
+class NamingToolsTest {
 
     // ==================== 基本转换 ====================
 

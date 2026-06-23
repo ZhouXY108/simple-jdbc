@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import xyz.zhouxy.jdbc.util.AssertTools;
 
-class AssertToolsTests {
+class AssertToolsTest {
 
     // #region - Argument
 

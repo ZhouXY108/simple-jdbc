@@ -27,11 +27,15 @@ public class NamingTools {
     /**
      * 将小驼峰命名转换为小写下划线命名（snake_case）。
      *
-     * <p>转换规则：
+     * <p>转换示例：
      * <ul>
-     * <li>小写→大写边界插入下划线：{@code userName → user_name}</li>
-     * <li>连续大写缩写视为整体，在其末尾小写边界插入下划线：{@code XMLParser → xml_parser}</li>
-     * <li>纯小写保持不变：{@code username → username}</li>
+     * <li>基本驼峰：{@code userName → user_name}、{@code userFirstName → user_first_name}、
+     *     {@code UserName → user_name}</li>
+     * <li>含数字：{@code user123Name → user123_name}</li>
+     * <li>连续大写缩写：{@code XMLParser → xml_parser}、{@code parseURL → parse_url}、
+     *     {@code userID → user_id}、{@code multiHttpClient → multi_http_client}、
+     *     {@code URL → url}、{@code ABc → a_bc}</li>
+     * <li>无需转换：{@code username → username}、{@code user_name → user_name}、{@code a → a}</li>
      * <li>{@code null} 或空字符串返回原值</li>
      * </ul>
      *

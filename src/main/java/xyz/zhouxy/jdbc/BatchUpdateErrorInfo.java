@@ -15,6 +15,8 @@
  */
 package xyz.zhouxy.jdbc;
 
+import org.jspecify.annotations.NullMarked;
+
 /**
  * 记录批量更新操作中某个批次的执行错误信息。
  *
@@ -24,6 +26,7 @@ package xyz.zhouxy.jdbc;
  * @author ZhouXY
  * @see BatchUpdateResult
  */
+@NullMarked
 public class BatchUpdateErrorInfo {
 
     /**

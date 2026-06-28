@@ -210,6 +210,7 @@ class ParamBuilderTest {
 
     @Test
     @DisplayName("buildBatchParams：边界情况——空集合 / null collection / null func")
+    @SuppressWarnings("null")
     void testBuildBatchParamsBoundary() {
         // 空集合返回 Collections.emptyList()
         List<Object[]> emptyResult = buildBatchParams(Collections.emptyList(),

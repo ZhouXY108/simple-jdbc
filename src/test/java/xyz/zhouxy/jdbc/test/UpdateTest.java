@@ -186,8 +186,7 @@ class UpdateTest extends BaseH2Test {
         assertEquals(5, rows);
 
         // 验证表为空
-        int count = template.query("SELECT COUNT(*) FROM users",
-                rs -> { rs.next(); return rs.getInt(1); });
+        int count = template.queryValueOrDefault("SELECT COUNT(*) FROM users", Integer.class, 0);
         assertEquals(0, count);
     }
 

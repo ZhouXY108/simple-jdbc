@@ -16,12 +16,16 @@
 
 package xyz.zhouxy.jdbc.util;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
 /**
  * 字符串工具
  *
  * @author ZhouXY
  * @since 1.0.0
  */
+@NullMarked
 public class NamingTools {
 
     /**
@@ -42,7 +46,7 @@ public class NamingTools {
      * @param camelCase 小驼峰命名字符串，可空
      * @return snake_case 命名字符串；{@code null} 输入返回 {@code null}
      */
-    public static String camelToSnake(String camelCase) {
+    public static @Nullable String camelToSnake(@Nullable String camelCase) {
         if (camelCase == null || camelCase.isEmpty()) {
             return camelCase;
         }

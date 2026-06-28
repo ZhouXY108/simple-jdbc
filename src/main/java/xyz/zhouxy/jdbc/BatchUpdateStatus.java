@@ -15,6 +15,8 @@
  */
 package xyz.zhouxy.jdbc;
 
+import org.jspecify.annotations.NullMarked;
+
 /**
  * 批量更新状态
  *
@@ -25,6 +27,7 @@ package xyz.zhouxy.jdbc;
  * @see BatchUpdateResult
  * @see BatchUpdateResult#getStatus()
  */
+@NullMarked
 public enum BatchUpdateStatus {
 
     /**

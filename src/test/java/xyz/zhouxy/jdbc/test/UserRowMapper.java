@@ -3,6 +3,8 @@ package xyz.zhouxy.jdbc.test;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import org.jspecify.annotations.NonNull;
+
 import xyz.zhouxy.jdbc.RowMapper;
 
 /**
@@ -13,7 +15,7 @@ import xyz.zhouxy.jdbc.RowMapper;
 public class UserRowMapper implements RowMapper<User> {
 
     @Override
-    public User mapRow(ResultSet rs, int rowNumber) throws SQLException {
+    public User mapRow(@NonNull ResultSet rs, int rowNumber) throws SQLException {
         User user = new User();
         user.setId(rs.getObject("id", Long.class));
         user.setUsername(rs.getString("username"));

@@ -19,6 +19,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
 /**
  * 批量更新结果
  *
@@ -37,6 +40,7 @@ import java.util.Map;
  * @see JdbcOperations#batchUpdate(String, java.util.Collection, int)
  * @see JdbcOperations#batchUpdate(String, java.util.Collection, int, boolean)
  */
+@NullMarked
 public class BatchUpdateResult {
     /**
      * 总数据量
@@ -122,9 +126,12 @@ public class BatchUpdateResult {
      * @param batchIndex 批次号
      * @return 批次更新结果
      */
-    public int[] getUpdateCounts(int batchIndex) {
-        int[] updateCounts = this.allUpdateCounts.get(batchIndex);
-        return updateCounts != null ? updateCounts.clone() : null;
+    public int @Nullable[] getUpdateCounts(int batchIndex) {
+        if (this.allUpdateCounts.containsKey(batchIndex)) {
+            int[] updateCounts = this.allUpdateCounts.get(batchIndex);
+            return updateCounts.clone();
+        }
+        return null;
     }
 
     /**
@@ -142,7 +149,7 @@ public class BatchUpdateResult {
      * @param batchIndex 批次号
      * @return 批次错误信息
      */
-    public BatchUpdateErrorInfo getBatchUpdateErrorInfo(int batchIndex) {
+    public @Nullable BatchUpdateErrorInfo getBatchUpdateErrorInfo(int batchIndex) {
         return this.allErrorsInfo.get(batchIndex);
     }
 

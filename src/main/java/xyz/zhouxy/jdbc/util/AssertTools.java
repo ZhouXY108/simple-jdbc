@@ -18,6 +18,10 @@ package xyz.zhouxy.jdbc.util;
 
 import java.util.function.Supplier;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
 /**
  * 断言工具
  *
@@ -35,6 +39,7 @@ import java.util.function.Supplier;
  *
  * @author ZhouXY
  */
+@NullMarked
 public class AssertTools {
 
     // ================================
@@ -88,7 +93,7 @@ public class AssertTools {
      * @throws IllegalArgumentException 当条件不满足时抛出
      */
     public static void checkArgument(boolean condition,
-            String errorMessageTemplate, Object... errorMessageArgs) {
+            String errorMessageTemplate, Object @Nullable ... errorMessageArgs) {
         if (!condition) {
             throw new IllegalArgumentException(String.format(errorMessageTemplate, errorMessageArgs));
         }
@@ -110,7 +115,7 @@ public class AssertTools {
      * @return 校验通过时返回入参
      * @throws IllegalArgumentException 当 {@code obj} 为 {@code null} 时抛出
      */
-    public static <T> T checkArgumentNotNull(T obj) {
+    public static <T> T checkArgumentNotNull(@Nullable T obj) {
         if (obj == null) {
             throw new IllegalArgumentException();
         }
@@ -126,7 +131,7 @@ public class AssertTools {
      * @return 校验通过时返回入参
      * @throws IllegalArgumentException 当 {@code obj} 为 {@code null} 时抛出
      */
-    public static <T> T checkArgumentNotNull(T obj, String errorMessage) {
+    public static <T> T checkArgumentNotNull(@Nullable T obj, String errorMessage) {
         if (obj == null) {
             throw new IllegalArgumentException(errorMessage);
         }
@@ -142,7 +147,7 @@ public class AssertTools {
      * @return 校验通过时返回入参
      * @throws IllegalArgumentException 当 {@code obj} 为 {@code null} 时抛出
      */
-    public static <T> T checkArgumentNotNull(T obj, Supplier<String> errorMessageSupplier) {
+    public static <T> T checkArgumentNotNull(@Nullable T obj, Supplier<String> errorMessageSupplier) {
         if (obj == null) {
             throw new IllegalArgumentException(errorMessageSupplier.get());
         }
@@ -159,8 +164,8 @@ public class AssertTools {
      * @return 校验通过时返回入参
      * @throws IllegalArgumentException 当 {@code obj} 为 {@code null} 时抛出
      */
-    public static <T> T checkArgumentNotNull(T obj,
-            String errorMessageTemplate, Object... errorMessageArgs) {
+    public static <T> T checkArgumentNotNull(@Nullable T obj,
+            String errorMessageTemplate, Object @Nullable ... errorMessageArgs) {
         if (obj == null) {
             throw new IllegalArgumentException(String.format(errorMessageTemplate, errorMessageArgs));
         }
@@ -222,7 +227,7 @@ public class AssertTools {
      * @throws IllegalStateException 当条件不满足时抛出
      */
     public static void checkState(boolean condition,
-            String errorMessageTemplate, Object... errorMessageArgs) {
+            String errorMessageTemplate, Object @Nullable ... errorMessageArgs) {
         if (!condition) {
             throw new IllegalStateException(String.format(errorMessageTemplate, errorMessageArgs));
         }
@@ -243,7 +248,7 @@ public class AssertTools {
      * @param obj 入参
      * @throws NullPointerException 当 {@code obj} 为 {@code null} 时抛出
      */
-    public static <T> void checkNotNull(T obj) {
+    public static <T> void checkNotNull(@Nullable T obj) {
         if (obj == null) {
             throw new NullPointerException();
         }
@@ -257,7 +262,7 @@ public class AssertTools {
      * @param errorMessage 异常信息
      * @throws NullPointerException 当 {@code obj} 为 {@code null} 时抛出
      */
-    public static <T> void checkNotNull(T obj, String errorMessage) {
+    public static <T> void checkNotNull(@Nullable T obj, String errorMessage) {
         if (obj == null) {
             throw new NullPointerException(errorMessage);
         }
@@ -271,7 +276,7 @@ public class AssertTools {
      * @param errorMessageSupplier 异常信息
      * @throws NullPointerException 当 {@code obj} 为 {@code null} 时抛出
      */
-    public static <T> void checkNotNull(T obj, Supplier<String> errorMessageSupplier) {
+    public static <T> void checkNotNull(@Nullable T obj, Supplier<String> errorMessageSupplier) {
         if (obj == null) {
             throw new NullPointerException(errorMessageSupplier.get());
         }
@@ -286,8 +291,8 @@ public class AssertTools {
      * @param errorMessageArgs 异常信息参数
      * @throws NullPointerException 当 {@code obj} 为 {@code null} 时抛出
      */
-    public static <T> void checkNotNull(T obj,
-            String errorMessageTemplate, Object... errorMessageArgs) {
+    public static <T> void checkNotNull(@Nullable T obj,
+            String errorMessageTemplate, Object @Nullable ... errorMessageArgs) {
         if (obj == null) {
             throw new NullPointerException(String.format(errorMessageTemplate, errorMessageArgs));
         }
@@ -309,7 +314,7 @@ public class AssertTools {
      * @param e 异常
      * @throws T 当条件不满足时抛出异常
      */
-    public static <T extends Exception> void checkCondition(boolean condition, Supplier<T> e)
+    public static <T extends @NonNull Exception> void checkCondition(boolean condition, Supplier<T> e)
             throws T {
         if (!condition) {
             throw e.get();

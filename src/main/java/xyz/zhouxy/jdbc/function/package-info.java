@@ -33,4 +33,5 @@
  * @author ZhouXY
  * @since 1.1.0
  */
+@org.jspecify.annotations.NullMarked
 package xyz.zhouxy.jdbc.function;

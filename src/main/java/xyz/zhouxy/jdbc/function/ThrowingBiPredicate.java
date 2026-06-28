@@ -16,6 +16,8 @@
 
 package xyz.zhouxy.jdbc.function;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * 可抛出受检异常的双参数谓词函数式接口。
  *
@@ -30,7 +32,9 @@ package xyz.zhouxy.jdbc.function;
  * @since 1.1.0
  */
 @FunctionalInterface
-public interface ThrowingBiPredicate<T, U, E extends Exception> {
+public interface ThrowingBiPredicate<T extends @Nullable Object,
+                                     U extends @Nullable Object,
+                                     E extends @Nullable Exception> {
 
     /**
      * 对给定参数执行此谓词判断。

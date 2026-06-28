@@ -16,6 +16,8 @@
 
 package xyz.zhouxy.jdbc.function;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * 可抛出受检异常的谓词函数式接口。
  *
@@ -29,7 +31,8 @@ package xyz.zhouxy.jdbc.function;
  * @since 1.1.0
  */
 @FunctionalInterface
-public interface ThrowingPredicate<T, E extends Exception> {
+public interface ThrowingPredicate<T extends @Nullable Object,
+                                   E extends @Nullable Exception> {
 
     /**
      * 对给定参数执行此谓词判断。

@@ -32,7 +32,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import xyz.zhouxy.jdbc.util.NamingTools;
 
@@ -57,7 +58,8 @@ import xyz.zhouxy.jdbc.util.NamingTools;
  * @author ZhouXY
  * @since 1.0.0
  */
-public class DefaultBeanRowMapper<T> implements RowMapper<T> {
+@NullMarked
+public class DefaultBeanRowMapper<T extends @Nullable Object> implements RowMapper<T> {
 
     /** JavaBean 类型 */
     private final Class<T> beanType;
@@ -89,7 +91,7 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
      * @return DefaultBeanRowMapper 对象
      * @throws IllegalStateException 创建 {@code DefaultBeanRowMapper} 出现错误的异常时抛出
      */
-    public static <T> DefaultBeanRowMapper<T> of(Class<T> beanType) {
+    public static <T extends @Nullable Object> DefaultBeanRowMapper<T> of(Class<T> beanType) {
         return of(beanType, null);
     }
 
@@ -102,8 +104,9 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
      * @return {@code DefaultBeanRowMapper} 对象
      * @throws IllegalStateException 创建 {@code DefaultBeanRowMapper} 出现错误的异常时抛出
      */
-    public static <T> DefaultBeanRowMapper<T> of(Class<T> beanType,
-                                                 @Nullable Map<String, String> propertyColMap) {
+    public static <T extends @Nullable Object> DefaultBeanRowMapper<T> of(
+            Class<T> beanType,
+            @Nullable Map<String, String> propertyColMap) {
         try {
             // 获取无参构造器
             Constructor<T> constructor = beanType.getDeclaredConstructor();
@@ -156,7 +159,7 @@ public class DefaultBeanRowMapper<T> implements RowMapper<T> {
      * @throws IntrospectionException if an exception occurs during introspection.
      */
     private static <T> Map<String, PropertyDescriptor> buildColPropertyMap(
-            Class<T> beanType, Map<String, String> propertyColMap) throws IntrospectionException {
+            Class<T> beanType, @Nullable Map<String, String> propertyColMap) throws IntrospectionException {
 
         BeanInfo beanInfo = Introspector.getBeanInfo(beanType);
         PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();

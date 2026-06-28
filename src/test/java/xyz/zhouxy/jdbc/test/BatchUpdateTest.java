@@ -67,8 +67,7 @@ class BatchUpdateTest extends BaseH2Test {
         assertEquals(0, result.getRemainingBatchCount());
 
         // 验证数据已插入
-        int count = template.query("SELECT COUNT(*) FROM users",
-                rs -> { rs.next(); return rs.getInt(1); });
+        int count = template.queryValueOrDefault("SELECT COUNT(*) FROM users", Integer.class, 0);
         assertEquals(8, count); // 5 初始 + 3
     }
 

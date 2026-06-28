@@ -23,7 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.annotation.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * JdbcOperations
@@ -35,6 +36,7 @@ import javax.annotation.Nullable;
  * @author ZhouXY
  * @since 1.0.0
  */
+@NullMarked
 public interface JdbcOperations {
 
     // #region - query
@@ -50,7 +52,8 @@ public interface JdbcOperations {
      * @return 查询结果
      * @throws SQLException SQL异常
      */
-    <T> T query(String sql, Object[] params, ResultHandler<T> resultHandler)
+    <T extends @Nullable Object> T query(String sql, @Nullable Object @Nullable [] params,
+            ResultHandler<T> resultHandler)
             throws SQLException;
 
     /**
@@ -63,7 +66,7 @@ public interface JdbcOperations {
      * @return 查询结果
      * @throws SQLException SQL异常
      */
-    default <T> T query(String sql, ResultHandler<T> resultHandler)
+    default <T extends @Nullable Object> T query(String sql, ResultHandler<T> resultHandler)
             throws SQLException {
         return query(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, resultHandler);
     }
@@ -83,7 +86,8 @@ public interface JdbcOperations {
      * @return 查询结果列表
      * @throws SQLException SQL 异常
      */
-    <T> List<T> queryList(String sql, Object[] params, RowMapper<T> rowMapper)
+    <T extends @Nullable Object> List<T> queryList(String sql, @Nullable Object @Nullable [] params,
+            RowMapper<T> rowMapper)
             throws SQLException;
 
     /**
@@ -98,7 +102,8 @@ public interface JdbcOperations {
      * @return 每一行第一列的值列表。如果查询结果为空，则返回空列表
      * @throws SQLException SQL异常
      */
-    <T> List<T> queryValues(String sql, Object[] params, Class<T> clazz)
+    <T extends @Nullable Object> List<T> queryValues(String sql, @Nullable Object @Nullable [] params,
+            Class<T> clazz)
             throws SQLException;
 
     /**
@@ -110,7 +115,7 @@ public interface JdbcOperations {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    List<Map<String, Object>> queryList(String sql, Object[] params)
+    List<@Nullable Map<String, @Nullable Object>> queryList(String sql, @Nullable Object @Nullable [] params)
             throws SQLException;
 
     /**
@@ -123,7 +128,7 @@ public interface JdbcOperations {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    default <T> List<T> queryList(String sql, RowMapper<T> rowMapper)
+    default <T extends @Nullable Object> List<T> queryList(String sql, RowMapper<T> rowMapper)
             throws SQLException {
         return queryList(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
     }
@@ -139,7 +144,7 @@ public interface JdbcOperations {
      * @return 每一行第一列的值列表。如果查询结果为空，则返回空列表
      * @throws SQLException SQL 异常
      */
-    default <T> List<T> queryValues(String sql, Class<T> clazz)
+    default <T extends @Nullable Object> List<T> queryValues(String sql, Class<T> clazz)
             throws SQLException {
         return queryValues(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz);
     }
@@ -149,7 +154,8 @@ public interface JdbcOperations {
      *             此方法将在后续版本中移除。
      */
     @Deprecated
-    default <T> List<T> queryList(String sql, Object[] params, Class<T> clazz)
+    default <T extends @Nullable Object> List<T> queryList(String sql, @Nullable Object @Nullable [] params,
+            Class<T> clazz)
             throws SQLException {
         return queryValues(sql, params, clazz);
     }
@@ -159,7 +165,7 @@ public interface JdbcOperations {
      *             此方法将在后续版本中移除。
      */
     @Deprecated
-    default <T> List<T> queryList(String sql, Class<T> clazz)
+    default <T extends @Nullable Object> List<T> queryList(String sql, Class<T> clazz)
             throws SQLException {
         return queryValues(sql, clazz);
     }
@@ -172,7 +178,7 @@ public interface JdbcOperations {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    default List<Map<String, Object>> queryList(String sql)
+    default List<@Nullable Map<String, @Nullable Object>> queryList(String sql)
             throws SQLException {
         return queryList(sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
     }
@@ -192,7 +198,8 @@ public interface JdbcOperations {
      * @return 查询结果
      * @throws SQLException SQL 异常
      */
-    <T> Optional<T> queryFirst(String sql, Object[] params, RowMapper<T> rowMapper)
+    <T extends @Nullable Object> Optional<T> queryFirst(String sql, @Nullable Object @Nullable [] params,
+            RowMapper<T> rowMapper)
             throws SQLException;
 
     /**
@@ -207,7 +214,8 @@ public interface JdbcOperations {
      * @return 第一行第一列的值。如果查询结果为空，则返回 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    <T> Optional<T> queryValue(String sql, Object[] params, Class<T> clazz)
+    <T extends @Nullable Object> Optional<T> queryValue(String sql, @Nullable Object @Nullable [] params,
+            Class<T> clazz)
             throws SQLException;
 
     /**
@@ -219,7 +227,8 @@ public interface JdbcOperations {
      * @return 查询结果
      * @throws SQLException SQL 异常
      */
-    Optional<Map<String, Object>> queryFirst(String sql, Object[] params)
+    Optional<@Nullable Map<String, @Nullable Object>> queryFirst(
+            String sql, @Nullable Object @Nullable [] params)
             throws SQLException;
 
     /**
@@ -232,7 +241,7 @@ public interface JdbcOperations {
      * @return 查询结果
      * @throws SQLException SQL 异常
      */
-    default <T> Optional<T> queryFirst(String sql, RowMapper<T> rowMapper)
+    default <T extends @Nullable Object> Optional<T> queryFirst(String sql, RowMapper<T> rowMapper)
             throws SQLException {
         return queryFirst(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
     }
@@ -248,7 +257,7 @@ public interface JdbcOperations {
      * @return 第一行第一列的值，如果查询结果为空，则返回 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    default <T> Optional<T> queryValue(String sql, Class<T> clazz)
+    default <T extends @Nullable Object> Optional<T> queryValue(String sql, Class<T> clazz)
             throws SQLException {
         return queryValue(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz);
     }
@@ -258,7 +267,9 @@ public interface JdbcOperations {
      *             此方法将在后续版本中移除。
      */
     @Deprecated
-    default <T> Optional<T> queryFirst(String sql, Object[] params, Class<T> clazz)
+    default <T extends @Nullable Object> Optional<T> queryFirst(
+            String sql, @Nullable Object @Nullable [] params,
+            Class<T> clazz)
             throws SQLException {
         return queryValue(sql, params, clazz);
     }
@@ -268,7 +279,7 @@ public interface JdbcOperations {
      *             此方法将在后续版本中移除。
      */
     @Deprecated
-    default <T> Optional<T> queryFirst(String sql, Class<T> clazz)
+    default <T extends @Nullable Object> Optional<T> queryFirst(String sql, Class<T> clazz)
             throws SQLException {
         return queryValue(sql, clazz);
     }
@@ -281,7 +292,7 @@ public interface JdbcOperations {
      * @return 查询结果
      * @throws SQLException SQL 异常
      */
-    default Optional<Map<String, Object>> queryFirst(String sql)
+    default Optional<@Nullable Map<String, @Nullable Object>> queryFirst(String sql)
             throws SQLException {
         return queryFirst(sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
     }
@@ -300,7 +311,8 @@ public interface JdbcOperations {
      * @return 第一行第一列的值，如果查询结果为空则返回 {@code defaultValue}
      * @throws SQLException SQL 异常
      */
-    default <T> T queryValueOrDefault(String sql, Object[] params, Class<T> clazz, T defaultValue)
+    default <T extends @Nullable Object> T queryValueOrDefault(String sql, @Nullable Object @Nullable [] params,
+            Class<T> clazz, T defaultValue)
             throws SQLException {
         return queryValue(sql, params, clazz).orElse(defaultValue);
     }
@@ -318,7 +330,7 @@ public interface JdbcOperations {
      * @return 第一行第一列的值，如果查询结果为空则返回 {@code defaultValue}
      * @throws SQLException SQL 异常
      */
-    default <T> T queryValueOrDefault(String sql, Class<T> clazz, T defaultValue)
+    default <T extends @Nullable Object> T queryValueOrDefault(String sql, Class<T> clazz, T defaultValue)
             throws SQLException {
         return queryValueOrDefault(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz, defaultValue);
     }
@@ -346,7 +358,7 @@ public interface JdbcOperations {
      *
      * @throws SQLException SQL 异常
      */
-    boolean queryBoolean(String sql, Object[] params)
+    boolean queryBoolean(String sql, @Nullable Object @Nullable [] params)
             throws SQLException;
 
     // #endregion
@@ -361,7 +373,7 @@ public interface JdbcOperations {
      * @return 更新记录数
      * @throws SQLException SQL 异常
      */
-    int update(String sql, Object[] params)
+    int update(String sql, @Nullable Object @Nullable [] params)
             throws SQLException;
 
     /**
@@ -389,7 +401,9 @@ public interface JdbcOperations {
      * @return generated keys
      * @throws SQLException 数据库执行异常
      */
-    <T> List<T> updateAndReturnKeys(String sql, Object[] params, RowMapper<T> rowMapper)
+    <T extends @Nullable Object> List<T> updateAndReturnKeys(
+            String sql, @Nullable Object @Nullable [] params,
+            RowMapper<T> rowMapper)
             throws SQLException;
 
     /**
@@ -403,7 +417,7 @@ public interface JdbcOperations {
      * @return generated keys
      * @throws SQLException 数据库执行异常
      */
-    default <T> List<T> updateAndReturnKeys(String sql, RowMapper<T> rowMapper)
+    default <T extends @Nullable Object> List<T> updateAndReturnKeys(String sql, RowMapper<T> rowMapper)
             throws SQLException {
         return updateAndReturnKeys(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
     }
@@ -424,7 +438,9 @@ public interface JdbcOperations {
      * @return 批量更新的结果
      * @throws SQLException SQL 异常
      */
-    BatchUpdateResult batchUpdate(String sql, @Nullable Collection<Object[]> params, int batchSize)
+    BatchUpdateResult batchUpdate(
+            String sql, @Nullable Collection<@Nullable Object @Nullable []> params,
+            int batchSize)
             throws SQLException;
 
     /**
@@ -443,8 +459,9 @@ public interface JdbcOperations {
      * @return 批次更新结果
      * @throws SQLException 数据库执行异常
      */
-    BatchUpdateResult batchUpdate(String sql, @Nullable Collection<Object[]> params,
-                            int batchSize, boolean quietly)
+    BatchUpdateResult batchUpdate(
+        String sql, @Nullable Collection<@Nullable Object @Nullable []> params,
+        int batchSize, boolean quietly)
             throws SQLException;
 
     // #endregion

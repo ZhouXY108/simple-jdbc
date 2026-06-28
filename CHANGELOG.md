@@ -24,16 +24,20 @@
 
 ### 重构
 
-**将原来的单列查询方法标记为过时，消除 Class 参数重载歧义**
+- **空值注解迁移：JSR-305 → JSpecify**
+  - 依赖由 `com.google.code.findbugs:jsr305` 替换为 `org.jspecify:jspecify:1.0.0`
+  - `AssertTools.checkCondition` 异常边界约束收紧为 `<T extends @NonNull Exception>`
+  - 测试代码同步更新：`UserRowMapper.mapRow` 参数加 `@NonNull`，`ParamBuilderTest` 加 `@SuppressWarnings("null")`
 
-- `queryList(sql, params, Class<T>)` → 已过时，请使用 `queryValues(sql, params, Class<T>)`
-  语义明确为"多行单列 → 值列表"，不与整行 `RowMapper` 重载混淆
-- `queryFirst(sql, params, Class<T>)` → 已过时，请使用 `queryValue(sql, params, Class<T>)`
-  语义明确为"单行单列 → 单值"，不与整行 `RowMapper` 重载混淆
-- 同时将对应的无参数重载标记为过时：
-  - `queryList(sql, Class<T>)` → 请使用 `queryValues(sql, Class<T>)`
-  - `queryFirst(sql, Class<T>)` → 请使用 `queryValue(sql, Class<T>)`
-- 旧方法将在后续版本中移除
+- **将原来的单列查询方法标记为过时，消除 Class 参数重载歧义**
+  - `queryList(sql, params, Class<T>)` → 已过时，请使用 `queryValues(sql, params, Class<T>)`
+    语义明确为"多行单列 → 值列表"，不与整行 `RowMapper` 重载混淆
+  - `queryFirst(sql, params, Class<T>)` → 已过时，请使用 `queryValue(sql, params, Class<T>)`
+    语义明确为"单行单列 → 单值"，不与整行 `RowMapper` 重载混淆
+  - 同时将对应的无参数重载标记为过时：
+    - `queryList(sql, Class<T>)` → 请使用 `queryValues(sql, Class<T>)`
+    - `queryFirst(sql, Class<T>)` → 请使用 `queryValue(sql, Class<T>)`
+  - 旧方法将在后续版本中移除
 
 ### 文档
 

@@ -19,6 +19,8 @@ package xyz.zhouxy.jdbc.namedparam;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.jspecify.annotations.Nullable;
+
 import xyz.zhouxy.jdbc.ParamBuilder;
 import xyz.zhouxy.jdbc.util.AssertTools;
 
@@ -64,9 +66,9 @@ import xyz.zhouxy.jdbc.util.AssertTools;
 public final class PreparedSql {
 
     private final String sql;
-    private final Object[] args;
+    private final @Nullable Object[] args;
 
-    private PreparedSql(String sql, Object[] args) {
+    private PreparedSql(String sql, @Nullable Object[] args) {
         this.sql = sql;
         this.args = args.clone();
     }
@@ -85,7 +87,7 @@ public final class PreparedSql {
      *
      * @return 参数值数组（防御性拷贝）
      */
-    public Object[] getArgs() {
+    public @Nullable Object[] getArgs() {
         return args.clone();
     }
 
@@ -131,7 +133,7 @@ public final class PreparedSql {
      */
     public static final class Builder {
         private final NamedParamSql template;
-        private final Map<String, Object> params = new LinkedHashMap<>();
+        private final Map<String, @Nullable Object> params = new LinkedHashMap<>();
 
         private Builder(NamedParamSql template) {
             this.template = template;
@@ -149,7 +151,7 @@ public final class PreparedSql {
          * @param value 参数值
          * @return 当前 Builder 实例
          */
-        public Builder param(String name, Object value) {
+        public Builder param(String name, @Nullable Object value) {
             AssertTools.checkNotNull(name, "name must not be null");
             this.params.put(name, value);
             return this;

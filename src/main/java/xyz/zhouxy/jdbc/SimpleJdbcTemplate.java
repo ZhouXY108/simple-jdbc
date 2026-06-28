@@ -22,8 +22,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import javax.sql.DataSource;
 
 import xyz.zhouxy.jdbc.namedparam.NamedParamJdbcOperations;
@@ -52,12 +52,11 @@ import xyz.zhouxy.jdbc.util.AssertTools;
  * @see TransactionTemplate
  * @see ParamBuilder
  */
+@NullMarked
 public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperations {
 
-    @Nonnull
     private final DataSource dataSource;
 
-    @Nonnull
     private final TransactionTemplate transactionTemplate;
 
     /**
@@ -65,7 +64,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
      *
      * @param dataSource 数据源，用于获取数据库连接；不可为 {@code null}
      */
-    public SimpleJdbcTemplate(@Nonnull DataSource dataSource) {
+    public SimpleJdbcTemplate(DataSource dataSource) {
         AssertTools.checkNotNull(dataSource);
         this.dataSource = dataSource;
         this.transactionTemplate = new TransactionTemplate(dataSource);
@@ -75,7 +74,8 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
 
     /** {@inheritDoc} */
     @Override
-    public <T> T query(String sql, Object[] params, ResultHandler<T> resultHandler)
+    public <T extends @Nullable Object>
+    T query(String sql, @Nullable Object @Nullable [] params, ResultHandler<T> resultHandler)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcOperationSupport.query(conn, sql, params, resultHandler);
@@ -88,7 +88,8 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
 
     /** {@inheritDoc} */
     @Override
-    public <T> List<T> queryList(String sql, Object[] params, RowMapper<T> rowMapper)
+    public <T extends @Nullable Object>
+    List<T> queryList(String sql, @Nullable Object @Nullable [] params, RowMapper<T> rowMapper)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcOperationSupport.queryList(conn, sql, params, rowMapper);
@@ -97,7 +98,8 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
 
     /** {@inheritDoc} */
     @Override
-    public <T> List<T> queryValues(String sql, Object[] params, Class<T> clazz)
+    public <T extends @Nullable Object>
+    List<T> queryValues(String sql, @Nullable Object @Nullable [] params, Class<T> clazz)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcOperationSupport.queryValues(conn, sql, params, clazz);
@@ -106,7 +108,8 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
 
     /** {@inheritDoc} */
     @Override
-    public List<Map<String, Object>> queryList(String sql, Object[] params)
+    public List<@Nullable Map<String, @Nullable Object>> queryList(
+            String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcOperationSupport.queryList(conn, sql, params, RowMapper.HASH_MAP_MAPPER);
@@ -119,27 +122,30 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
 
     /** {@inheritDoc} */
     @Override
-    public <T> Optional<T> queryFirst(String sql, Object[] params, RowMapper<T> rowMapper)
+    public <T extends @Nullable Object> Optional<T> queryFirst(
+            String sql, @Nullable Object @Nullable [] params,
+            RowMapper<T> rowMapper)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            final T result = JdbcOperationSupport.queryFirst(conn, sql, params, rowMapper);
+            final T result = JdbcOperationSupport.<T>queryFirst(conn, sql, params, rowMapper);
             return Optional.ofNullable(result);
         }
     }
 
     /** {@inheritDoc} */
     @Override
-    public <T> Optional<T> queryValue(String sql, Object[] params, Class<T> clazz)
+    public <T extends @Nullable Object> Optional<T> queryValue(
+            String sql, @Nullable Object @Nullable [] params, Class<T> clazz)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            final T result = JdbcOperationSupport.queryValue(conn, sql, params, clazz);
+            final T result = JdbcOperationSupport.<T>queryValue(conn, sql, params, clazz);
             return Optional.ofNullable(result);
         }
     }
 
     /** {@inheritDoc} */
     @Override
-    public Optional<Map<String, Object>> queryFirst(String sql, Object[] params)
+    public Optional<@Nullable Map<String, @Nullable Object>> queryFirst(String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             final Map<String, Object> result = JdbcOperationSupport
@@ -150,7 +156,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
 
     /** {@inheritDoc} */
     @Override
-    public boolean queryBoolean(String sql, Object[] params)
+    public boolean queryBoolean(String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             final Boolean result = JdbcOperationSupport
@@ -165,7 +171,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
 
     /** {@inheritDoc} */
     @Override
-    public int update(String sql, Object[] params)
+    public int update(String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcOperationSupport.update(conn, sql, params);
@@ -174,7 +180,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
 
     /** {@inheritDoc} */
     @Override
-    public <T> List<T> updateAndReturnKeys(String sql, Object[] params, RowMapper<T> rowMapper)
+    public <T extends @Nullable Object> List<T> updateAndReturnKeys(String sql, @Nullable Object @Nullable [] params, RowMapper<T> rowMapper)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcOperationSupport.updateAndReturnKeys(conn, sql, params, rowMapper);
@@ -183,7 +189,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
 
     /** {@inheritDoc} */
     @Override
-    public BatchUpdateResult batchUpdate(String sql, @Nullable Collection<Object[]> params, int batchSize)
+    public BatchUpdateResult batchUpdate(String sql, @Nullable Collection<@Nullable Object @Nullable []> params, int batchSize)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcOperationSupport.batchUpdate(conn, sql, params, batchSize, false);
@@ -192,7 +198,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
 
     /** {@inheritDoc} */
     @Override
-    public BatchUpdateResult batchUpdate(String sql, @Nullable Collection<Object[]> params,
+    public BatchUpdateResult batchUpdate(String sql, @Nullable Collection<@Nullable Object @Nullable []> params,
             int batchSize, boolean quietly)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {

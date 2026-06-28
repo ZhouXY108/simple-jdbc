@@ -22,6 +22,9 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
 /**
  * RowMapper
  *
@@ -33,7 +36,8 @@ import java.util.Map;
  * @since 1.0.0
  */
 @FunctionalInterface
-public interface RowMapper<T> {
+@NullMarked
+public interface RowMapper<T extends @Nullable Object> {
     T mapRow(ResultSet rs, int rowNumber) throws SQLException;
 
     /**
@@ -42,8 +46,8 @@ public interface RowMapper<T> {
      * <p>
      * <b>注：如果两个属性映射到同一列名，后者静默覆盖前者。</b>
      */
-    RowMapper<Map<String, Object>> HASH_MAP_MAPPER = (rs, rowNumber) -> {
-        Map<String, Object> result = new HashMap<>();
+    RowMapper<Map<String, @Nullable Object>> HASH_MAP_MAPPER = (rs, rowNumber) -> {
+        Map<String, @Nullable Object> result = new HashMap<>();
         ResultSetMetaData metaData = rs.getMetaData();
         int columnCount = metaData.getColumnCount();
         for (int i = 1; i <= columnCount; i++) {
@@ -62,7 +66,7 @@ public interface RowMapper<T> {
      * @return {@link DefaultBeanRowMapper}
      * @throws IllegalStateException 如果创建 {@link DefaultBeanRowMapper} 失败
      */
-    static <T> RowMapper<T> beanRowMapper(Class<T> beanType) {
+    static <T extends @Nullable Object> RowMapper<T> beanRowMapper(Class<T> beanType) {
         return DefaultBeanRowMapper.of(beanType);
     }
 
@@ -76,7 +80,8 @@ public interface RowMapper<T> {
      * @return {@link DefaultBeanRowMapper}
      * @throws IllegalStateException 如果创建 {@link DefaultBeanRowMapper} 失败
      */
-    static <T> RowMapper<T> beanRowMapper(Class<T> beanType, Map<String, String> propertyColMap) {
-        return DefaultBeanRowMapper.of(beanType, propertyColMap);
+    static <T extends @Nullable Object> RowMapper<T> beanRowMapper(Class<T> beanType,
+            Map<String, String> propertyColMap) {
+        return DefaultBeanRowMapper.<T>of(beanType, propertyColMap);
     }
 }

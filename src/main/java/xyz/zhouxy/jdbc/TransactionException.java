@@ -16,6 +16,8 @@
 
 package xyz.zhouxy.jdbc;
 
+import org.jspecify.annotations.NullMarked;
+
 /**
  * 事务异常
  *
@@ -24,6 +26,7 @@ package xyz.zhouxy.jdbc;
  *
  * @author ZhouXY
  */
+@NullMarked
 public class TransactionException extends Exception {
     private static final long serialVersionUID = 87276230526383501L;
 

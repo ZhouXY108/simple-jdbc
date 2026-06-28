@@ -34,8 +34,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 /**
  * JdbcOperationSupport
@@ -47,6 +47,7 @@ import javax.annotation.Nullable;
  * @author ZhouXY
  * @since 1.0.0
  */
+@NullMarked
 class JdbcOperationSupport {
 
     // #region - query
@@ -64,7 +65,10 @@ class JdbcOperationSupport {
      * @param params        参数
      * @param resultHandler 结果处理器，用于处理 {@link ResultSet}
      */
-    static <T> T query(Connection conn, String sql, Object[] params, ResultHandler<T> resultHandler)
+    static <T extends @Nullable Object> T query(
+            Connection conn,
+            String sql, @Nullable Object @Nullable [] params,
+            ResultHandler<T> resultHandler)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
@@ -84,7 +88,10 @@ class JdbcOperationSupport {
      * @param params    参数
      * @param rowMapper {@link ResultSet} 中每一行的数据的处理逻辑
      */
-    static <T> List<T> queryList(Connection conn, String sql, Object[] params, RowMapper<T> rowMapper)
+    static <T extends @Nullable Object> List<T> queryList(
+            Connection conn,
+            String sql, @Nullable Object @Nullable [] params,
+            RowMapper<T> rowMapper)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
@@ -100,7 +107,10 @@ class JdbcOperationSupport {
      * @param params 参数
      * @param clazz  将结果映射为指定的类型
      */
-    static <T> List<T> queryValues(Connection conn, String sql, Object[] params, Class<T> clazz)
+    static <T extends @Nullable Object> List<T> queryValues(
+            Connection conn,
+            String sql, @Nullable Object @Nullable [] params,
+            Class<T> clazz)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
@@ -120,7 +130,10 @@ class JdbcOperationSupport {
      * @param params    参数
      * @param rowMapper {@link ResultSet} 中每一行的数据的处理逻辑
      */
-    static <T> T queryFirst(Connection conn, String sql, Object[] params, RowMapper<T> rowMapper)
+    static <T extends @Nullable Object> T queryFirst(
+            Connection conn,
+            String sql, @Nullable Object @Nullable [] params,
+            RowMapper<T> rowMapper)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
@@ -137,12 +150,16 @@ class JdbcOperationSupport {
      * @param params 参数
      * @param clazz  目标类型
      */
-    static <T> T queryValue(Connection conn, String sql, Object[] params, Class<T> clazz)
+    static <T extends @Nullable Object> T queryValue(
+            Connection conn,
+            String sql, @Nullable Object @Nullable [] params,
+            Class<T> clazz)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         assertClazzNotNull(clazz);
-        return queryFirstInternal(conn, sql, params, (rs, rowNumber) -> rs.getObject(1, clazz));
+        return JdbcOperationSupport.<T>queryFirstInternal(conn, sql, params,
+                (rs, rowNumber) -> rs.getObject(1, clazz));
     }
 
     // #endregion
@@ -157,7 +174,7 @@ class JdbcOperationSupport {
      * @param params 参数
      * @return 更新记录数
      */
-    static int update(Connection conn, String sql, Object[] params)
+    static int update(Connection conn, String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
@@ -185,7 +202,10 @@ class JdbcOperationSupport {
      * @return generated keys
      * @throws SQLException 数据库执行异常
      */
-    static <T> List<T> updateAndReturnKeys(Connection conn, String sql, Object[] params, RowMapper<T> rowMapper)
+    static <T extends @Nullable Object> List<T> updateAndReturnKeys(
+            Connection conn,
+            String sql, @Nullable Object @Nullable [] params,
+            RowMapper<T> rowMapper)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
@@ -225,9 +245,10 @@ class JdbcOperationSupport {
      *                   如果 {@code quietly} 为 {@code true}，分批更新过程中发生异常不中断操作；
      *                   如果 {@code quietly} 为 {@code false}，分批更新过程中发生异常即中断操作，并返回结果。
      */
-    static BatchUpdateResult batchUpdate(Connection conn,
-                                   String sql, @Nullable Collection<Object[]> params, int batchSize,
-                                   boolean quietly)
+    static BatchUpdateResult batchUpdate(
+            Connection conn,
+            String sql, @Nullable Collection<@Nullable Object @Nullable []> params,
+            int batchSize, boolean quietly)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
@@ -301,10 +322,10 @@ class JdbcOperationSupport {
      * @param params        参数
      * @param resultHandler 结果处理器，用于处理 {@link ResultSet}
      */
-    private static <T> T queryInternal(@Nonnull Connection conn,
-                                       @Nonnull String sql,
-                                       @Nullable Object[] params,
-                                       @Nonnull ResultHandler<T> resultHandler)
+    private static <T extends @Nullable Object> T queryInternal(
+            Connection conn,
+            String sql, @Nullable Object @Nullable [] params,
+            ResultHandler<T> resultHandler)
             throws SQLException {
         if (params != null && params.length > 0) {
             try (PreparedStatement stmt = createPreparedStatementInternal(conn, sql, params);
@@ -321,9 +342,9 @@ class JdbcOperationSupport {
     }
 
     private static PreparedStatement createPreparedStatementInternal(
-            @Nonnull Connection conn,
-            @Nonnull String sql,
-            @Nullable Object[] params)
+            Connection conn,
+            String sql,
+            @Nullable Object @Nullable [] params)
             throws SQLException {
         PreparedStatement stmt = conn.prepareStatement(sql);
         fillStatement(stmt, params);
@@ -338,10 +359,10 @@ class JdbcOperationSupport {
      * @param params    参数
      * @param rowMapper {@link ResultSet} 中每一行的数据的处理逻辑
      */
-    private static <T> List<T> queryListInternal(@Nonnull Connection conn,
-                                                 @Nonnull String sql,
-                                                 @Nullable Object[] params,
-                                                 @Nonnull RowMapper<T> rowMapper)
+    private static <T extends @Nullable Object> List<T> queryListInternal(
+            Connection conn,
+            String sql, @Nullable Object @Nullable [] params,
+            RowMapper<T> rowMapper)
             throws SQLException {
         return queryInternal(conn, sql, params, ResultHandler.mapToList(rowMapper));
     }
@@ -355,12 +376,12 @@ class JdbcOperationSupport {
      * @param rowMapper 行数据映射逻辑
      * @return 映射结果。如果查询结果为空，则返回 null
      */
-    private static <T> T queryFirstInternal(@Nonnull Connection conn,
-                                            @Nonnull String sql,
-                                            @Nullable Object[] params,
-                                            @Nonnull RowMapper<T> rowMapper)
+    private static <T extends @Nullable Object> T queryFirstInternal(
+            Connection conn,
+            String sql, @Nullable Object @Nullable [] params,
+            RowMapper<T> rowMapper)
             throws SQLException {
-        return queryInternal(conn, sql, params, rs ->
+        return JdbcOperationSupport.<T>queryInternal(conn, sql, params, rs ->
                 rs.next() ? rowMapper.mapRow(rs, 0) : null);
     }
 
@@ -369,7 +390,7 @@ class JdbcOperationSupport {
     /**
      * 填充参数
      */
-    private static void fillStatement(@Nonnull PreparedStatement stmt, @Nullable Object[] params)
+    private static void fillStatement(PreparedStatement stmt, @Nullable Object @Nullable [] params)
             throws SQLException {
         if (params != null && params.length > 0) {
             Object param;
@@ -399,23 +420,23 @@ class JdbcOperationSupport {
 
     // #region - 参数校验
 
-    private static void assertConnectionNotNull(Connection conn) {
+    private static void assertConnectionNotNull(@Nullable Connection conn) {
         checkArgumentNotNull(conn, "The argument \"conn\" could not be null.");
     }
 
-    private static void assertSqlNotNull(String sql) {
+    private static void assertSqlNotNull(@Nullable String sql) {
         checkArgumentNotNull(sql, "The argument \"sql\" could not be null.");
     }
 
-    private static void assertRowMapperNotNull(RowMapper<?> rowMapper) {
+    private static void assertRowMapperNotNull(@Nullable RowMapper<?> rowMapper) {
         checkArgumentNotNull(rowMapper, "The argument \"rowMapper\" could not be null.");
     }
 
-    private static void assertResultHandlerNotNull(ResultHandler<?> resultHandler) {
+    private static void assertResultHandlerNotNull(@Nullable ResultHandler<?> resultHandler) {
         checkArgumentNotNull(resultHandler, "The argument \"resultHandler\" could not be null.");
     }
 
-    private static void assertClazzNotNull(Class<?> clazz) {
+    private static void assertClazzNotNull(@Nullable Class<?> clazz) {
         checkArgumentNotNull(clazz, "The argument \"clazz\" could not be null.");
     }
 

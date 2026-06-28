@@ -29,6 +29,9 @@ import java.util.OptionalLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
 import xyz.zhouxy.jdbc.util.AssertTools;
 
 /**
@@ -41,6 +44,7 @@ import xyz.zhouxy.jdbc.util.AssertTools;
  * @author ZhouXY
  * @since 1.0.0
  */
+@NullMarked
 public class ParamBuilder {
     /**
      * 空参数数组常量
@@ -62,7 +66,7 @@ public class ParamBuilder {
      * @param params SQL 参数列表（可变参数）
      * @return 参数数组
      */
-    public static Object[] buildParams(final Object... params) {
+    public static Object[] buildParams(final @Nullable Object @Nullable... params) {
         if (params == null || params.length == 0) {
             return EMPTY_OBJECT_ARRAY;
         }
@@ -97,7 +101,7 @@ public class ParamBuilder {
      * @return 处理后的参数值，可为 {@code null}
      * @since 1.0.0
      */
-    public static Object handleItem(Object param) {
+    public static @Nullable Object handleItem(@Nullable Object param) {
         if (param == null) {
             return null;
         }
@@ -114,7 +118,7 @@ public class ParamBuilder {
             return param;
         }
         if (param instanceof Optional) {
-            return ((Optional<?>) param).orElse(null);
+            return ((Optional<@Nullable ?>) param).orElse(null);
         }
         if (param instanceof OptionalInt) {
             return ((OptionalInt) param).isPresent() ? ((OptionalInt) param).getAsInt() : null;
@@ -141,7 +145,9 @@ public class ParamBuilder {
      * @return 参数数组列表
      * @throws NullPointerException 如果 {@code c} 或 {@code func} 为 {@code null}
      */
-    public static <T> List<Object[]> buildBatchParams(final Collection<T> c, final Function<T, Object[]> func) {
+    public static <T> List<@Nullable Object @Nullable []> buildBatchParams(
+            final Collection<T> c,
+            final Function<T, @Nullable Object @Nullable []> func) {
         AssertTools.checkNotNull(c, "The collection can not be null.");
         AssertTools.checkNotNull(func, "The func can not be null.");
         if (c.isEmpty()) {

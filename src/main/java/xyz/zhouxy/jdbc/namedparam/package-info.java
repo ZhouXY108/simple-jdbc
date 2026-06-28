@@ -34,4 +34,5 @@
  * @see xyz.zhouxy.jdbc.namedparam.NamedParamSql
  * @see xyz.zhouxy.jdbc.namedparam.NamedParamJdbcOperations
  */
+@org.jspecify.annotations.NullMarked
 package xyz.zhouxy.jdbc.namedparam;

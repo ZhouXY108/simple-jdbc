@@ -1,5 +1,5 @@
 /*
- * Copyright 2024-2025 the original author or authors.
+ * Copyright 2026-present ZhouXY
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import xyz.zhouxy.jdbc.util.AssertTools;
 
+@SuppressWarnings("null")
 class AssertToolsTest {
 
     // #region - Argument

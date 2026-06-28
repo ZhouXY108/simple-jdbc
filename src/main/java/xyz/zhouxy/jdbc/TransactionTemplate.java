@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import javax.sql.DataSource;
 
 import xyz.zhouxy.jdbc.function.ThrowingBiConsumer;
@@ -79,9 +79,9 @@ import xyz.zhouxy.jdbc.util.AssertTools;
  * @author ZhouXY
  * @since 1.1.0
  */
+@NullMarked
 public class TransactionTemplate {
 
-    @Nonnull
     private final DataSource dataSource;
 
     /**
@@ -106,8 +106,8 @@ public class TransactionTemplate {
      * @throws SQLException         SQL 异常
      * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
      */
-    public <E extends Exception> void execute(
-            @Nonnull final ThrowingConsumer<JdbcOperations, E> operations)
+    public <E extends @Nullable Exception> void execute(
+            final ThrowingConsumer<JdbcOperations, E> operations)
             throws TransactionException, SQLException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
         try (Connection conn = this.dataSource.getConnection()) {
@@ -141,8 +141,8 @@ public class TransactionTemplate {
      * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
      * @since 1.1.0
      */
-    public <E extends Exception> void executeNamed(
-            @Nonnull final ThrowingConsumer<NamedParamJdbcOperations, E> operations)
+    public <E extends @Nullable Exception> void executeNamed(
+            final ThrowingConsumer<NamedParamJdbcOperations, E> operations)
             throws TransactionException, SQLException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
         execute(ops -> operations.accept((NamedParamJdbcOperations) ops));
@@ -162,8 +162,8 @@ public class TransactionTemplate {
      * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
      * @since 1.1.0
      */
-    public <E extends Exception> void execute(
-            @Nonnull final ThrowingBiConsumer<JdbcOperations, NamedParamJdbcOperations, E> operations)
+    public <E extends @Nullable Exception> void execute(
+            final ThrowingBiConsumer<JdbcOperations, NamedParamJdbcOperations, E> operations)
             throws TransactionException, SQLException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
         execute(ops -> operations.accept(ops, (NamedParamJdbcOperations) ops));
@@ -179,8 +179,8 @@ public class TransactionTemplate {
      * @throws SQLException         数据库异常
      * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
      */
-    public <E extends Exception> void commitIfTrue(
-            @Nonnull final ThrowingPredicate<JdbcOperations, E> operations)
+    public <E extends @Nullable Exception> void commitIfTrue(
+            final ThrowingPredicate<JdbcOperations, E> operations)
             throws SQLException, TransactionException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
         try (Connection conn = this.dataSource.getConnection()) {
@@ -215,8 +215,8 @@ public class TransactionTemplate {
      * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
      * @since 1.1.0
      */
-    public <E extends Exception> void commitIfTrueNamed(
-            @Nonnull final ThrowingPredicate<NamedParamJdbcOperations, E> operations)
+    public <E extends @Nullable Exception> void commitIfTrueNamed(
+            final ThrowingPredicate<NamedParamJdbcOperations, E> operations)
             throws SQLException, TransactionException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
         commitIfTrue(ops -> operations.test((NamedParamJdbcOperations) ops));
@@ -233,8 +233,8 @@ public class TransactionTemplate {
      * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
      * @since 1.1.0
      */
-    public <E extends Exception> void commitIfTrue(
-            @Nonnull final ThrowingBiPredicate<JdbcOperations, NamedParamJdbcOperations, E> operations)
+    public <E extends @Nullable Exception> void commitIfTrue(
+            final ThrowingBiPredicate<JdbcOperations, NamedParamJdbcOperations, E> operations)
             throws SQLException, TransactionException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
         commitIfTrue(ops -> operations.test(ops, (NamedParamJdbcOperations) ops));
@@ -251,6 +251,7 @@ public class TransactionTemplate {
 
     // #region - TransactionJdbcExecutor
 
+    @SuppressWarnings("java:S6665")
     private static final class TransactionJdbcExecutor
             implements JdbcOperations, NamedParamJdbcOperations {
 
@@ -270,7 +271,8 @@ public class TransactionTemplate {
 
         /** {@inheritDoc} */
         @Override
-        public <T> T query(String sql, Object[] params, ResultHandler<T> resultHandler)
+        public <T extends @Nullable Object> T query(String sql, @Nullable Object @Nullable [] params,
+                ResultHandler<T> resultHandler)
                 throws SQLException {
             return JdbcOperationSupport.query(this.conn, sql, params, resultHandler);
         }
@@ -281,21 +283,26 @@ public class TransactionTemplate {
 
         /** {@inheritDoc} */
         @Override
-        public <T> List<T> queryList(String sql, Object[] params, RowMapper<T> rowMapper)
+        public <T extends @Nullable Object> List<T> queryList(
+                String sql, @Nullable Object @Nullable [] params,
+                RowMapper<T> rowMapper)
                 throws SQLException {
             return JdbcOperationSupport.queryList(this.conn, sql, params, rowMapper);
         }
 
         /** {@inheritDoc} */
         @Override
-        public <T> List<T> queryValues(String sql, Object[] params, Class<T> clazz)
+        public <T extends @Nullable Object> List<T> queryValues(
+                String sql, @Nullable Object @Nullable [] params,
+                Class<T> clazz)
                 throws SQLException {
             return JdbcOperationSupport.queryValues(this.conn, sql, params, clazz);
         }
 
         /** {@inheritDoc} */
         @Override
-        public List<Map<String, Object>> queryList(String sql, Object[] params)
+        public List<@Nullable Map<String, @Nullable Object>> queryList(
+                String sql, @Nullable Object @Nullable [] params)
                 throws SQLException {
             return JdbcOperationSupport.queryList(this.conn, sql, params, RowMapper.HASH_MAP_MAPPER);
         }
@@ -306,7 +313,9 @@ public class TransactionTemplate {
 
         /** {@inheritDoc} */
         @Override
-        public <T> Optional<T> queryFirst(String sql, Object[] params, RowMapper<T> rowMapper)
+        public <T extends @Nullable Object> Optional<T> queryFirst(
+                String sql, @Nullable Object @Nullable [] params,
+                RowMapper<T> rowMapper)
                 throws SQLException {
             final T result = JdbcOperationSupport.queryFirst(this.conn, sql, params, rowMapper);
             return Optional.ofNullable(result);
@@ -314,7 +323,9 @@ public class TransactionTemplate {
 
         /** {@inheritDoc} */
         @Override
-        public <T> Optional<T> queryValue(String sql, Object[] params, Class<T> clazz)
+        public <T extends @Nullable Object> Optional<T> queryValue(
+                String sql, @Nullable Object @Nullable [] params,
+                Class<T> clazz)
                 throws SQLException {
             final T result = JdbcOperationSupport.queryValue(this.conn, sql, params, clazz);
             return Optional.ofNullable(result);
@@ -322,7 +333,8 @@ public class TransactionTemplate {
 
         /** {@inheritDoc} */
         @Override
-        public Optional<Map<String, Object>> queryFirst(String sql, Object[] params)
+        public Optional<@Nullable Map<String, @Nullable Object>> queryFirst(
+                String sql, @Nullable Object @Nullable [] params)
                 throws SQLException {
             final Map<String, Object> result = JdbcOperationSupport
                     .queryFirst(this.conn, sql, params, RowMapper.HASH_MAP_MAPPER);
@@ -331,7 +343,7 @@ public class TransactionTemplate {
 
         /** {@inheritDoc} */
         @Override
-        public boolean queryBoolean(String sql, Object[] params)
+        public boolean queryBoolean(String sql, @Nullable Object @Nullable [] params)
                 throws SQLException {
             final Boolean result = JdbcOperationSupport
                     .queryValue(this.conn, sql, params, Boolean.class);
@@ -344,29 +356,33 @@ public class TransactionTemplate {
 
         /** {@inheritDoc} */
         @Override
-        public int update(String sql, Object[] params)
+        public int update(String sql, @Nullable Object @Nullable [] params)
                 throws SQLException {
             return JdbcOperationSupport.update(this.conn, sql, params);
         }
 
         /** {@inheritDoc} */
         @Override
-        public <T> List<T> updateAndReturnKeys(String sql, Object[] params, RowMapper<T> rowMapper)
+        public <T extends @Nullable Object> List<T> updateAndReturnKeys(
+                String sql, @Nullable Object @Nullable [] params,
+                RowMapper<T> rowMapper)
                 throws SQLException {
             return JdbcOperationSupport.updateAndReturnKeys(this.conn, sql, params, rowMapper);
         }
 
         /** {@inheritDoc} */
         @Override
-        public BatchUpdateResult batchUpdate(String sql, @Nullable Collection<Object[]> params, int batchSize)
+        public BatchUpdateResult batchUpdate(
+                String sql, @Nullable Collection<@Nullable Object @Nullable []> params,
+                int batchSize)
                 throws SQLException {
             return JdbcOperationSupport.batchUpdate(this.conn, sql, params, batchSize, false);
         }
 
         /** {@inheritDoc} */
         @Override
-        public BatchUpdateResult batchUpdate(String sql,
-                @Nullable Collection<Object[]> params,
+        public BatchUpdateResult batchUpdate(
+                String sql, @Nullable Collection<@Nullable Object @Nullable []> params,
                 int batchSize,
                 boolean quietly) throws SQLException {
             return JdbcOperationSupport

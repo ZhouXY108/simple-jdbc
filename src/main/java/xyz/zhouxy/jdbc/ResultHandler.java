@@ -21,6 +21,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+
 /**
  * ResultHandler
  *
@@ -32,7 +35,8 @@ import java.util.List;
  * @since 1.0.0
  */
 @FunctionalInterface
-public interface ResultHandler<T> {
+@NullMarked
+public interface ResultHandler<T extends @Nullable Object> {
 
     /**
      * 将 {@link ResultSet} 转换为指定类型的对象
@@ -54,7 +58,8 @@ public interface ResultHandler<T> {
      * @since 1.0.0
      * @see RowMapper
      */
-    static <T> ResultHandler<List<T>> mapToList(RowMapper<T> rowMapper) {
+    static <T extends @Nullable Object> ResultHandler<List<T>>
+    mapToList(RowMapper<T> rowMapper) {
         return resultSet -> {
             List<T> result = new ArrayList<>();
             int rowNumber = 0;

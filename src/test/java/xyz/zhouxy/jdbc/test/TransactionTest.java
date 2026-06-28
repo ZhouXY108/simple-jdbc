@@ -222,8 +222,7 @@ class TransactionTest extends BaseH2Test {
                 template.transaction().execute(ops -> { /* no-op */ }));
 
         // 数据应保持不变
-        int count = template.query("SELECT COUNT(*) FROM users",
-                rs -> { rs.next(); return rs.getInt(1); });
+        int count = template.queryValueOrDefault("SELECT COUNT(*) FROM users", Integer.class, 0);
         assertEquals(5, count);
     }
 
@@ -503,8 +502,7 @@ class TransactionTest extends BaseH2Test {
         assertDoesNotThrow(() ->
                 template.transaction().executeNamed(nops -> { /* no-op */ }));
 
-        int count = template.query("SELECT COUNT(*) FROM users",
-                rs -> { rs.next(); return rs.getInt(1); });
+        int count = template.queryValueOrDefault("SELECT COUNT(*) FROM users", Integer.class, 0);
         assertEquals(5, count);
     }
 
@@ -551,6 +549,7 @@ class TransactionTest extends BaseH2Test {
 
     @Test
     @DisplayName("TransactionException：null cause")
+    @SuppressWarnings("null")
     void testTransactionExceptionNullCause() {
         TransactionException ex = new TransactionException(null);
         assertEquals("Transaction failed during execution", ex.getMessage());

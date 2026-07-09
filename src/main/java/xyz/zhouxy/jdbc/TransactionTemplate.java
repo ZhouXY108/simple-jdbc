@@ -112,17 +112,19 @@ public class TransactionTemplate {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
         try (Connection conn = this.dataSource.getConnection()) {
             final boolean autoCommit = conn.getAutoCommit();
+            Exception caught = null;
             try {
                 conn.setAutoCommit(false);
                 operations.accept(new TransactionJdbcExecutor(conn));
                 conn.commit();
             }
             catch (Exception e) {
+                caught = e;
                 rollbackSilently(conn, e);
                 throw new TransactionException(e);
             }
             finally {
-                conn.setAutoCommit(autoCommit);
+                restoreAutoCommitSilently(conn, autoCommit, caught);
             }
         }
     }
@@ -185,6 +187,7 @@ public class TransactionTemplate {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
         try (Connection conn = this.dataSource.getConnection()) {
             final boolean autoCommit = conn.getAutoCommit();
+            Exception caught = null;
             try {
                 conn.setAutoCommit(false);
                 if (operations.test(new TransactionJdbcExecutor(conn))) {
@@ -195,11 +198,12 @@ public class TransactionTemplate {
                 }
             }
             catch (Exception e) {
+                caught = e;
                 rollbackSilently(conn, e);
                 throw new TransactionException(e);
             }
             finally {
-                conn.setAutoCommit(autoCommit);
+                restoreAutoCommitSilently(conn, autoCommit, caught);
             }
         }
     }
@@ -246,6 +250,21 @@ public class TransactionTemplate {
         }
         catch (SQLException ex) {
             e.addSuppressed(ex);
+        }
+    }
+
+    private void restoreAutoCommitSilently(
+            Connection conn, boolean autoCommit, @Nullable Exception e) throws SQLException {
+        try {
+            conn.setAutoCommit(autoCommit);
+        }
+        catch (SQLException ex) {
+            if (e != null) {
+                e.addSuppressed(ex);
+            }
+            else {
+                throw ex;
+            }
         }
     }
 

@@ -9,34 +9,27 @@
 
 ### 新增
 
-- `queryValueOrDefault(sql, params, Class<T>, T defaultValue)`：查询单行单列，结果为空时返回指定默认值
-- `queryValueOrDefault(sql, Class<T>, T defaultValue)`：无参数重载
 - 命名参数 JDBC 操作支持（`#{paramName}` 风格）：
   - `NamedParamJdbcOperations` 接口：提供查询、更新、批量操作的命名参数重载
   - `NamedParamSql`：SQL 模板解析（`#{param}` → `?`），支持参数名自省
   - `PreparedSql`：预构建的命名参数 SQL，提供链式 Builder
   - `SimpleJdbcTemplate` 同时实现 `JdbcOperations` 与 `NamedParamJdbcOperations`
-- `TransactionTemplate` 新增命名参数事务方法：`executeNamed` / `commitIfTrueNamed`（纯命名参数回调），以及双参数回调重载（混用位置与命名参数）
-- `GenericTokenParser` / `TokenHandler`：通用占位符解析工具（来自 MyBatis v3.6.0）
-- `ThrowingBiConsumer` / `ThrowingBiPredicate`：双参数可抛异常函数式接口
+  - `TransactionTemplate` 新增命名参数事务方法：`executeNamed` / `commitIfTrueNamed`（纯命名参数回调），以及双参数回调重载（混用位置与命名参数）
+  - 补充命名参数查询、更新、批量操作的完整单元测试
 - `ParamBuilder.handleItem` 方法由 `private` 提升为 `public`
-- 补充命名参数查询、更新、批量操作的完整单元测试
 
 ### 重构
 
+- **优化事务自动提交恢复逻辑**：`TransactionTemplate` 在 `finally` 块恢复 `autoCommit` 时，若原始事务已发生异常，则将恢复过程中的 `SQLException` 通过 `addSuppressed` 附加到原始异常上，避免异常信息丢失
 - **空值注解迁移：JSR-305 → JSpecify**
   - 依赖由 `com.google.code.findbugs:jsr305` 替换为 `org.jspecify:jspecify:1.0.0`
   - `AssertTools.checkCondition` 异常边界约束收紧为 `<T extends @NonNull Exception>`
   - 测试代码同步更新：`UserRowMapper.mapRow` 参数加 `@NonNull`，`ParamBuilderTest` 加 `@SuppressWarnings("null")`
-
-- **将原来的单列查询方法标记为过时，消除 Class 参数重载歧义**
-  - `queryList(sql, params, Class<T>)` → 已过时，请使用 `queryValues(sql, params, Class<T>)`
-    语义明确为"多行单列 → 值列表"，不与整行 `RowMapper` 重载混淆
-  - `queryFirst(sql, params, Class<T>)` → 已过时，请使用 `queryValue(sql, params, Class<T>)`
-    语义明确为"单行单列 → 单值"，不与整行 `RowMapper` 重载混淆
-  - 同时将对应的无参数重载标记为过时：
-    - `queryList(sql, Class<T>)` → 请使用 `queryValues(sql, Class<T>)`
-    - `queryFirst(sql, Class<T>)` → 请使用 `queryValue(sql, Class<T>)`
+- **单列查询方法语义优化**：消除 Class 参数重载歧义，补全方法族
+  - `queryList(sql, params, Class<T>)` → 已过时，请使用 `queryValues(sql, params, Class<T>)`（多行单列 → 值列表）
+  - `queryFirst(sql, params, Class<T>)` → 已过时，请使用 `queryValue(sql, params, Class<T>)`（单行单列 → 单值 Optional）
+  - 无参数重载同步废弃：`queryList(sql, Class<T>)` → `queryValues(sql, Class<T>)`；`queryFirst(sql, Class<T>)` → `queryValue(sql, Class<T>)`
+  - 新增 `queryValueOrDefault(sql, params, Class<T>, T defaultValue)` 及无参数重载（单行单列 → 带默认值的非 Optional 返回值）
   - 旧方法将在后续版本中移除
 
 ### 文档

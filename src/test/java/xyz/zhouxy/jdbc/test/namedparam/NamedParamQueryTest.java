@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import xyz.zhouxy.jdbc.ResultHandler;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 import xyz.zhouxy.jdbc.namedparam.NamedParamJdbcOperations;
+import xyz.zhouxy.jdbc.namedparam.NamedParamSql;
 import xyz.zhouxy.jdbc.namedparam.PreparedSql;
 import xyz.zhouxy.jdbc.test.BaseH2Test;
 import xyz.zhouxy.jdbc.test.User;
@@ -25,7 +26,7 @@ import xyz.zhouxy.jdbc.test.UserRowMapper;
  * 命名参数查询 API 测试。
  *
  * <p>验证 {@link NamedParamJdbcOperations} 中命名参数（<code>#{paramName}</code>）形式的
- * 查询方法是否通过 {@link SimpleJdbcTemplate} 正确委托到 {@link xyz.zhouxy.jdbc.JdbcOperations}。</p>
+ * 查询方法的三种参数模式：直接传参（String + Map）、模板传参（NamedParamSql + Map）、预构建传参（PreparedSql）。</p>
  */
 @DisplayName("NamedParamJdbcOperations 命名参数查询")
 class NamedParamQueryTest extends BaseH2Test {
@@ -38,7 +39,7 @@ class NamedParamQueryTest extends BaseH2Test {
     // ==================== query(ResultHandler) ====================
 
     @Test
-    @DisplayName("query + ResultHandler：命名参数查询")
+    @DisplayName("query(Map)：查询")
     void testQueryWithNamedParams() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -54,7 +55,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("query + ResultHandler：多命名参数")
+    @DisplayName("query(Map)：多命名参数")
     void testQueryWithMultipleNamedParams() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -72,10 +73,68 @@ class NamedParamQueryTest extends BaseH2Test {
         assertEquals("alice", username);
     }
 
+    @Test
+    @DisplayName("query(NamedParamSql)：查询")
+    void testQueryWithNamedParamSql() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT COUNT(*) FROM users WHERE active = #{active}");
+
+        Integer count = template.query(tmpl,
+                Collections.singletonMap("active", true),
+                (ResultHandler<Integer>) rs -> {
+                    rs.next();
+                    return rs.getInt(1);
+                });
+
+        assertEquals(4, count);
+    }
+
+    @Test
+    @DisplayName("query(NamedParamSql)：同模板多次执行不同参数")
+    void testQueryWithNamedParamSqlReuse() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT username FROM users WHERE id = #{id} AND username = #{name}");
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("id", 1);
+        params.put("name", "alice");
+        String alice = template.query(tmpl, params,
+                (ResultHandler<String>) rs -> {
+                    rs.next();
+                    return rs.getString(1);
+                });
+        assertEquals("alice", alice);
+
+        params.put("id", 2);
+        params.put("name", "bob");
+        String bob = template.query(tmpl, params,
+                (ResultHandler<String>) rs -> {
+                    rs.next();
+                    return rs.getString(1);
+                });
+        assertEquals("bob", bob);
+    }
+
+    @Test
+    @DisplayName("query(NamedParamSql)：缺少参数名应抛异常")
+    void testQueryHandlerWithMissingParamNameForNamedParamSql() {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT username FROM users WHERE id = #{missing}");
+        Map<String, Object> params = Collections.singletonMap("id", 1);
+        assertThrows(IllegalArgumentException.class, () ->
+            template.query(tmpl, params, (ResultHandler<String>) rs -> {
+                rs.next();
+                return rs.getString(1);
+            }));
+    }
+
     // ==================== queryList ====================
 
     @Test
-    @DisplayName("queryList + RowMapper：命名参数查询全部")
+    @DisplayName("queryList(Map)：查询全部")
     void testQueryListWithRowMapper() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -89,7 +148,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("queryValues：命名参数单列查询")
+    @DisplayName("queryValues(Map)：单列查询")
     void testQueryValues() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -105,7 +164,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("queryList：命名参数返回 List<Map>")
+    @DisplayName("queryList(Map)：返回 List<Map>")
     void testQueryListAsMap() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -118,7 +177,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("queryList：空参数 Map，SQL 中无命名参数")
+    @DisplayName("queryList(Map)：空参数 Map，SQL 中无命名参数")
     void testQueryWithEmptyParams() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -130,10 +189,56 @@ class NamedParamQueryTest extends BaseH2Test {
         assertEquals(5, users.size());
     }
 
+    @Test
+    @DisplayName("queryList(NamedParamSql)：查询全部")
+    void testQueryListWithNamedParamSql() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT * FROM users WHERE active = #{active} ORDER BY id");
+
+        List<User> users = template.queryList(tmpl,
+                Collections.singletonMap("active", true),
+                new UserRowMapper());
+
+        assertEquals(4, users.size());
+        users.forEach(u -> assertTrue(u.getActive()));
+    }
+
+    @Test
+    @DisplayName("queryValues(NamedParamSql)：单列查询")
+    void testQueryValuesWithNamedParamSql() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT username FROM users WHERE age > #{minAge} ORDER BY id");
+
+        List<String> usernames = template.queryValues(tmpl,
+                Collections.singletonMap("minAge", 30),
+                String.class);
+
+        assertEquals(3, usernames.size());
+        assertTrue(usernames.contains("bob"));
+        assertTrue(usernames.contains("diana"));
+        assertTrue(usernames.contains("eve"));
+    }
+
+    @Test
+    @DisplayName("queryList(NamedParamSql)：返回 List<Map>")
+    void testQueryListAsMapWithNamedParamSql() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT id, username, email FROM users WHERE id = #{id}");
+
+        List<Map<String, Object>> users = template.queryList(tmpl,
+                Collections.singletonMap("id", 1));
+
+        assertEquals(1, users.size());
+        assertEquals("alice", users.get(0).get("username"));
+    }
+
     // ==================== queryFirst ====================
 
     @Test
-    @DisplayName("queryFirst + RowMapper：命名参数查询第一条")
+    @DisplayName("queryFirst(Map)：查询第一条")
     void testQueryFirstWithRowMapper() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -147,7 +252,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("queryFirst：空结果返回 Optional.empty()")
+    @DisplayName("queryFirst(Map)：空结果返回 Optional.empty()")
     void testQueryFirstEmpty() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -160,7 +265,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("queryFirst：参数值为 null，验证 ParamBuilder 处理 null")
+    @DisplayName("queryFirst(Map)：参数值为 null")
     void testQueryWithNullParamValue() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -173,10 +278,39 @@ class NamedParamQueryTest extends BaseH2Test {
         assertFalse(user.isPresent());
     }
 
+    @Test
+    @DisplayName("queryFirst(NamedParamSql)：查询第一条")
+    void testQueryFirstWithNamedParamSql() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT * FROM users WHERE username = #{name}");
+
+        Optional<User> user = template.queryFirst(tmpl,
+                Collections.singletonMap("name", "bob"),
+                new UserRowMapper());
+
+        assertTrue(user.isPresent());
+        assertEquals("bob", user.get().getUsername());
+    }
+
+    @Test
+    @DisplayName("queryFirst(NamedParamSql)：空结果返回 Optional.empty()")
+    void testQueryFirstEmptyWithNamedParamSql() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT * FROM users WHERE id = #{id}");
+
+        Optional<User> user = template.queryFirst(tmpl,
+                Collections.singletonMap("id", 999),
+                new UserRowMapper());
+
+        assertFalse(user.isPresent());
+    }
+
     // ==================== queryValue / queryValueOrDefault ====================
 
     @Test
-    @DisplayName("queryValue：命名参数单值查询")
+    @DisplayName("queryValue(Map)：单值查询")
     void testQueryValue() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -190,7 +324,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("queryValue：空结果返回 Optional.empty()")
+    @DisplayName("queryValue(Map)：空结果返回 Optional.empty()")
     void testQueryValueEmpty() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -203,7 +337,21 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("queryValueOrDefault：存在结果返回实际值")
+    @DisplayName("queryValue(NamedParamSql)：空结果返回 Optional.empty()")
+    void testQueryValueEmptyWithNamedParamSql() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT username FROM users WHERE id = #{id}");
+
+        Optional<String> result = template.queryValue(tmpl,
+                Collections.singletonMap("id", 999),
+                String.class);
+
+        assertFalse(result.isPresent());
+    }
+
+    @Test
+    @DisplayName("queryValueOrDefault(Map)：有结果")
     void testQueryValueOrDefaultPresent() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -217,7 +365,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("queryValueOrDefault：空结果返回默认值")
+    @DisplayName("queryValueOrDefault(Map)：空结果返回默认值")
     void testQueryValueOrDefaultEmpty() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -231,7 +379,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("queryValue：SQL 引用未提供的参数名，应抛异常")
+    @DisplayName("queryValue(Map)：缺少参数名应抛异常")
     void testQueryWithMissingParamName() {
         SimpleJdbcTemplate template = createTemplate();
         Map<String, Object> params = Collections.singletonMap("id", 1);
@@ -242,10 +390,83 @@ class NamedParamQueryTest extends BaseH2Test {
                     String.class));
     }
 
+    @Test
+    @DisplayName("queryValue(NamedParamSql)：缺少参数名应抛异常")
+    void testQueryWithMissingParamNameForNamedParamSql() {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT username FROM users WHERE id = #{missing}");
+        Map<String, Object> params = Collections.singletonMap("id", 1);
+        assertThrows(IllegalArgumentException.class, () ->
+            template.queryValue(tmpl, params, String.class));
+    }
+
+    @Test
+    @DisplayName("queryValue(NamedParamSql)：异常后可复用模板")
+    void testQueryWithNamedParamSqlReuseAfterError() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT username FROM users WHERE id = #{id}");
+
+        assertThrows(IllegalArgumentException.class, () ->
+            template.queryValue(tmpl, Collections.singletonMap("wrong", 1), String.class));
+
+        Optional<String> username = template.queryValue(tmpl,
+                Collections.singletonMap("id", 1),
+                String.class);
+        assertTrue(username.isPresent());
+        assertEquals("alice", username.get());
+    }
+
+    @Test
+    @DisplayName("queryValue(NamedParamSql)：单值查询")
+    void testQueryValueWithNamedParamSql() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT username FROM users WHERE id = #{id}");
+
+        Optional<String> username = template.queryValue(tmpl,
+                Collections.singletonMap("id", 1),
+                String.class);
+
+        assertTrue(username.isPresent());
+        assertEquals("alice", username.get());
+    }
+
+    @Test
+    @DisplayName("queryValueOrDefault(NamedParamSql)：有结果")
+    void testQueryValueOrDefaultWithNamedParamSql() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT COUNT(*) FROM users WHERE active = #{active}");
+
+        Long count = template.queryValueOrDefault(tmpl,
+                Collections.singletonMap("active", true),
+                Long.class,
+                0L);
+
+        assertEquals(4L, count);
+    }
+
+    @Test
+    @DisplayName("queryValueOrDefault(NamedParamSql)：空结果返回默认值")
+    void testQueryValueOrDefaultEmptyWithNamedParamSql() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT COUNT(*) FROM users WHERE id = #{id}");
+
+        Long count = template.queryValueOrDefault(tmpl,
+                Collections.singletonMap("id", 999),
+                Long.class,
+                0L);
+
+        assertEquals(0L, count);
+    }
+
     // ==================== queryFirst(Map) ====================
 
     @Test
-    @DisplayName("queryFirst：命名参数返回 Map")
+    @DisplayName("queryFirst(Map)：返回 Optional<Map>")
     void testQueryFirstAsMap() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -257,10 +478,24 @@ class NamedParamQueryTest extends BaseH2Test {
         assertEquals("charlie", user.get().get("username"));
     }
 
+    @Test
+    @DisplayName("queryFirst(NamedParamSql)：返回 Optional<Map>")
+    void testQueryFirstAsMapWithNamedParamSql() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT id, username FROM users WHERE id = #{id}");
+
+        Optional<Map<String, Object>> user = template.queryFirst(tmpl,
+                Collections.singletonMap("id", 3));
+
+        assertTrue(user.isPresent());
+        assertEquals("charlie", user.get().get("username"));
+    }
+
     // ==================== queryBoolean ====================
 
     @Test
-    @DisplayName("queryBoolean：命名参数布尔查询")
+    @DisplayName("queryBoolean(Map)：true")
     void testQueryBooleanTrue() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -272,7 +507,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("queryBoolean：返回 false")
+    @DisplayName("queryBoolean(Map)：false")
     void testQueryBooleanFalse() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -283,10 +518,42 @@ class NamedParamQueryTest extends BaseH2Test {
         assertFalse(active);
     }
 
-    // ==================== PreparedSql 重载：查询 ====================
+    @Test
+    @DisplayName("queryBoolean(NamedParamSql)：true")
+    void testQueryBooleanTrueWithNamedParamSql() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT active FROM users WHERE id = #{id}");
+
+        assertTrue(template.queryBoolean(tmpl, Collections.singletonMap("id", 1)));
+    }
 
     @Test
-    @DisplayName("PreparedSql 重载：query + ResultHandler")
+    @DisplayName("queryBoolean(NamedParamSql)：false")
+    void testQueryBooleanFalseWithNamedParamSql() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT active FROM users WHERE id = #{id}");
+
+        assertFalse(template.queryBoolean(tmpl, Collections.singletonMap("id", 3)));
+    }
+
+    @Test
+    @DisplayName("queryBoolean(NamedParamSql)：同模板多次复用")
+    void testQueryBooleanWithNamedParamSqlReuse() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        NamedParamSql tmpl = NamedParamSql.of(
+                "SELECT active FROM users WHERE id = #{id}");
+
+        assertTrue(template.queryBoolean(tmpl, Collections.singletonMap("id", 1L)));
+        assertTrue(template.queryBoolean(tmpl, Collections.singletonMap("id", 2L)));
+        assertFalse(template.queryBoolean(tmpl, Collections.singletonMap("id", 3L)));
+    }
+
+    // ==================== PreparedSql 重载 ====================
+
+    @Test
+    @DisplayName("query(PreparedSql)：查询")
     void testQueryWithPreparedSql() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -305,7 +572,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("PreparedSql 重载：queryList + RowMapper")
+    @DisplayName("queryList(PreparedSql)：查询全部")
     void testQueryListWithPreparedSql() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -319,7 +586,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("PreparedSql 重载：queryValues(Class) 单列列表")
+    @DisplayName("queryValues(PreparedSql)：单列查询")
     void testQueryValuesWithPreparedSql() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -337,7 +604,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("PreparedSql 重载：queryList 返回 List<Map>")
+    @DisplayName("queryList(PreparedSql)：返回 List<Map>")
     void testQueryListMapWithPreparedSql() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -353,7 +620,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("PreparedSql 重载：queryFirst + RowMapper")
+    @DisplayName("queryFirst(PreparedSql)：查询第一条")
     void testQueryFirstWithPreparedSql() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -369,7 +636,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("PreparedSql 重载：queryFirst 返回 Optional<Map>")
+    @DisplayName("queryFirst(PreparedSql)：返回 Optional<Map>")
     void testQueryFirstMapWithPreparedSql() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -385,7 +652,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("PreparedSql 重载：queryValue")
+    @DisplayName("queryValue(PreparedSql)：单值查询")
     void testQueryValueWithPreparedSql() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -400,7 +667,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("PreparedSql 重载：queryBoolean")
+    @DisplayName("queryBoolean(PreparedSql)：true")
     void testQueryBooleanWithPreparedSql() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -413,7 +680,7 @@ class NamedParamQueryTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("PreparedSql 重载：queryValueOrDefault")
+    @DisplayName("queryValueOrDefault(PreparedSql)：查询")
     void testQueryValueOrDefaultWithPreparedSql() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 

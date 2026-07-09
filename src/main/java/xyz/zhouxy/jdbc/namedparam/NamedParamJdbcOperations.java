@@ -37,12 +37,18 @@ import xyz.zhouxy.jdbc.RowMapper;
  * </p>
  *
  * <p>
- * 每个方法提供两种重载形式：
+ * 每个方法提供三种重载形式：
  * </p>
  * <ol>
- *   <li><strong>便捷重载</strong>：接受 {@code (String sql, Map<String, ?> params, ...)}，
- *       内部解析 SQL 模板并提取参数值后委托给 {@link JdbcOperations}。</li>
- *   <li><strong>预构建重载</strong>：接受 {@link PreparedSql}，直接提取 SQL 与参数数组后委托。</li>
+ *   <li><strong>直接传参</strong>：接受 {@code (String sql, Map<String, ?> params, ...)}，
+ *       内部解析 SQL 模板并提取参数值后委托给 {@link JdbcOperations}。每次调用都会重新解析 SQL，
+ *       适用于一次性执行。</li>
+ *   <li><strong>模板传参</strong>：接受 {@code (NamedParamSql template, Map<String, ?> params, ...)}，
+ *       SQL 模板解析一次后复用，每次调用只绑定参数值。适用于同一 SQL 多次执行、仅参数变化的场景，
+ *       可避免重复解析 SQL 字符串。</li>
+ *   <li><strong>预构建传参</strong>：接受 {@link PreparedSql}，SQL 与参数数组均已预构建，
+ *       直接委托给 {@link JdbcOperations}。适用于参数较多、偏好链式 {@code .param().build()} 绑定、
+ *       或需将已组装语句跨方法传递的场景。</li>
  * </ol>
  *
  * <p>
@@ -50,9 +56,13 @@ import xyz.zhouxy.jdbc.RowMapper;
  * </p>
  * <pre>{@code
  * SimpleJdbcTemplate tmpl = new SimpleJdbcTemplate(dataSource);
- * // 命名参数（Map 直传）
+ * // 命名参数（直接传参）
  * tmpl.update("UPDATE t SET x = #{val}", Map.of("val", 1));
- * // 命名参数（PreparedSql 预构建）
+ * // 命名参数（NamedParamSql 模板传参）
+ * NamedParamSql updateTmpl = NamedParamSql.of("UPDATE t SET x = #{val}");
+ * tmpl.update(updateTmpl, Map.of("val", 1));
+ * tmpl.update(updateTmpl, Map.of("val", 2));
+ * // 命名参数（PreparedSql 预构建传参）
  * PreparedSql ps = NamedParamSql.of("UPDATE t SET x = #{val}")
  *     .prepare().param("val", 1).build();
  * tmpl.update(ps);
@@ -108,7 +118,7 @@ public interface NamedParamJdbcOperations {
     // #region - query
 
     /**
-     * 使用命名参数执行查询，通过 {@link ResultHandler} 自定义结果处理。
+     * 执行查询，通过 {@link ResultHandler} 自定义处理结果。
      *
      * @param <T>           返回结果类型
      * @param sql           包含命名参数（格式：{@code #{paramName}}）的 SQL
@@ -126,7 +136,24 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用预构建的 {@link PreparedSql} 执行查询。
+     * 执行查询，通过 {@link ResultHandler} 自定义处理结果。
+     *
+     * @param <T>           返回结果类型
+     * @param template      预解析的命名参数 SQL 模板
+     * @param params        命名参数映射
+     * @param resultHandler 结果处理器
+     * @return 查询结果
+     * @throws SQLException SQL 异常
+     */
+    default <T extends @Nullable Object> T query(
+            NamedParamSql template,
+            Map<String, ?> params,
+            ResultHandler<T> resultHandler) throws SQLException {
+        return getJdbcOperations().query(template.getSql(), template.toArgs(params), resultHandler);
+    }
+
+    /**
+     * 执行查询，通过 {@link ResultHandler} 自定义处理结果。
      *
      * @param <T>           返回结果类型
      * @param ps            预构建的命名参数 SQL
@@ -145,7 +172,7 @@ public interface NamedParamJdbcOperations {
     // #region - queryList
 
     /**
-     * 使用命名参数执行查询，通过 {@link RowMapper} 映射每一行。
+     * 执行查询，通过 {@link RowMapper} 映射每一行，返回结果列表。
      *
      * @param <T>       结果元素类型
      * @param sql       包含命名参数的 SQL
@@ -163,7 +190,24 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用预构建的 {@link PreparedSql} 执行查询。
+     * 执行查询，通过 {@link RowMapper} 映射每一行，返回结果列表。
+     *
+     * @param <T>       结果元素类型
+     * @param template  预解析的命名参数 SQL 模板
+     * @param params    命名参数映射
+     * @param rowMapper 行映射器
+     * @return 结果列表
+     * @throws SQLException SQL 异常
+     */
+    default <T extends @Nullable Object> List<T> queryList(
+            NamedParamSql template,
+            Map<String, ?> params,
+            RowMapper<T> rowMapper) throws SQLException {
+        return getJdbcOperations().queryList(template.getSql(), template.toArgs(params), rowMapper);
+    }
+
+    /**
+     * 执行查询，通过 {@link RowMapper} 映射每一行，返回结果列表。
      *
      * @param <T>       结果元素类型
      * @param ps        预构建的命名参数 SQL
@@ -178,7 +222,7 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用命名参数执行查询，提取每行第一列的值。
+     * 执行查询，提取每行第一列的值，返回结果列表。
      *
      * @param <T>    目标类型
      * @param sql    包含命名参数的 SQL
@@ -196,7 +240,24 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用预构建的 {@link PreparedSql} 执行单列查询。
+     * 执行查询，提取每行第一列的值，返回结果列表。
+     *
+     * @param <T>      目标类型
+     * @param template 预解析的命名参数 SQL 模板
+     * @param params   命名参数映射
+     * @param clazz    目标类型
+     * @return 每一行第一列的值列表
+     * @throws SQLException SQL 异常
+     */
+    default <T extends @Nullable Object> List<T> queryValues(
+            NamedParamSql template,
+            Map<String, ?> params,
+            Class<T> clazz) throws SQLException {
+        return getJdbcOperations().queryValues(template.getSql(), template.toArgs(params), clazz);
+    }
+
+    /**
+     * 执行查询，提取每行第一列的值，返回结果列表。
      *
      * @param <T>   目标类型
      * @param ps    预构建的命名参数 SQL
@@ -211,7 +272,7 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用命名参数执行查询，每行转为 {@code Map<String, Object>}。
+     * 执行查询，每行转为 {@code Map<String, Object>}，返回结果列表。
      *
      * @param sql    包含命名参数的 SQL
      * @param params 命名参数映射
@@ -226,7 +287,21 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用预构建的 {@link PreparedSql} 执行查询，每行转为 {@code Map<String, Object>}。
+     * 执行查询，每行转为 {@code Map<String, Object>}，返回结果列表。
+     *
+     * @param template 预解析的命名参数 SQL 模板
+     * @param params   命名参数映射
+     * @return 结果列表
+     * @throws SQLException SQL 异常
+     */
+    default List<@Nullable Map<String, @Nullable Object>> queryList(
+            NamedParamSql template,
+            Map<String, ?> params) throws SQLException {
+        return getJdbcOperations().queryList(template.getSql(), template.toArgs(params));
+    }
+
+    /**
+     * 执行查询，每行转为 {@code Map<String, Object>}，返回结果列表。
      *
      * @param ps 预构建的命名参数 SQL
      * @return 结果列表
@@ -242,7 +317,7 @@ public interface NamedParamJdbcOperations {
     // #region - queryFirst
 
     /**
-     * 使用命名参数执行查询，返回第一行。
+     * 执行查询，通过 {@link RowMapper} 映射结果，返回第一行。
      *
      * @param <T>       结果类型
      * @param sql       包含命名参数的 SQL
@@ -260,7 +335,24 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用预构建的 {@link PreparedSql} 查询第一行。
+     * 执行查询，通过 {@link RowMapper} 映射结果，返回第一行。
+     *
+     * @param <T>       结果类型
+     * @param template  预解析的命名参数 SQL 模板
+     * @param params    命名参数映射
+     * @param rowMapper 行映射器
+     * @return 第一行结果，可能为 {@code Optional.empty()}
+     * @throws SQLException SQL 异常
+     */
+    default <T extends @Nullable Object> Optional<T> queryFirst(
+            NamedParamSql template,
+            Map<String, ?> params,
+            RowMapper<T> rowMapper) throws SQLException {
+        return getJdbcOperations().queryFirst(template.getSql(), template.toArgs(params), rowMapper);
+    }
+
+    /**
+     * 执行查询，通过 {@link RowMapper} 映射结果，返回第一行。
      *
      * @param <T>       结果类型
      * @param ps        预构建的命名参数 SQL
@@ -275,7 +367,7 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用命名参数执行查询，返回第一行第一列的值。
+     * 执行查询，返回第一行第一列的值。
      *
      * @param <T>    目标类型
      * @param sql    包含命名参数的 SQL
@@ -293,7 +385,24 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用预构建的 {@link PreparedSql} 查询第一行第一列的值。
+     * 执行查询，返回第一行第一列的值。
+     *
+     * @param <T>      目标类型
+     * @param template 预解析的命名参数 SQL 模板
+     * @param params   命名参数映射
+     * @param clazz    目标类型
+     * @return 第一行第一列的值，可能为 {@code Optional.empty()}
+     * @throws SQLException SQL 异常
+     */
+    default <T extends @Nullable Object> Optional<T> queryValue(
+            NamedParamSql template,
+            Map<String, ?> params,
+            Class<T> clazz) throws SQLException {
+        return getJdbcOperations().queryValue(template.getSql(), template.toArgs(params), clazz);
+    }
+
+    /**
+     * 执行查询，返回第一行第一列的值。
      *
      * @param <T>   目标类型
      * @param ps    预构建的命名参数 SQL
@@ -308,8 +417,7 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用命名参数执行查询，返回第一行第一列的值；结果为空时返回默认值。
-     * 适用于 {@code SELECT COUNT(*)}、{@code SELECT MAX(...)} 等聚合查询场景。
+     * 执行查询，返回第一行第一列的值；结果为空时返回 {@code defaultValue}。适用于聚合查询。
      *
      * @param <T>          目标类型
      * @param sql          包含命名参数的 SQL
@@ -330,7 +438,27 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用预构建的 {@link PreparedSql} 查询第一行第一列的值，结果为空时返回默认值。
+     * 执行查询，返回第一行第一列的值；结果为空时返回 {@code defaultValue}。适用于聚合查询。
+     *
+     * @param <T>          目标类型
+     * @param template     预解析的命名参数 SQL 模板
+     * @param params       命名参数映射
+     * @param clazz        目标类型
+     * @param defaultValue 查询结果为空时返回的默认值
+     * @return 第一行第一列的值，如果查询结果为空则返回 {@code defaultValue}
+     * @throws SQLException SQL 异常
+     */
+    default <T extends @Nullable Object> T queryValueOrDefault(
+            NamedParamSql template,
+            Map<String, ?> params,
+            Class<T> clazz,
+            T defaultValue) throws SQLException {
+        return getJdbcOperations().queryValueOrDefault(
+                template.getSql(), template.toArgs(params), clazz, defaultValue);
+    }
+
+    /**
+     * 执行查询，返回第一行第一列的值；结果为空时返回 {@code defaultValue}。适用于聚合查询。
      *
      * @param <T>          目标类型
      * @param ps           预构建的命名参数 SQL
@@ -347,7 +475,7 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用命名参数执行查询，返回第一行转为 {@code Map<String, Object>}。
+     * 执行查询，将第一行转为 {@code Map<String, Object>}，返回结果。
      *
      * @param sql    包含命名参数的 SQL
      * @param params 命名参数映射
@@ -362,7 +490,21 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用预构建的 {@link PreparedSql} 查询第一行，返回 {@code Map<String, Object>}。
+     * 执行查询，将第一行转为 {@code Map<String, Object>}，返回结果。
+     *
+     * @param template 预解析的命名参数 SQL 模板
+     * @param params   命名参数映射
+     * @return 第一行结果，可能为 {@code Optional.empty()}
+     * @throws SQLException SQL 异常
+     */
+    default Optional<@Nullable Map<String, @Nullable Object>> queryFirst(
+            NamedParamSql template,
+            Map<String, ?> params) throws SQLException {
+        return getJdbcOperations().queryFirst(template.getSql(), template.toArgs(params));
+    }
+
+    /**
+     * 执行查询，将第一行转为 {@code Map<String, Object>}，返回结果。
      *
      * @param ps 预构建的命名参数 SQL
      * @return 第一行结果，可能为 {@code Optional.empty()}
@@ -374,7 +516,7 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用命名参数执行布尔查询。
+     * 执行布尔查询，结果为空时返回 {@code false}。
      *
      * @param sql    包含命名参数的 SQL
      * @param params 命名参数映射
@@ -389,7 +531,21 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用预构建的 {@link PreparedSql} 执行布尔查询。
+     * 执行布尔查询，结果为空时返回 {@code false}。
+     *
+     * @param template 预解析的命名参数 SQL 模板
+     * @param params   命名参数映射
+     * @return 查询结果。如果查询结果为空，则返回 {@code false}
+     * @throws SQLException SQL 异常
+     */
+    default boolean queryBoolean(
+            NamedParamSql template,
+            Map<String, ?> params) throws SQLException {
+        return getJdbcOperations().queryBoolean(template.getSql(), template.toArgs(params));
+    }
+
+    /**
+     * 执行布尔查询，结果为空时返回 {@code false}。
      *
      * @param ps 预构建的命名参数 SQL
      * @return 查询结果。如果查询结果为空，则返回 {@code false}
@@ -405,7 +561,7 @@ public interface NamedParamJdbcOperations {
     // #region - update
 
     /**
-     * 使用命名参数执行更新操作。
+     * 执行更新操作，返回影响行数。
      *
      * @param sql    包含命名参数的 SQL
      * @param params 命名参数映射
@@ -420,7 +576,21 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用预构建的 {@link PreparedSql} 执行更新操作。
+     * 执行更新操作，返回影响行数。
+     *
+     * @param template 预解析的命名参数 SQL 模板
+     * @param params   命名参数映射
+     * @return 更新记录数
+     * @throws SQLException SQL 异常
+     */
+    default int update(
+            NamedParamSql template,
+            Map<String, ?> params) throws SQLException {
+        return getJdbcOperations().update(template.getSql(), template.toArgs(params));
+    }
+
+    /**
+     * 执行更新操作，返回影响行数。
      *
      * @param ps 预构建的命名参数 SQL
      * @return 更新记录数
@@ -432,7 +602,7 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用命名参数执行更新操作，并返回生成的主键。
+     * 执行更新操作，通过 {@link RowMapper} 映射并返回生成的主键列表。
      *
      * @param <T>       主键类型
      * @param sql       包含命名参数的 SQL
@@ -450,7 +620,24 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用预构建的 {@link PreparedSql} 执行更新操作，并返回生成的主键。
+     * 执行更新操作，通过 {@link RowMapper} 映射并返回生成的主键列表。
+     *
+     * @param <T>       主键类型
+     * @param template  预解析的命名参数 SQL 模板
+     * @param params    命名参数映射
+     * @param rowMapper 主键行映射器
+     * @return 生成的主键列表
+     * @throws SQLException SQL 异常
+     */
+    default <T extends @Nullable Object> List<T> updateAndReturnKeys(
+            NamedParamSql template,
+            Map<String, ?> params,
+            RowMapper<T> rowMapper) throws SQLException {
+        return getJdbcOperations().updateAndReturnKeys(template.getSql(), template.toArgs(params), rowMapper);
+    }
+
+    /**
+     * 执行更新操作，通过 {@link RowMapper} 映射并返回生成的主键列表。
      *
      * @param <T>       主键类型
      * @param ps        预构建的命名参数 SQL
@@ -469,7 +656,7 @@ public interface NamedParamJdbcOperations {
     // #region - batchUpdate
 
     /**
-     * 使用命名参数执行批量更新（遇错中断）。
+     * 执行批量更新，遇错中断。
      *
      * @param sql         包含命名参数的 SQL
      * @param batchParams 批量参数映射列表，每个 Map 代表一行参数
@@ -486,7 +673,23 @@ public interface NamedParamJdbcOperations {
     }
 
     /**
-     * 使用命名参数执行批量更新。
+     * 执行批量更新，遇错中断。
+     *
+     * @param template    预解析的命名参数 SQL 模板
+     * @param batchParams 批量参数映射列表，每个 Map 代表一行参数
+     * @param batchSize   每批数量
+     * @return 批量更新结果
+     * @throws SQLException SQL 异常
+     */
+    default BatchUpdateResult batchUpdate(
+            NamedParamSql template,
+            List<Map<String, ?>> batchParams,
+            int batchSize) throws SQLException {
+        return getJdbcOperations().batchUpdate(template.getSql(), template.toBatchArgs(batchParams), batchSize);
+    }
+
+    /**
+     * 执行批量更新。{@code quietly} 为 {@code true} 时遇错继续执行。
      *
      * @param sql         包含命名参数的 SQL
      * @param batchParams 批量参数映射列表
@@ -504,6 +707,26 @@ public interface NamedParamJdbcOperations {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
         return getJdbcOperations().batchUpdate(
                 tmpl.getSql(), tmpl.toBatchArgs(batchParams), batchSize, quietly);
+    }
+
+    /**
+     * 执行批量更新。{@code quietly} 为 {@code true} 时遇错继续执行。
+     *
+     * @param template    预解析的命名参数 SQL 模板
+     * @param batchParams 批量参数映射列表
+     * @param batchSize   每批数量
+     * @param quietly     如果为 {@code true}，遇错不中断继续执行；
+     *                    如果为 {@code false}，遇错立即中断
+     * @return 批量更新结果
+     * @throws SQLException SQL 异常
+     */
+    default BatchUpdateResult batchUpdate(
+            NamedParamSql template,
+            List<Map<String, ?>> batchParams,
+            int batchSize,
+            boolean quietly) throws SQLException {
+        return getJdbcOperations().batchUpdate(
+                template.getSql(), template.toBatchArgs(batchParams), batchSize, quietly);
     }
 
     // #endregion

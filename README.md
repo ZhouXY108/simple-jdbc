@@ -176,7 +176,7 @@ boolean exists = jdbcTemplate.queryBoolean(
     Map.of("id", 10000L)
 );
 
-// 使用 PreparedSql 预构建对象（适合需要复用 SQL 参数绑定的场景）
+// 使用 PreparedSql 预构建对象
 PreparedSql prebuilt = NamedParamSql.of(
         "SELECT * FROM account WHERE username = #{name} AND org_no = #{org}")
     .prepare()
@@ -184,6 +184,14 @@ PreparedSql prebuilt = NamedParamSql.of(
     .param("org", "0000")
     .build();
 List<Account> result = jdbcTemplate.queryList(prebuilt, RowMapper.beanRowMapper(Account.class));
+
+// 模板传参：解析一次，多次换参（避免每次重复解析 SQL）
+NamedParamSql queryTmpl = NamedParamSql.of(
+    "SELECT * FROM account WHERE username = #{name} AND org_no = #{org}");
+List<Account> r1 = jdbcTemplate.queryList(queryTmpl,
+    Map.of("name", "admin", "org", "0000"), RowMapper.beanRowMapper(Account.class));
+List<Account> r2 = jdbcTemplate.queryList(queryTmpl,
+    Map.of("name", "user", "org", "0001"), RowMapper.beanRowMapper(Account.class));
 ```
 
 > 📖 完整的方法列表与映射策略说明请参见「[4. 数据查询](#4-数据查询-query)」章节。
@@ -225,7 +233,7 @@ List<Pair<Long, LocalDateTime>> keys2 = jdbcTemplate.updateAndReturnKeys(
         rs.getObject("create_time", LocalDateTime.class)
     )
 );
-// 使用 PreparedSql 预构建（同上）
+// 使用 PreparedSql 预构建
 PreparedSql insertSql = NamedParamSql.of(
         "INSERT INTO account (username, password, org_no) VALUES(#{un}, #{pw}, #{org})")
     .prepare()
@@ -234,6 +242,12 @@ PreparedSql insertSql = NamedParamSql.of(
     .param("org", "0000")
     .build();
 int rows = jdbcTemplate.update(insertSql);
+
+// 模板传参：解析一次，多次换参
+NamedParamSql updateTmpl = NamedParamSql.of(
+    "UPDATE account SET deleted = 1 WHERE id = #{id}");
+jdbcTemplate.update(updateTmpl, Map.of("id", 1L));
+jdbcTemplate.update(updateTmpl, Map.of("id", 2L));
 ```
 
 > 📖 完整的方法列表与批量更新结果说明请参见「[5. 数据更新](#5-数据更新-update)」章节。
@@ -280,7 +294,7 @@ if (quietResult.getStatus() == BatchUpdateStatus.COMPLETED_WITH_ERRORS) {
 ```java
 import xyz.zhouxy.jdbc.namedparam.NamedParamSql;
 
-// 方式一：NamedParamJdbcOperations 便捷方法
+// 方式一：直接传参（每次解析 SQL）
 List<Map<String, Object>> batchParams = new ArrayList<>();
 batchParams.add(Map.of("name", "Alice", "age", 25));
 batchParams.add(Map.of("name", "Bob",   "age", 30));
@@ -294,9 +308,12 @@ BatchUpdateResult quietResult = jdbcTemplate.batchUpdate(
     "INSERT INTO users(name, age) VALUES(#{name}, #{age})",
     batchParams, 100, true);
 
-// 方式二：NamedParamSql 模板 + toBatchArgs（灵活控制）
+// 方式二：NamedParamSql 模板传参（解析一次，多次批量执行）
 NamedParamSql tmpl = NamedParamSql.of(
     "INSERT INTO users(name, age) VALUES(#{name}, #{age})");
+result = jdbcTemplate.batchUpdate(tmpl, batchParams, 100);
+
+// 方式三：NamedParamSql 模板 + toBatchArgs（灵活控制）
 List<Object[]> batchArgs = tmpl.toBatchArgs(batchParams);
 result = jdbcTemplate.batchUpdate(tmpl.getSql(), batchArgs, 100);
 ```
@@ -384,21 +401,21 @@ jdbcTemplate.transaction().executeNamed(nops -> {
 
 ### 4.1 查询方法列表
 
-| 方法签名 | 说明 |
-| :--- | :--- |
-| `query(sql, params, resultHandler)` | 最基础的查询，通过 `ResultHandler` 自定义完整的映射逻辑。 |
-| `queryList(sql, params, rowMapper)` | 查询列表，通过 `RowMapper` 逐行映射。 |
-| `queryList(sql, params)` | 查询列表，每行自动转换为 `Map<String, Object>`。 |
-| `queryFirst(sql, params, rowMapper)` | 查询第一行，通过 `RowMapper` 映射，返回 `Optional<T>`。 |
-| `queryFirst(sql, params)` | 查询第一行，返回 `Optional<Map<String, Object>>`。 |
-| `queryValues(sql, params, Class)` | 单列查询列表，每行提取第一列并转换为指定类型。 |
-| `queryValue(sql, params, Class)` | 查询第一行第一列，返回 `Optional<T>`。 |
+| 方法签名                                           | 说明                                                                  |
+| :------------------------------------------------- | :-------------------------------------------------------------------- |
+| `query(sql, params, resultHandler)`                | 最基础的查询，通过 `ResultHandler` 自定义完整的映射逻辑。             |
+| `queryList(sql, params, rowMapper)`                | 查询列表，通过 `RowMapper` 逐行映射。                                 |
+| `queryList(sql, params)`                           | 查询列表，每行自动转换为 `Map<String, Object>`。                      |
+| `queryFirst(sql, params, rowMapper)`               | 查询第一行，通过 `RowMapper` 映射，返回 `Optional<T>`。               |
+| `queryFirst(sql, params)`                          | 查询第一行，返回 `Optional<Map<String, Object>>`。                    |
+| `queryValues(sql, params, Class)`                  | 单列查询列表，每行提取第一列并转换为指定类型。                        |
+| `queryValue(sql, params, Class)`                   | 查询第一行第一列，返回 `Optional<T>`。                                |
 | `queryValueOrDefault(sql, params, Class, default)` | 查询第一行第一列，结果为空时返回默认值。适用于 COUNT/SUM 等聚合查询。 |
-| `queryBoolean(sql, params)` | 查询第一行第一列并转换为 `boolean`，若结果为空则返回 `false`。 |
+| `queryBoolean(sql, params)`                        | 查询第一行第一列并转换为 `boolean`，若结果为空则返回 `false`。        |
 
 *💡 提示：以上方法均有省略 `params` 的重载（如 `queryList(sql, rowMapper)`），适用于不含占位符的 SQL 语句。`queryValues`、`queryValue`、`queryValueOrDefault` 同理。*
 
-*💡 命名参数：以上所有方法在 `SimpleJdbcTemplate` 上均有同名命名参数重载，参数使用 `Map<String, Object>` 传递（如 `queryList(sql, Map.of("id", 1), rowMapper)`）。此外还提供接受 `PreparedSql` 预构建对象的重载，适用于需要复用或动态构建 SQL 参数绑定的场景。详见「[7.3 命名参数构建](#73-命名参数构建)」。*
+*💡 命名参数：以上所有方法在 `SimpleJdbcTemplate` 上均有三种参数模式的重载：① 直接传参 — 直接传入 SQL 字符串 + `Map`（每次解析）；② 模板传参 — 先解析为 `NamedParamSql`，后续每次调用传入模板 + `Map`（解析一次、绑参多次）；③ 预构建传参 — 传入 `PreparedSql`（参数已绑死）。详见「[7.3 命名参数构建](#73-命名参数构建)」。*
 
 ### 4.2 结果映射策略
 
@@ -417,14 +434,14 @@ jdbcTemplate.transaction().executeNamed(nops -> {
 
 ### 5.1 更新方法列表
 
-| 方法签名 | 说明 |
-| :--- | :--- |
-| `update(sql, params)` | 执行 DML（INSERT / UPDATE / DELETE），返回受影响的行数。 |
-| `updateAndReturnKeys(sql, params, rowMapper)` | 执行 DML 并返回自动生成的键（如自增 ID），通过 `RowMapper` 进行映射。 |
-| `batchUpdate(sql, params, batchSize)` | 分批执行 DML，遇到错误立即中断。 |
+| 方法签名                                       | 说明                                                                  |
+| :--------------------------------------------- | :-------------------------------------------------------------------- |
+| `update(sql, params)`                          | 执行 DML（INSERT / UPDATE / DELETE），返回受影响的行数。              |
+| `updateAndReturnKeys(sql, params, rowMapper)`  | 执行 DML 并返回自动生成的键（如自增 ID），通过 `RowMapper` 进行映射。 |
+| `batchUpdate(sql, params, batchSize)`          | 分批执行 DML，遇到错误立即中断。                                      |
 | `batchUpdate(sql, params, batchSize, quietly)` | 分批执行 DML；若 `quietly=true`，则遇到错误不中断，直至全部执行完毕。 |
 
-*💡 命名参数：`update`、`updateAndReturnKeys` 和 `batchUpdate` 在 `SimpleJdbcTemplate` 上均有同名命名参数重载，参数使用 `Map<String, Object>` 传递。`update` 和 `updateAndReturnKeys` 也提供接受 `PreparedSql` 预构建对象的重载。*
+*💡 命名参数：`update`、`updateAndReturnKeys` 和 `batchUpdate` 在 `SimpleJdbcTemplate` 上均提供命名参数重载。其中 `update` 与 `updateAndReturnKeys` 有三种参数模式：① 直接传参（SQL + `Map`）② 模板传参（`NamedParamSql` + `Map`）③ 预构建传参（`PreparedSql`）；`batchUpdate` 有两种参数模式：① 直接传参（SQL + `List<Map>`）② 模板传参（`NamedParamSql` + `List<Map>`），无 `PreparedSql` 重载（不适用）。*
 
 ### 5.2 批量更新结果 (BatchUpdateResult)
 
@@ -468,18 +485,20 @@ TransactionTemplate tx = new TransactionTemplate(dataSource);
 
 下表列出所有事务执行方法，覆盖三种调用模式。
 
-| 调用模式 | execute（消费型） | commitIfTrue（谓词型） |
-| :--- | :--- | :--- |
-| **位置参数** | `execute(ThrowingConsumer<JdbcOperations>)` | `commitIfTrue(ThrowingPredicate<JdbcOperations>)` |
-| **命名参数** | `executeNamed(ThrowingConsumer<NamedParamJdbcOperations>)` | `commitIfTrueNamed(ThrowingPredicate<NamedParamJdbcOperations>)` |
-| **混用** | `execute(ThrowingBiConsumer<JdbcOperations, NamedParamJdbcOperations>)` | `commitIfTrue(ThrowingBiPredicate<JdbcOperations, NamedParamJdbcOperations>)` |
+| 调用模式     | execute（消费型）                                                       | commitIfTrue（谓词型）                                                        |
+| :----------- | :---------------------------------------------------------------------- | :---------------------------------------------------------------------------- |
+| **位置参数** | `execute(ThrowingConsumer<JdbcOperations>)`                             | `commitIfTrue(ThrowingPredicate<JdbcOperations>)`                             |
+| **命名参数** | `executeNamed(ThrowingConsumer<NamedParamJdbcOperations>)`              | `commitIfTrueNamed(ThrowingPredicate<NamedParamJdbcOperations>)`              |
+| **混用**     | `execute(ThrowingBiConsumer<JdbcOperations, NamedParamJdbcOperations>)` | `commitIfTrue(ThrowingBiPredicate<JdbcOperations, NamedParamJdbcOperations>)` |
 
 **说明：**
+
 - **位置参数**：回调接收 `JdbcOperations`，SQL 中使用 `?` 占位符，通过 `buildParams(...)` 传参。
 - **命名参数**：回调接收 `NamedParamJdbcOperations`，SQL 中使用 `#{paramName}` 占位符，通过 `Map.of(...)` 传参。
 - **混用**：回调同时接收两个接口，可在同一事务中按需选择参数风格。
 
 **执行语义：**
+
 - `execute` 系列：若回调无异常抛出则自动提交，发生异常则回滚。
 - `commitIfTrue` 系列：回调返回 `true` 提交，返回 `false` 或抛出异常则回滚。
 
@@ -520,7 +539,14 @@ List<Object[]> batchParams = buildBatchParams(accountList, account -> buildParam
 
 命名参数 SQL 使用 `#{paramName}` 格式。`SimpleJdbcTemplate` 同时实现了 `JdbcOperations` 和 `NamedParamJdbcOperations`，因此可直接在同一实例上使用命名参数方法。
 
-**方式一：直接传 Map（最简）**
+| 场景                                     | 推荐方式             | 说明                                           |
+| :--------------------------------------- | :------------------- | :--------------------------------------------- |
+| 一次性查询/更新                          | String + Map         | 最简单，每次调用自动解析 SQL。                 |
+| 同一 SQL 多次执行、仅参数变化            | NamedParamSql + Map  | 模板解析一次，后续每次调用只绑参数值。         |
+| 参数需固化在对象中、跨方法传递           | PreparedSql          | SQL 与参数数组整体封装。                       |
+| 需要自省参数名或获取 JDBC `Object[]`     | NamedParamSql + toArgs | 底层灵活控制，直接使用位置参数 API。         |
+
+**方式一：直接传参（最简，每次调用解析 SQL）**
 
 ```java
 // 使用 Map.of() 快速构建参数
@@ -529,19 +555,21 @@ jdbcTemplate.queryList(
     Map.of("name", "admin", "org", "0000"),
     RowMapper.beanRowMapper(Account.class)
 );
-
-// 参数较多时使用 Map.ofEntries()
-jdbcTemplate.update(
-    "INSERT INTO account (username, password, org_no) VALUES(#{un}, #{pw}, #{org})",
-    Map.ofEntries(
-        Map.entry("un", "admin"),
-        Map.entry("pw", "123456"),
-        Map.entry("org", "0000")
-    )
-);
 ```
 
-**方式二：PreparedSql 链式构建（适合需要复用参数绑定的场景）**
+**方式二：NamedParamSql 模板传参（适合同一 SQL 多次执行、仅参数变化的场景）**
+
+```java
+// 解析一次模板，后续每次调用传入模板 + Map，避免重复解析 SQL
+NamedParamSql accountTmpl = NamedParamSql.of(
+    "SELECT * FROM account WHERE username = #{name} AND org_no = #{org}");
+List<Account> r1 = jdbcTemplate.queryList(accountTmpl,
+    Map.of("name", "admin", "org", "0000"), RowMapper.beanRowMapper(Account.class));
+List<Account> r2 = jdbcTemplate.queryList(accountTmpl,
+    Map.of("name", "user",  "org", "0001"), RowMapper.beanRowMapper(Account.class));
+```
+
+**方式三：PreparedSql 预构建传参（适合需要将参数整体封装传递的场景）**
 
 ```java
 import xyz.zhouxy.jdbc.namedparam.NamedParamSql;
@@ -571,7 +599,7 @@ PreparedSql ps3 = tmpl.prepare()
     .build();
 ```
 
-**方式三：NamedParamSql 纯模板 + toArgs（适合底层灵活控制）**
+**方式四：NamedParamSql 纯模板 + toArgs（适合底层灵活控制）**
 
 ```java
 NamedParamSql tmpl = NamedParamSql.of(
@@ -593,10 +621,10 @@ List<Account> result = jdbcTemplate.queryList(jdbcSql, args,
 
 ### 7.4 批量命名参数
 
-使用 `NamedParamSql.toBatchArgs()` 将 `List<Map>` 转换为 `List<Object[]>`，配合位置参数 `batchUpdate`；或直接使用 `NamedParamJdbcOperations` 上的命名参数批量方法。
+使用 `NamedParamSql.toBatchArgs()` 将 `List<Map>` 转换为 `List<Object[]>`，配合位置参数 `batchUpdate`；或直接使用 `NamedParamJdbcOperations` 上的命名参数批量方法，其中包括模板传参重载。
 
 ```java
-// 方式一：NamedParamJdbcOperations 便捷方法
+// 方式一：直接传参（每次解析 SQL）
 List<Map<String, Object>> batchParams = new ArrayList<>();
 batchParams.add(Map.of("name", "Alice", "age", 25));
 batchParams.add(Map.of("name", "Bob",   "age", 30));
@@ -605,9 +633,12 @@ BatchUpdateResult result = jdbcTemplate.batchUpdate(
     "INSERT INTO users(name, age) VALUES(#{name}, #{age})",
     batchParams, 100);
 
-// 方式二：NamedParamSql 模板 + 位置参数 batchUpdate（复用模板）
+// 方式二：NamedParamSql 模板传参（解析一次，多次批量执行）
 NamedParamSql tmpl = NamedParamSql.of(
     "INSERT INTO users(name, age) VALUES(#{name}, #{age})");
+result = jdbcTemplate.batchUpdate(tmpl, batchParams, 100);
+
+// 方式三：NamedParamSql 模板 + toBatchArgs（灵活控制）
 List<Object[]> batchArgs = tmpl.toBatchArgs(batchParams);
 result = jdbcTemplate.batchUpdate(tmpl.getSql(), batchArgs, 100);
 ```

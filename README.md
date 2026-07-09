@@ -307,19 +307,19 @@ result = jdbcTemplate.batchUpdate(tmpl.getSql(), batchArgs, 100);
 
 ```java
 // 自动提交/回滚事务
-jdbcTemplate.transaction().execute(jdbc -> {
+jdbcTemplate.transaction().execute(ops -> {
     ...
-    jdbc.update(...);
+    ops.update(...);
     ...
-    jdbc.update(...);
+    ops.update(...);
     ...
     // 内部无异常抛出则自动提交，抛出异常则自动回滚
 });
 
 // 根据返回值控制事务
-jdbcTemplate.transaction().commitIfTrue(jdbc -> {
+jdbcTemplate.transaction().commitIfTrue(ops -> {
     ...
-    jdbc.update(...);
+    ops.update(...);
     ...
     if (...) {
         // 中断操作并回滚
@@ -331,7 +331,7 @@ jdbcTemplate.transaction().commitIfTrue(jdbc -> {
         return true;
     }
     ...
-    jdbc.update(...);
+    ops.update(...);
     ...
     // 提交事务
     return true;

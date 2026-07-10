@@ -240,7 +240,7 @@ class UpdateTest extends BaseH2Test {
                         "henry", "henry@example.com", 33, 18000L, true,
                         "iris", "iris@example.com", 27, 9000L, false
                 },
-                (RowMapper<Long>) (rs, rowNumber) -> rs.getLong(1));
+                (rs, rowNumber) -> rs.getLong(1));
 
         logger.info("updateAndReturnKeys 返回 {} 个主键", keys.size());
         assertEquals(2, keys.size());

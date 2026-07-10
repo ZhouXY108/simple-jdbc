@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import xyz.zhouxy.jdbc.ParamBuilder;
-import xyz.zhouxy.jdbc.ResultHandler;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 
 /**
@@ -35,7 +34,7 @@ class QueryTest extends BaseH2Test {
         Integer count = template.query(
                 "SELECT COUNT(*) FROM users",
                 new Object[0],
-                (ResultHandler<Integer>) rs -> {
+                rs -> {
                     rs.next();
                     return rs.getInt(1);
                 });
@@ -52,7 +51,7 @@ class QueryTest extends BaseH2Test {
         Long totalBalance = template.query(
                 "SELECT SUM(balance) FROM users",
                 new Object[0],
-                (ResultHandler<Long>) rs -> {
+                rs -> {
                     rs.next();
                     return rs.getLong(1);
                 });

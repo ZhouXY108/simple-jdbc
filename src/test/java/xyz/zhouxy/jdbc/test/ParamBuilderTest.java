@@ -13,7 +13,6 @@ import java.util.OptionalLong;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.function.Function;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -214,13 +213,13 @@ class ParamBuilderTest {
     void testBuildBatchParamsBoundary() {
         // 空集合返回 Collections.emptyList()
         List<Object[]> emptyResult = buildBatchParams(Collections.emptyList(),
-                (Function<Object, Object[]>) obj -> new Object[]{obj});
+                obj -> new Object[]{obj});
         assertTrue(emptyResult.isEmpty());
         assertSame(Collections.emptyList(), emptyResult);
 
         // null collection 抛异常
         assertThrows(Exception.class, () ->
-                buildBatchParams(null, (Function<Object, Object[]>) obj -> new Object[]{obj}));
+                buildBatchParams(null, obj -> new Object[]{obj}));
 
         // null func 抛异常
         assertThrows(Exception.class, () ->

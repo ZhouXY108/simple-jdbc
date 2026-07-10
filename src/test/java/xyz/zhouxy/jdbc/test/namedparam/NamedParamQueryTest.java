@@ -13,7 +13,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import xyz.zhouxy.jdbc.ResultHandler;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 import xyz.zhouxy.jdbc.namedparam.NamedParamJdbcOperations;
 import xyz.zhouxy.jdbc.namedparam.NamedParamSql;
@@ -46,7 +45,7 @@ class NamedParamQueryTest extends BaseH2Test {
         Integer count = template.query(
                 "SELECT COUNT(*) FROM users WHERE active = #{active}",
                 Collections.singletonMap("active", true),
-                (ResultHandler<Integer>) rs -> {
+                rs -> {
                     rs.next();
                     return rs.getInt(1);
                 });
@@ -59,13 +58,13 @@ class NamedParamQueryTest extends BaseH2Test {
     void testQueryWithMultipleNamedParams() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        Map<String, Object> params = new HashMap<String, Object>();
+        Map<String, Object> params = new HashMap<>();
         params.put("id", 1);
         params.put("name", "alice");
         String username = template.query(
                 "SELECT username FROM users WHERE id = #{id} AND username = #{name}",
                 params,
-                (ResultHandler<String>) rs -> {
+                rs -> {
                     rs.next();
                     return rs.getString(1);
                 });
@@ -82,7 +81,7 @@ class NamedParamQueryTest extends BaseH2Test {
 
         Integer count = template.query(tmpl,
                 Collections.singletonMap("active", true),
-                (ResultHandler<Integer>) rs -> {
+                rs -> {
                     rs.next();
                     return rs.getInt(1);
                 });
@@ -101,7 +100,7 @@ class NamedParamQueryTest extends BaseH2Test {
         params.put("id", 1);
         params.put("name", "alice");
         String alice = template.query(tmpl, params,
-                (ResultHandler<String>) rs -> {
+                rs -> {
                     rs.next();
                     return rs.getString(1);
                 });
@@ -110,7 +109,7 @@ class NamedParamQueryTest extends BaseH2Test {
         params.put("id", 2);
         params.put("name", "bob");
         String bob = template.query(tmpl, params,
-                (ResultHandler<String>) rs -> {
+                rs -> {
                     rs.next();
                     return rs.getString(1);
                 });
@@ -125,7 +124,7 @@ class NamedParamQueryTest extends BaseH2Test {
                 "SELECT username FROM users WHERE id = #{missing}");
         Map<String, Object> params = Collections.singletonMap("id", 1);
         assertThrows(IllegalArgumentException.class, () ->
-            template.query(tmpl, params, (ResultHandler<String>) rs -> {
+            template.query(tmpl, params, rs -> {
                 rs.next();
                 return rs.getString(1);
             }));
@@ -183,7 +182,7 @@ class NamedParamQueryTest extends BaseH2Test {
 
         List<User> users = template.queryList(
                 "SELECT * FROM users ORDER BY id",
-                Collections.<String, Object>emptyMap(),
+                Collections.emptyMap(),
                 new UserRowMapper());
 
         assertEquals(5, users.size());
@@ -563,7 +562,7 @@ class NamedParamQueryTest extends BaseH2Test {
                 .build();
 
         Integer count = template.query(ps,
-                (ResultHandler<Integer>) rs -> {
+                rs -> {
                     rs.next();
                     return rs.getInt(1);
                 });

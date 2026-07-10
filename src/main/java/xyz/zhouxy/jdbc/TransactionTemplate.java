@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import javax.sql.DataSource;
@@ -313,7 +314,7 @@ public class TransactionTemplate {
         @Override
         public <T extends @Nullable Object> List<T> queryValues(
                 String sql, @Nullable Object @Nullable [] params,
-                Class<T> clazz)
+                Class<@NonNull T> clazz)
                 throws SQLException {
             return JdbcOperationSupport.queryValues(this.conn, sql, params, clazz);
         }
@@ -332,7 +333,7 @@ public class TransactionTemplate {
 
         /** {@inheritDoc} */
         @Override
-        public <T extends @Nullable Object> Optional<T> queryFirst(
+        public <T> Optional<T> queryFirst(
                 String sql, @Nullable Object @Nullable [] params,
                 RowMapper<T> rowMapper)
                 throws SQLException {
@@ -342,7 +343,7 @@ public class TransactionTemplate {
 
         /** {@inheritDoc} */
         @Override
-        public <T extends @Nullable Object> Optional<T> queryValue(
+        public <T> Optional<T> queryValue(
                 String sql, @Nullable Object @Nullable [] params,
                 Class<T> clazz)
                 throws SQLException {
@@ -352,10 +353,10 @@ public class TransactionTemplate {
 
         /** {@inheritDoc} */
         @Override
-        public Optional<@Nullable Map<String, @Nullable Object>> queryFirst(
+        public Optional<Map<String, @Nullable Object>> queryFirst(
                 String sql, @Nullable Object @Nullable [] params)
                 throws SQLException {
-            final Map<String, Object> result = JdbcOperationSupport
+            final Map<String, @Nullable Object> result = JdbcOperationSupport
                     .queryFirst(this.conn, sql, params, RowMapper.HASH_MAP_MAPPER);
             return Optional.ofNullable(result);
         }

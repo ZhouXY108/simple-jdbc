@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -169,7 +170,7 @@ class BatchUpdateTest extends BaseH2Test {
     // #region - 包含错误数据
     // ================================
 
-    final List<User> userListContainingInvalidData = Arrays.asList(
+    final List<@NonNull User> userListContainingInvalidData = Arrays.asList(
             // batch 0
             new User("test_0001", "test_0001@example.com", 1, 1L, true),
             new User("test_0002", "test_0002@example.com", 1, 1L, true),
@@ -232,6 +233,7 @@ class BatchUpdateTest extends BaseH2Test {
         assertNull(result.getUpdateCounts(4));
 
         Optional<Integer> count8 = template.queryValue("SELECT COUNT(*) FROM users", Integer.class);
+        assertTrue(count8.isPresent());
         assertEquals(count0 + 8, count8.get().intValue());
     }
 
@@ -262,6 +264,7 @@ class BatchUpdateTest extends BaseH2Test {
         assertArrayEquals(new int[] { 1 }, result.getUpdateCounts(4));
 
         Optional<Integer> count11 = template.queryValue("SELECT COUNT(*) FROM users", Integer.class);
+        assertTrue(count11.isPresent());
         assertEquals(count0 + 11, count11.get().intValue());
     }
 

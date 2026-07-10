@@ -43,7 +43,7 @@ class NamedParamSqlTest {
 
     @Test
     @DisplayName("of(null) 抛异常")
-    @SuppressWarnings("null")
+    @SuppressWarnings({"null", "DataFlowIssue"})
     void testOfNull() {
         assertThrows(Exception.class,
                 () -> NamedParamSql.of(null));
@@ -159,6 +159,7 @@ class NamedParamSqlTest {
 
     @Test
     @DisplayName("toBatchArgs 元素为 null 抛异常")
+    @SuppressWarnings("RedundantTypeArguments")
     void testToBatchArgsNullElement() {
         NamedParamSql nps = NamedParamSql.of("SELECT #{a}");
         assertThrows(Exception.class,
@@ -169,7 +170,7 @@ class NamedParamSqlTest {
     @DisplayName("toBatchArgs 缺少参数名抛异常")
     void testToBatchArgsMissingParam() {
         NamedParamSql nps = NamedParamSql.of("SELECT #{a}, #{b}");
-        List<Map<String, ?>> batchParams = Collections.<Map<String, ?>>singletonList(
+        List<Map<String, ?>> batchParams = Collections.singletonList(
                 Collections.singletonMap("a", 1));
         assertThrows(IllegalArgumentException.class,
                 () -> nps.toBatchArgs(batchParams));
@@ -179,6 +180,7 @@ class NamedParamSqlTest {
 
     @Test
     @DisplayName("getParamNames() 返回不可变列表")
+    @SuppressWarnings("DataFlowIssue")
     void testGetParamNamesImmutable() {
         NamedParamSql nps = NamedParamSql.of("SELECT #{a}, #{b}");
         List<String> paramNames = nps.getParamNames();

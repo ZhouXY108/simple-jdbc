@@ -22,6 +22,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import javax.sql.DataSource;
@@ -99,7 +101,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
     /** {@inheritDoc} */
     @Override
     public <T extends @Nullable Object>
-    List<T> queryValues(String sql, @Nullable Object @Nullable [] params, Class<T> clazz)
+    List<T> queryValues(String sql, @Nullable Object @Nullable [] params, Class<@NonNull T> clazz)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             return JdbcOperationSupport.queryValues(conn, sql, params, clazz);
@@ -122,33 +124,33 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
 
     /** {@inheritDoc} */
     @Override
-    public <T extends @Nullable Object> Optional<T> queryFirst(
+    public <T> Optional<T> queryFirst(
             String sql, @Nullable Object @Nullable [] params,
             RowMapper<T> rowMapper)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            final T result = JdbcOperationSupport.<T>queryFirst(conn, sql, params, rowMapper);
+            final T result = JdbcOperationSupport.queryFirst(conn, sql, params, rowMapper);
             return Optional.ofNullable(result);
         }
     }
 
     /** {@inheritDoc} */
     @Override
-    public <T extends @Nullable Object> Optional<T> queryValue(
+    public <T> Optional<T> queryValue(
             String sql, @Nullable Object @Nullable [] params, Class<T> clazz)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            final T result = JdbcOperationSupport.<T>queryValue(conn, sql, params, clazz);
+            final T result = JdbcOperationSupport.queryValue(conn, sql, params, clazz);
             return Optional.ofNullable(result);
         }
     }
 
     /** {@inheritDoc} */
     @Override
-    public Optional<@Nullable Map<String, @Nullable Object>> queryFirst(String sql, @Nullable Object @Nullable [] params)
+    public Optional<Map<String, @Nullable Object>> queryFirst(String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            final Map<String, Object> result = JdbcOperationSupport
+            final Map<String, @Nullable Object> result = JdbcOperationSupport
                     .queryFirst(conn, sql, params, RowMapper.HASH_MAP_MAPPER);
             return Optional.ofNullable(result);
         }

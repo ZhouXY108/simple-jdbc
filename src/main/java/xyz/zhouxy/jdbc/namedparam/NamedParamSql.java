@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.jspecify.annotations.Nullable;
 import xyz.zhouxy.jdbc.ParamBuilder;
 import xyz.zhouxy.jdbc.util.AssertTools;
 import xyz.zhouxy.jdbc.util.GenericTokenParser;
@@ -155,7 +156,7 @@ public final class NamedParamSql {
      * @return 参数值数组，顺序与 {@link #getParamNames()} 一致
      * @throws IllegalArgumentException 如果缺少某个 SQL 中引用的参数名
      */
-    public Object[] toArgs(Map<String, ?> params) {
+    public @Nullable Object[] toArgs(Map<String, ?> params) {
         AssertTools.checkNotNull(params, "params must not be null");
         return extractArgs(params);
     }
@@ -172,9 +173,9 @@ public final class NamedParamSql {
      * @return 批量参数数组列表，与 {@code batchParams} 顺序一致
      * @throws IllegalArgumentException 如果某个 Map 缺少 SQL 中引用的参数名
      */
-    public List<Object[]> toBatchArgs(List<Map<String, ?>> batchParams) {
+    public List<@Nullable Object[]> toBatchArgs(List<Map<String, ?>> batchParams) {
         AssertTools.checkNotNull(batchParams, "batchParams must not be null");
-        final List<Object[]> result = new ArrayList<>(batchParams.size());
+        final List<@Nullable Object[]> result = new ArrayList<>(batchParams.size());
         for (final Map<String, ?> params : batchParams) {
             AssertTools.checkNotNull(params, "batchParams element must not be null");
             result.add(extractArgs(params));
@@ -182,8 +183,8 @@ public final class NamedParamSql {
         return result;
     }
 
-    private Object[] extractArgs(Map<String, ?> params) {
-        final Object[] args = new Object[paramNames.size()];
+    private @Nullable Object[] extractArgs(Map<String, ?> params) {
+        final @Nullable Object[] args = new Object[paramNames.size()];
         for (int i = 0; i < paramNames.size(); i++) {
             final String name = paramNames.get(i);
             AssertTools.checkArgument(params.containsKey(name),

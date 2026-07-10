@@ -66,7 +66,7 @@ public class ParamBuilder {
      * @param params SQL 参数列表（可变参数）
      * @return 参数数组
      */
-    public static Object[] buildParams(final @Nullable Object @Nullable... params) {
+    public static @Nullable Object[] buildParams(final @Nullable Object @Nullable... params) {
         if (params == null || params.length == 0) {
             return EMPTY_OBJECT_ARRAY;
         }
@@ -118,7 +118,7 @@ public class ParamBuilder {
             return param;
         }
         if (param instanceof Optional) {
-            return ((Optional<@Nullable ?>) param).orElse(null);
+            return ((Optional<?>) param).orElse(null);
         }
         if (param instanceof OptionalInt) {
             return ((OptionalInt) param).isPresent() ? ((OptionalInt) param).getAsInt() : null;

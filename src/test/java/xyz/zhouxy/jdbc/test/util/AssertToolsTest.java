@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import xyz.zhouxy.jdbc.util.AssertTools;
 
-@SuppressWarnings("null")
+@SuppressWarnings({"null", "DataFlowIssue", "ConstantValue"})
 class AssertToolsTest {
 
     // #region - Argument

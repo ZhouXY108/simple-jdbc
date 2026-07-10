@@ -28,6 +28,7 @@ import xyz.zhouxy.jdbc.test.UserRowMapper;
  * 查询方法的三种参数模式：直接传参（String + Map）、模板传参（NamedParamSql + Map）、预构建传参（PreparedSql）。</p>
  */
 @DisplayName("NamedParamJdbcOperations 命名参数查询")
+@SuppressWarnings("UnnecessaryLocalVariable")
 class NamedParamQueryTest extends BaseH2Test {
 
     @BeforeEach

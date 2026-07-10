@@ -22,6 +22,7 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -38,7 +39,7 @@ import org.jspecify.annotations.Nullable;
 @FunctionalInterface
 @NullMarked
 public interface RowMapper<T extends @Nullable Object> {
-    T mapRow(ResultSet rs, int rowNumber) throws SQLException;
+    T mapRow(ResultSet rs, @SuppressWarnings("unused") int rowNumber) throws SQLException;
 
     /**
      * 每一行数据转换为 {@link HashMap}
@@ -66,7 +67,7 @@ public interface RowMapper<T extends @Nullable Object> {
      * @return {@link DefaultBeanRowMapper}
      * @throws IllegalStateException 如果创建 {@link DefaultBeanRowMapper} 失败
      */
-    static <T extends @Nullable Object> RowMapper<T> beanRowMapper(Class<T> beanType) {
+    static <T extends @Nullable Object> RowMapper<T> beanRowMapper(Class<@NonNull T> beanType) {
         return DefaultBeanRowMapper.of(beanType);
     }
 
@@ -80,8 +81,8 @@ public interface RowMapper<T extends @Nullable Object> {
      * @return {@link DefaultBeanRowMapper}
      * @throws IllegalStateException 如果创建 {@link DefaultBeanRowMapper} 失败
      */
-    static <T extends @Nullable Object> RowMapper<T> beanRowMapper(Class<T> beanType,
+    static <T extends @Nullable Object> RowMapper<T> beanRowMapper(Class<@NonNull T> beanType,
             Map<String, String> propertyColMap) {
-        return DefaultBeanRowMapper.<T>of(beanType, propertyColMap);
+        return DefaultBeanRowMapper.of(beanType, propertyColMap);
     }
 }

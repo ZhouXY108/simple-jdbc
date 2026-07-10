@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import xyz.zhouxy.jdbc.BatchUpdateResult;
@@ -52,7 +53,7 @@ import xyz.zhouxy.jdbc.RowMapper;
  * </ol>
  *
  * <p>
- * {@link SimpleJdbcTemplate} 同时实现了两个接口，直接使用即可：
+ * {@link xyz.zhouxy.jdbc.SimpleJdbcTemplate} 同时实现了两个接口，直接使用即可：
  * </p>
  * <pre>{@code
  * SimpleJdbcTemplate tmpl = new SimpleJdbcTemplate(dataSource);
@@ -80,7 +81,7 @@ import xyz.zhouxy.jdbc.RowMapper;
  * }</pre>
  *
  * <p>
- * 事务中通过 {@link TransactionTemplate} 的回调重载直接获取：
+ * 事务中通过 {@link xyz.zhouxy.jdbc.TransactionTemplate} 的回调重载直接获取：
  * </p>
  * <pre>{@code
  * // 纯命名参数
@@ -234,7 +235,7 @@ public interface NamedParamJdbcOperations {
     default <T extends @Nullable Object> List<T> queryValues(
             String sql,
             Map<String, ?> params,
-            Class<T> clazz) throws SQLException {
+            Class<@NonNull T> clazz) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
         return getJdbcOperations().queryValues(tmpl.getSql(), tmpl.toArgs(params), clazz);
     }
@@ -252,7 +253,7 @@ public interface NamedParamJdbcOperations {
     default <T extends @Nullable Object> List<T> queryValues(
             NamedParamSql template,
             Map<String, ?> params,
-            Class<T> clazz) throws SQLException {
+            Class<@NonNull T> clazz) throws SQLException {
         return getJdbcOperations().queryValues(template.getSql(), template.toArgs(params), clazz);
     }
 
@@ -267,7 +268,7 @@ public interface NamedParamJdbcOperations {
      */
     default <T extends @Nullable Object> List<T> queryValues(
             PreparedSql ps,
-            Class<T> clazz) throws SQLException {
+            Class<@NonNull T> clazz) throws SQLException {
         return getJdbcOperations().queryValues(ps.getSql(), ps.getArgs(), clazz);
     }
 
@@ -326,7 +327,7 @@ public interface NamedParamJdbcOperations {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    default <T extends @Nullable Object> Optional<T> queryFirst(
+    default <T> Optional<T> queryFirst(
             String sql,
             Map<String, ?> params,
             RowMapper<T> rowMapper) throws SQLException {
@@ -344,7 +345,7 @@ public interface NamedParamJdbcOperations {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    default <T extends @Nullable Object> Optional<T> queryFirst(
+    default <T> Optional<T> queryFirst(
             NamedParamSql template,
             Map<String, ?> params,
             RowMapper<T> rowMapper) throws SQLException {
@@ -360,7 +361,7 @@ public interface NamedParamJdbcOperations {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    default <T extends @Nullable Object> Optional<T> queryFirst(
+    default <T> Optional<T> queryFirst(
             PreparedSql ps,
             RowMapper<T> rowMapper) throws SQLException {
         return getJdbcOperations().queryFirst(ps.getSql(), ps.getArgs(), rowMapper);
@@ -376,7 +377,7 @@ public interface NamedParamJdbcOperations {
      * @return 第一行第一列的值，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    default <T extends @Nullable Object> Optional<T> queryValue(
+    default <T> Optional<T> queryValue(
             String sql,
             Map<String, ?> params,
             Class<T> clazz) throws SQLException {
@@ -394,7 +395,7 @@ public interface NamedParamJdbcOperations {
      * @return 第一行第一列的值，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    default <T extends @Nullable Object> Optional<T> queryValue(
+    default <T> Optional<T> queryValue(
             NamedParamSql template,
             Map<String, ?> params,
             Class<T> clazz) throws SQLException {
@@ -410,7 +411,7 @@ public interface NamedParamJdbcOperations {
      * @return 第一行第一列的值，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    default <T extends @Nullable Object> Optional<T> queryValue(
+    default <T> Optional<T> queryValue(
             PreparedSql ps,
             Class<T> clazz) throws SQLException {
         return getJdbcOperations().queryValue(ps.getSql(), ps.getArgs(), clazz);
@@ -430,7 +431,7 @@ public interface NamedParamJdbcOperations {
     default <T extends @Nullable Object> T queryValueOrDefault(
             String sql,
             Map<String, ?> params,
-            Class<T> clazz,
+            Class<@NonNull T> clazz,
             T defaultValue) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
         return getJdbcOperations().queryValueOrDefault(
@@ -451,7 +452,7 @@ public interface NamedParamJdbcOperations {
     default <T extends @Nullable Object> T queryValueOrDefault(
             NamedParamSql template,
             Map<String, ?> params,
-            Class<T> clazz,
+            Class<@NonNull T> clazz,
             T defaultValue) throws SQLException {
         return getJdbcOperations().queryValueOrDefault(
                 template.getSql(), template.toArgs(params), clazz, defaultValue);
@@ -469,7 +470,7 @@ public interface NamedParamJdbcOperations {
      */
     default <T extends @Nullable Object> T queryValueOrDefault(
             PreparedSql ps,
-            Class<T> clazz,
+            Class<@NonNull T> clazz,
             T defaultValue) throws SQLException {
         return getJdbcOperations().queryValueOrDefault(ps.getSql(), ps.getArgs(), clazz, defaultValue);
     }
@@ -482,7 +483,7 @@ public interface NamedParamJdbcOperations {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    default Optional<@Nullable Map<String, @Nullable Object>> queryFirst(
+    default Optional<Map<String, @Nullable Object>> queryFirst(
             String sql,
             Map<String, ?> params) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
@@ -497,7 +498,7 @@ public interface NamedParamJdbcOperations {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    default Optional<@Nullable Map<String, @Nullable Object>> queryFirst(
+    default Optional<Map<String, @Nullable Object>> queryFirst(
             NamedParamSql template,
             Map<String, ?> params) throws SQLException {
         return getJdbcOperations().queryFirst(template.getSql(), template.toArgs(params));
@@ -510,7 +511,7 @@ public interface NamedParamJdbcOperations {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    default Optional<@Nullable Map<String, @Nullable Object>> queryFirst(
+    default Optional<Map<String, @Nullable Object>> queryFirst(
             PreparedSql ps) throws SQLException {
         return getJdbcOperations().queryFirst(ps.getSql(), ps.getArgs());
     }

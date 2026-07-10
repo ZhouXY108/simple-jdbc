@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -110,7 +111,7 @@ class JdbcOperationSupport {
     static <T extends @Nullable Object> List<T> queryValues(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
-            Class<T> clazz)
+            Class<@NonNull T> clazz)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
@@ -130,7 +131,7 @@ class JdbcOperationSupport {
      * @param params    参数
      * @param rowMapper {@link ResultSet} 中每一行的数据的处理逻辑
      */
-    static <T extends @Nullable Object> T queryFirst(
+    static <T> @Nullable T queryFirst(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
             RowMapper<T> rowMapper)
@@ -150,7 +151,7 @@ class JdbcOperationSupport {
      * @param params 参数
      * @param clazz  目标类型
      */
-    static <T extends @Nullable Object> T queryValue(
+    static <T> @Nullable T queryValue(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
             Class<T> clazz)
@@ -158,7 +159,7 @@ class JdbcOperationSupport {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         assertClazzNotNull(clazz);
-        return JdbcOperationSupport.<T>queryFirstInternal(conn, sql, params,
+        return queryFirstInternal(conn, sql, params,
                 (rs, rowNumber) -> rs.getObject(1, clazz));
     }
 
@@ -376,12 +377,12 @@ class JdbcOperationSupport {
      * @param rowMapper 行数据映射逻辑
      * @return 映射结果。如果查询结果为空，则返回 null
      */
-    private static <T extends @Nullable Object> T queryFirstInternal(
+    private static <T> @Nullable T queryFirstInternal(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
             RowMapper<T> rowMapper)
             throws SQLException {
-        return JdbcOperationSupport.<T>queryInternal(conn, sql, params, rs ->
+        return queryInternal(conn, sql, params, rs ->
                 rs.next() ? rowMapper.mapRow(rs, 0) : null);
     }
 

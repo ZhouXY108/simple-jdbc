@@ -27,6 +27,7 @@ import xyz.zhouxy.jdbc.ParamBuilder;
  *
  * @see xyz.zhouxy.jdbc.ParamBuilder
  */
+@SuppressWarnings("RedundantArrayCreation")
 @DisplayName("ParamBuilder 参数构建测试")
 class ParamBuilderTest {
 
@@ -209,7 +210,7 @@ class ParamBuilderTest {
 
     @Test
     @DisplayName("buildBatchParams：边界情况——空集合 / null collection / null func")
-    @SuppressWarnings("null")
+    @SuppressWarnings({"null", "DataFlowIssue"})
     void testBuildBatchParamsBoundary() {
         // 空集合返回 Collections.emptyList()
         List<Object[]> emptyResult = buildBatchParams(Collections.emptyList(),

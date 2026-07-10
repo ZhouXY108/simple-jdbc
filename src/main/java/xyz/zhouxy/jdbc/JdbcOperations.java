@@ -16,13 +16,13 @@
 
 package xyz.zhouxy.jdbc;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -121,7 +121,7 @@ public interface JdbcOperations {
      * @throws SQLException SQL 异常
      */
     <T extends @Nullable Object> List<T> queryValues(String sql, @Nullable Object @Nullable [] params,
-            Class<T> clazz)
+            Class<@NonNull T> clazz)
             throws SQLException;
 
     /**
@@ -161,7 +161,7 @@ public interface JdbcOperations {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    default <T extends @Nullable Object> List<T> queryValues(String sql, Class<T> clazz)
+    default <T extends @Nullable Object> List<T> queryValues(String sql, Class<@NonNull T> clazz)
             throws SQLException {
         return queryValues(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz);
     }
@@ -182,7 +182,7 @@ public interface JdbcOperations {
      */
     @Deprecated
     default <T extends @Nullable Object> List<T> queryList(String sql, @Nullable Object @Nullable [] params,
-            Class<T> clazz)
+            Class<@NonNull T> clazz)
             throws SQLException {
         return queryValues(sql, params, clazz);
     }
@@ -201,7 +201,7 @@ public interface JdbcOperations {
      *             此方法将在后续版本中移除。
      */
     @Deprecated
-    default <T extends @Nullable Object> List<T> queryList(String sql, Class<T> clazz)
+    default <T extends @Nullable Object> List<T> queryList(String sql, Class<@NonNull T> clazz)
             throws SQLException {
         return queryValues(sql, clazz);
     }
@@ -234,7 +234,7 @@ public interface JdbcOperations {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    <T extends @Nullable Object> Optional<T> queryFirst(String sql, @Nullable Object @Nullable [] params,
+    <T> Optional<T> queryFirst(String sql, @Nullable Object @Nullable [] params,
             RowMapper<T> rowMapper)
             throws SQLException;
 
@@ -250,7 +250,7 @@ public interface JdbcOperations {
      * @return 第一行第一列的值，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    <T extends @Nullable Object> Optional<T> queryValue(String sql, @Nullable Object @Nullable [] params,
+    <T> Optional<T> queryValue(String sql, @Nullable Object @Nullable [] params,
             Class<T> clazz)
             throws SQLException;
 
@@ -263,7 +263,7 @@ public interface JdbcOperations {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    Optional<@Nullable Map<String, @Nullable Object>> queryFirst(
+    Optional<Map<String, @Nullable Object>> queryFirst(
             String sql, @Nullable Object @Nullable [] params)
             throws SQLException;
 
@@ -277,7 +277,7 @@ public interface JdbcOperations {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    default <T extends @Nullable Object> Optional<T> queryFirst(String sql, RowMapper<T> rowMapper)
+    default <T> Optional<T> queryFirst(String sql, RowMapper<T> rowMapper)
             throws SQLException {
         return queryFirst(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, rowMapper);
     }
@@ -293,7 +293,7 @@ public interface JdbcOperations {
      * @return 第一行第一列的值，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    default <T extends @Nullable Object> Optional<T> queryValue(String sql, Class<T> clazz)
+    default <T> Optional<T> queryValue(String sql, Class<T> clazz)
             throws SQLException {
         return queryValue(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz);
     }
@@ -313,7 +313,7 @@ public interface JdbcOperations {
      *             此方法将在后续版本中移除。
      */
     @Deprecated
-    default <T extends @Nullable Object> Optional<T> queryFirst(
+    default <T> Optional<T> queryFirst(
             String sql, @Nullable Object @Nullable [] params,
             Class<T> clazz)
             throws SQLException {
@@ -334,7 +334,7 @@ public interface JdbcOperations {
      *             此方法将在后续版本中移除。
      */
     @Deprecated
-    default <T extends @Nullable Object> Optional<T> queryFirst(String sql, Class<T> clazz)
+    default <T> Optional<T> queryFirst(String sql, Class<T> clazz)
             throws SQLException {
         return queryValue(sql, clazz);
     }
@@ -347,7 +347,7 @@ public interface JdbcOperations {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    default Optional<@Nullable Map<String, @Nullable Object>> queryFirst(String sql)
+    default Optional<Map<String, @Nullable Object>> queryFirst(String sql)
             throws SQLException {
         return queryFirst(sql, ParamBuilder.EMPTY_OBJECT_ARRAY);
     }
@@ -364,8 +364,11 @@ public interface JdbcOperations {
      * @return 第一行第一列的值，如果查询结果为空则返回 {@code defaultValue}
      * @throws SQLException SQL 异常
      */
-    default <T extends @Nullable Object> T queryValueOrDefault(String sql, @Nullable Object @Nullable [] params,
-            Class<T> clazz, T defaultValue)
+    default <T extends @Nullable Object> T queryValueOrDefault(
+            String sql,
+            @Nullable Object @Nullable [] params,
+            Class<@NonNull T> clazz,
+            T defaultValue)
             throws SQLException {
         return queryValue(sql, params, clazz).orElse(defaultValue);
     }
@@ -381,7 +384,7 @@ public interface JdbcOperations {
      * @return 第一行第一列的值，如果查询结果为空则返回 {@code defaultValue}
      * @throws SQLException SQL 异常
      */
-    default <T extends @Nullable Object> T queryValueOrDefault(String sql, Class<T> clazz, T defaultValue)
+    default <T extends @Nullable Object> T queryValueOrDefault(String sql, Class<@NonNull T> clazz, T defaultValue)
             throws SQLException {
         return queryValueOrDefault(sql, ParamBuilder.EMPTY_OBJECT_ARRAY, clazz, defaultValue);
     }

@@ -105,7 +105,7 @@ class PreparedSqlTests {
 
     @Test
     @DisplayName("param(null, val) 抛异常")
-    @SuppressWarnings("null")
+    @SuppressWarnings({"null", "DataFlowIssue"})
     void testParamNameNull() {
         assertThrows(Exception.class,
                 () -> PreparedSql.sql("SELECT 1").param(null, "x"));

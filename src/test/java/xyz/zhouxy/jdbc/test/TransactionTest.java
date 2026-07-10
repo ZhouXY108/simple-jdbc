@@ -228,7 +228,7 @@ class TransactionTest extends BaseH2Test {
 
     @Test
     @DisplayName("execute：null 操作抛异常")
-    @SuppressWarnings("null")
+    @SuppressWarnings({"null", "DataFlowIssue"})
     void testExecuteTransactionNullOps() {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -508,18 +508,17 @@ class TransactionTest extends BaseH2Test {
 
     @Test
     @DisplayName("executeNamed：null 操作抛异常")
-    @SuppressWarnings("null")
+    @SuppressWarnings({"null", "DataFlowIssue"})
     void testExecuteNamedNullOps() {
         SimpleJdbcTemplate template = createTemplate();
 
         assertThrows(Exception.class, () ->
-                template.transaction().executeNamed(
-                        (ThrowingConsumer<NamedParamJdbcOperations, Exception>) null));
+                template.transaction().executeNamed(null));
     }
 
     @Test
     @DisplayName("commitIfTrueNamed：null 操作抛异常")
-    @SuppressWarnings("null")
+    @SuppressWarnings({"null", "DataFlowIssue"})
     void testCommitIfTrueNamedNullOps() {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -549,7 +548,7 @@ class TransactionTest extends BaseH2Test {
 
     @Test
     @DisplayName("TransactionException：null cause")
-    @SuppressWarnings("null")
+    @SuppressWarnings({"null", "DataFlowIssue"})
     void testTransactionExceptionNullCause() {
         TransactionException ex = new TransactionException(null);
         assertEquals("Transaction failed during execution", ex.getMessage());

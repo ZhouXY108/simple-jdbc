@@ -18,7 +18,6 @@ package xyz.zhouxy.jdbc.util;
 
 import java.util.function.Supplier;
 
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -314,7 +313,7 @@ public class AssertTools {
      * @param e 异常
      * @throws T 当条件不满足时抛出异常
      */
-    public static <T extends @NonNull Exception> void checkCondition(boolean condition, Supplier<T> e)
+    public static <T extends Exception> void checkCondition(boolean condition, Supplier<T> e)
             throws T {
         if (!condition) {
             throw e.get();

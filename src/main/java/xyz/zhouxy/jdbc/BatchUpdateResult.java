@@ -68,11 +68,11 @@ public class BatchUpdateResult {
     /**
      * 所有批次的更新结果
      */
-    private Map<Integer, int[]> allUpdateCounts;
+    private final Map<Integer, int[]> allUpdateCounts;
     /**
      * 所有出错的批次的错误信息
      */
-    private Map<Integer, BatchUpdateErrorInfo> allErrorsInfo;
+    private final Map<Integer, BatchUpdateErrorInfo> allErrorsInfo;
 
     /**
      * 成功批次数量

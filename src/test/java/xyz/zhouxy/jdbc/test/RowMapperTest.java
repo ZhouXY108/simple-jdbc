@@ -1,24 +1,32 @@
 package xyz.zhouxy.jdbc.test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static xyz.zhouxy.jdbc.test.JdbcTestAssertions.assertLinkedHashMapOrder;
 
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import xyz.zhouxy.jdbc.DefaultBeanRowMapper;
+import xyz.zhouxy.jdbc.MapRowMapper;
 import xyz.zhouxy.jdbc.RowMapper;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 
 /**
- * RowMapper 测试：DefaultBeanRowMapper、HASH_MAP_MAPPER、自定义 RowMapper。
+ * RowMapper 测试：DefaultBeanRowMapper、MapRowMapper、自定义 RowMapper。
  *
  * <p>验证 DefaultBeanRowMapper 的默认映射和自定义列映射，以及 RowMapper 接口的静态工厂方法。</p>
  */
@@ -214,16 +222,22 @@ class RowMapperTest extends BaseH2Test {
         assertEquals("alice@example.com", user.get().getEmail());
     }
 
-    // ==================== HASH_MAP_MAPPER ====================
+    // ==================== MapRowMapper 公共行为 ====================
 
-    @Test
-    @DisplayName("HASH_MAP_MAPPER：所有列映射为 Map")
-    void testHashMapMapper() throws SQLException {
+    static Stream<Arguments> mapRowMappers() {
+        return Stream.of(
+                Arguments.of(RowMapper.HASH_MAP_MAPPER, "HASH_MAP_MAPPER"),
+                Arguments.of(RowMapper.LINKED_HASH_MAP_MAPPER, "LINKED_HASH_MAP_MAPPER"));
+    }
+
+    @ParameterizedTest(name = "{1}：所有列映射为 Map")
+    @MethodSource("mapRowMappers")
+    void testMapRowMapper(RowMapper<Map<String, Object>> rowMapper, String mapperName) throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
         Optional<Map<String, Object>> user = template.queryFirst(
                 "SELECT id, username, email, age FROM users WHERE username = ?",
-                new Object[]{"bob"});
+                new Object[]{"bob"}, rowMapper);
 
         assertTrue(user.isPresent());
         Map<String, Object> map = user.get();
@@ -232,33 +246,93 @@ class RowMapperTest extends BaseH2Test {
         assertEquals("bob@example.com", map.get("email"));
         assertEquals(35, map.get("age"));
 
-        logger.info("HASH_MAP_MAPPER 映射结果: {}", map);
+        logger.info("{} 映射结果: {}", mapperName, map);
     }
 
-    @Test
-    @DisplayName("HASH_MAP_MAPPER：空结果返回 Optional.empty()")
-    void testHashMapMapperEmpty() throws SQLException {
+    @ParameterizedTest(name = "{1}：空结果返回 Optional.empty()")
+    @MethodSource("mapRowMappers")
+    void testMapRowMapperEmpty(RowMapper<Map<String, Object>> rowMapper, String mapperName) throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
         Optional<Map<String, Object>> user = template.queryFirst(
                 "SELECT * FROM users WHERE id = ?",
-                new Object[]{999});
+                new Object[]{999}, rowMapper);
 
         assertFalse(user.isPresent());
     }
 
-    @Test
-    @DisplayName("HASH_MAP_MAPPER：查询列表返回 List<Map>")
-    void testHashMapMapperList() throws SQLException {
+    @ParameterizedTest(name = "{1}：查询列表返回 List<Map>")
+    @MethodSource("mapRowMappers")
+    void testMapRowMapperList(RowMapper<Map<String, Object>> rowMapper, String mapperName) throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
         List<Map<String, Object>> users = template.queryList(
-                "SELECT id, username FROM users ORDER BY id");
+                "SELECT id, username FROM users ORDER BY id", rowMapper);
 
         assertEquals(5, users.size());
         // 第一行
         assertEquals("alice", users.get(0).get("username"));
         assertEquals(1L, users.get(0).get("id"));
+    }
+
+    // ==================== 具体实现差异 ====================
+
+    @Test
+    @DisplayName("LINKED_HASH_MAP_MAPPER：保持列的查询顺序")
+    void testLinkedHashMapMapperPreservesOrder() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        Optional<Map<String, Object>> user = template.queryFirst(
+                "SELECT email, age, id, username FROM users WHERE username = ?",
+                new Object[]{"bob"},
+                RowMapper.LINKED_HASH_MAP_MAPPER);
+
+        assertTrue(user.isPresent());
+        Map<String, Object> map = user.get();
+        assertLinkedHashMapOrder(map, "email", "age", "id", "username");
+    }
+
+    @Test
+    @DisplayName("HASH_MAP_MAPPER：返回 HashMap 实例")
+    void testHashMapMapperInstanceType() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        Optional<Map<String, Object>> user = template.queryFirst(
+                "SELECT id, username FROM users WHERE username = ?",
+                new Object[]{"bob"},
+                RowMapper.HASH_MAP_MAPPER);
+
+        assertTrue(user.isPresent());
+        assertInstanceOf(HashMap.class, user.get());
+    }
+
+    @Test
+    @DisplayName("自定义 MapRowMapper 子类：使用 TreeMap 按自然顺序排序")
+    void testCustomMapRowMapperTreeMap() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        RowMapper<Map<String, Object>> treeMapMapper = new MapRowMapper<Map<String, Object>>() {
+            @Override
+            protected Map<String, Object> createMap() {
+                return new TreeMap<>();
+            }
+        };
+
+        Optional<Map<String, Object>> user = template.queryFirst(
+                "SELECT email, age, id, username FROM users WHERE username = ?",
+                new Object[]{"bob"},
+                treeMapMapper);
+
+        assertTrue(user.isPresent());
+        Map<String, Object> map = user.get();
+        assertInstanceOf(TreeMap.class, map);
+        assertEquals("bob", map.get("username"));
+        assertEquals("bob@example.com", map.get("email"));
+        assertEquals(35, map.get("age"));
+        assertEquals(2L, map.get("id"));
+
+        // TreeMap 按列名自然顺序排序，而非查询顺序
+        assertIterableEquals(Arrays.asList("age", "email", "id", "username"), map.keySet());
     }
 
     // ==================== 自定义 RowMapper 对比 ====================

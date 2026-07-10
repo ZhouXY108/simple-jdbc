@@ -17,9 +17,9 @@
 package xyz.zhouxy.jdbc;
 
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.jspecify.annotations.NonNull;
@@ -42,20 +42,41 @@ public interface RowMapper<T extends @Nullable Object> {
     T mapRow(ResultSet rs, @SuppressWarnings("unused") int rowNumber) throws SQLException;
 
     /**
-     * 每一行数据转换为 {@link HashMap}
+     * 每一行数据转换为 {@link HashMap}，不保证键的迭代顺序。
      *
      * <p>
-     * <b>注：如果两个属性映射到同一列名，后者静默覆盖前者。</b>
+     * 如需保持列的查询顺序，请使用 {@link #LINKED_HASH_MAP_MAPPER}。
+     * </p>
+     * <p>
+     * <b>如果两列映射到同一列名，后者静默覆盖前者。</b>
+     * 自 1.1.0 起，重复列名按列索引取值并依次覆盖，最终 Map 中保留的是最后一列的值。
+     * </p>
      */
-    RowMapper<Map<String, @Nullable Object>> HASH_MAP_MAPPER = (rs, rowNumber) -> {
-        Map<String, @Nullable Object> result = new HashMap<>();
-        ResultSetMetaData metaData = rs.getMetaData();
-        int columnCount = metaData.getColumnCount();
-        for (int i = 1; i <= columnCount; i++) {
-            String colName = metaData.getColumnLabel(i);
-            result.put(colName, rs.getObject(i));
+    RowMapper<Map<String, @Nullable Object>> HASH_MAP_MAPPER = new MapRowMapper<Map<String, @Nullable Object>>() {
+        @Override
+        protected @NonNull Map<String, @Nullable Object> createMap() {
+            return new HashMap<>();
         }
-        return result;
+    };
+
+    /**
+     * 每一行数据转换为 {@link LinkedHashMap}，保持列的查询顺序。
+     *
+     * <p>
+     * 自 1.1.0 起作为 {@code queryList(sql, params)} 和 {@code queryFirst(sql, params)}
+     * 方法的默认 Map 映射器。如需无序的低开销实现，可使用 {@link #HASH_MAP_MAPPER}。
+     * </p>
+     * <p>
+     * <b>注：如果两列映射到同一列名，后者静默覆盖前者。</b>
+     * </p>
+     *
+     * @since 1.1.0
+     */
+    RowMapper<Map<String, @Nullable Object>> LINKED_HASH_MAP_MAPPER = new MapRowMapper<Map<String, @Nullable Object>>() {
+        @Override
+        protected @NonNull Map<String, @Nullable Object> createMap() {
+            return new LinkedHashMap<>();
+        }
     };
 
     /**

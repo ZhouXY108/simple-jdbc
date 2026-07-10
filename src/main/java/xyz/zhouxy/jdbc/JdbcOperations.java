@@ -127,6 +127,8 @@ public interface JdbcOperations {
     /**
      * 执行查询，每行转为 {@code Map<String, Object>}，返回结果列表。
      *
+     * <p>自 1.1.0 起，默认实现使用 {@link java.util.LinkedHashMap}，保持列的查询顺序。</p>
+     *
      * @param sql    SQL 语句
      * @param params 参数数组
      *
@@ -209,6 +211,8 @@ public interface JdbcOperations {
     /**
      * 执行查询，每行转为 {@code Map<String, Object>}，返回结果列表。
      *
+     * <p>自 1.1.0 起，默认实现使用 {@link java.util.LinkedHashMap}，保持列的查询顺序。</p>
+     *
      * @param sql SQL 语句
      *
      * @return 结果列表
@@ -256,6 +260,8 @@ public interface JdbcOperations {
 
     /**
      * 执行查询，将第一行转为 {@code Map<String, Object>}，返回结果。
+     *
+     * <p>自 1.1.0 起，默认实现使用 {@link java.util.LinkedHashMap}，保持列的查询顺序。</p>
      *
      * @param sql    SQL 语句
      * @param params 参数数组
@@ -341,6 +347,8 @@ public interface JdbcOperations {
 
     /**
      * 执行查询，将第一行转为 {@code Map<String, Object>}，返回结果。
+     *
+     * <p>自 1.1.0 起，默认实现使用 {@link java.util.LinkedHashMap}，保持列的查询顺序。</p>
      *
      * @param sql SQL 语句
      *

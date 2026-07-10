@@ -6,6 +6,9 @@
 
 - **`DefaultBeanRowMapper.of()` 不再抛出 `SQLException`**：工厂方法在反射异常时改为抛出非受检异常 `IllegalStateException`。调用方如果 `catch (SQLException e)` 包裹 `of()` 调用，该捕获将失效，需移除相关 `catch` 块或改为捕获 `IllegalStateException`。
 - **`ThrowingConsumer` 与 `ThrowingPredicate` 迁移至 `xyz.zhouxy.jdbc.function` 子包**：需更新 import 路径。
+- **`queryList` / `queryFirst` 默认 Map 映射器由 `RowMapper.HASH_MAP_MAPPER` 改为 `RowMapper.LINKED_HASH_MAP_MAPPER`**
+  - 无显式 `RowMapper` 参数的 `queryList(sql, params)` / `queryFirst(sql, params)` 等方法，返回的 `Map` 实现由 `HashMap` 切换为 `LinkedHashMap`，以保留列的查询顺序。
+  - 依赖 `HashMap` 迭代顺序，或使用 `getClass() == HashMap.class` 等精确类型判断的现有代码需要调整；因为 `LinkedHashMap` 继承自 `HashMap`，所以 `instanceof HashMap` 判断不会受影响。如需恢复无序实现，可显式传入 `RowMapper.HASH_MAP_MAPPER`。
 
 ### 新增
 
@@ -17,6 +20,7 @@
   - `TransactionTemplate` 新增命名参数事务方法：`executeNamed` / `commitIfTrueNamed`（纯命名参数回调），以及双参数回调重载（混用位置与命名参数）
   - 补充命名参数查询、更新、批量操作的完整单元测试
 - `ParamBuilder.handleItem` 方法由 `private` 提升为 `public`
+
 ### 修复
 
 - **Map 映射器重复列名取值修正**：重复列名场景下，Map 映射器现在按列索引依次取值，最终 Map 中保留的是最后一列的值。旧实现按列名取值时，重复标签始终返回第一列的值；显式使用 `HASH_MAP_MAPPER` 并依赖旧行为的代码需要调整。

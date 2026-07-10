@@ -114,7 +114,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
             String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.queryList(conn, sql, params, RowMapper.HASH_MAP_MAPPER);
+            return JdbcOperationSupport.queryList(conn, sql, params, RowMapper.LINKED_HASH_MAP_MAPPER);
         }
     }
 
@@ -151,7 +151,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
             final Map<String, @Nullable Object> result = JdbcOperationSupport
-                    .queryFirst(conn, sql, params, RowMapper.HASH_MAP_MAPPER);
+                    .queryFirst(conn, sql, params, RowMapper.LINKED_HASH_MAP_MAPPER);
             return Optional.ofNullable(result);
         }
     }

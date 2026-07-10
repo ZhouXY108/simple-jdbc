@@ -1,6 +1,7 @@
 package xyz.zhouxy.jdbc.test.namedparam;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static xyz.zhouxy.jdbc.test.JdbcTestAssertions.assertLinkedHashMapOrder;
 
 import java.sql.SQLException;
 import java.util.Collections;
@@ -174,6 +175,7 @@ class NamedParamQueryTest extends BaseH2Test {
 
         assertEquals(1, users.size());
         assertEquals("alice", users.get(0).get("username"));
+        assertLinkedHashMapOrder(users.get(0), "id", "username", "email");
     }
 
     @Test
@@ -233,6 +235,7 @@ class NamedParamQueryTest extends BaseH2Test {
 
         assertEquals(1, users.size());
         assertEquals("alice", users.get(0).get("username"));
+        assertLinkedHashMapOrder(users.get(0), "id", "username", "email");
     }
 
     // ==================== queryFirst ====================
@@ -476,6 +479,7 @@ class NamedParamQueryTest extends BaseH2Test {
 
         assertTrue(user.isPresent());
         assertEquals("charlie", user.get().get("username"));
+        assertLinkedHashMapOrder(user.get(), "id", "username");
     }
 
     @Test
@@ -490,6 +494,7 @@ class NamedParamQueryTest extends BaseH2Test {
 
         assertTrue(user.isPresent());
         assertEquals("charlie", user.get().get("username"));
+        assertLinkedHashMapOrder(user.get(), "id", "username");
     }
 
     // ==================== queryBoolean ====================
@@ -617,6 +622,7 @@ class NamedParamQueryTest extends BaseH2Test {
 
         assertEquals(1, users.size());
         assertEquals("alice", users.get(0).get("username"));
+        assertLinkedHashMapOrder(users.get(0), "id", "username", "email");
     }
 
     @Test
@@ -649,6 +655,7 @@ class NamedParamQueryTest extends BaseH2Test {
 
         assertTrue(user.isPresent());
         assertEquals("charlie", user.get().get("username"));
+        assertLinkedHashMapOrder(user.get(), "id", "username");
     }
 
     @Test

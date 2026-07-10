@@ -2,6 +2,7 @@ package xyz.zhouxy.jdbc.test;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static xyz.zhouxy.jdbc.ParamBuilder.buildParams;
+import static xyz.zhouxy.jdbc.test.JdbcTestAssertions.assertLinkedHashMapOrder;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -24,7 +25,9 @@ class QueryTest extends BaseH2Test {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryTest.class);
 
-    // ==================== query(ResultHandler) ====================
+    // ================================
+    // #region - query(ResultHandler)
+    // ================================
 
     @Test
     @DisplayName("query + ResultHandler：统计总行数")
@@ -75,7 +78,13 @@ class QueryTest extends BaseH2Test {
         assertEquals(5, count);
     }
 
-    // ==================== queryList(RowMapper) ====================
+    // ================================
+    // #endregion - query(ResultHandler)
+    // ================================
+
+    // ================================
+    // #region - queryList(RowMapper)
+    // ================================
 
     @Test
     @DisplayName("queryList + RowMapper：查询全部用户")
@@ -118,7 +127,13 @@ class QueryTest extends BaseH2Test {
         assertEquals(5, users.size());
     }
 
-    // ==================== queryValues(Class) ====================
+    // ================================
+    // #endregion - queryList(RowMapper)
+    // ================================
+
+    // ================================
+    // #region - queryValues(Class)
+    // ================================
 
     @Test
     @DisplayName("queryValues(Class)：单列查询返回 String 列表")
@@ -147,7 +162,13 @@ class QueryTest extends BaseH2Test {
         assertTrue(result.isEmpty());
     }
 
-    // ==================== queryList(Map) ====================
+    // ================================
+    // #endregion - queryValues(Class)
+    // ================================
+
+    // ================================
+    // #region - queryList(Map)
+    // ================================
 
     @Test
     @DisplayName("queryList(Map)：返回 List<Map>")
@@ -161,6 +182,7 @@ class QueryTest extends BaseH2Test {
         logger.info("queryList(Map) 返回: {}", users);
         assertEquals(1, users.size());
         assertEquals("alice", users.get(0).get("username"));
+        assertLinkedHashMapOrder(users.get(0), "id", "username", "email");
     }
 
     @Test
@@ -172,9 +194,16 @@ class QueryTest extends BaseH2Test {
                 "SELECT id, username FROM users ORDER BY id");
 
         assertEquals(5, users.size());
+        assertLinkedHashMapOrder(users.get(0), "id", "username");
     }
 
-    // ==================== queryFirst(RowMapper) ====================
+    // ================================
+    // #endregion - queryList(Map)
+    // ================================
+
+    // ================================
+    // #region - queryFirst(RowMapper)
+    // ================================
 
     @Test
     @DisplayName("queryFirst + RowMapper：查询第一条记录")
@@ -214,7 +243,13 @@ class QueryTest extends BaseH2Test {
         assertTrue(user.isPresent());
     }
 
-    // ==================== queryValue(Class) ====================
+    // ================================
+    // #endregion - queryFirst(RowMapper)
+    // ================================
+
+    // ================================
+    // #region - queryValue(Class)
+    // ================================
 
     @Test
     @DisplayName("queryValue(Class)：查询第一行第一列")
@@ -272,7 +307,13 @@ class QueryTest extends BaseH2Test {
         assertNotNull(totalBalance);
     }
 
-    // ==================== queryValueOrDefault ====================
+    // ================================
+    // #endregion - queryValue(Class)
+    // ================================
+
+    // ================================
+    // #region - queryValueOrDefault
+    // ================================
 
     @Test
     @DisplayName("queryValueOrDefault：有结果时返回值")
@@ -347,7 +388,13 @@ class QueryTest extends BaseH2Test {
         assertEquals(0L, count);
     }
 
-    // ==================== queryFirst(Map) ====================
+    // ================================
+    // #endregion - queryValueOrDefault
+    // ================================
+
+    // ================================
+    // #region - queryFirst(Map)
+    // ================================
 
     @Test
     @DisplayName("queryFirst(Map)：返回 Optional<Map>")
@@ -360,6 +407,7 @@ class QueryTest extends BaseH2Test {
 
         assertTrue(user.isPresent());
         assertEquals("bob", user.get().get("username"));
+        assertLinkedHashMapOrder(user.get(), "id", "username");
     }
 
     @Test
@@ -372,6 +420,7 @@ class QueryTest extends BaseH2Test {
 
         assertTrue(user.isPresent());
         assertEquals("alice", user.get().get("username"));
+        assertLinkedHashMapOrder(user.get(), "id", "username");
     }
 
     @Test
@@ -386,7 +435,13 @@ class QueryTest extends BaseH2Test {
         assertFalse(result.isPresent());
     }
 
-    // ==================== queryBoolean ====================
+    // ================================
+    // #endregion - queryFirst(Map)
+    // ================================
+
+    // ================================
+    // #region - queryBoolean
+    // ================================
 
     @Test
     @DisplayName("queryBoolean：存在返回 true")
@@ -435,7 +490,13 @@ class QueryTest extends BaseH2Test {
         assertFalse(exists);
     }
 
-    // ==================== 边界情况 ====================
+    // ================================
+    // #endregion - queryBoolean
+    // ================================
+
+    // ================================
+    // #region - 边界情况
+    // ================================
 
     @Test
     @DisplayName("边界：查询包含 null 字段的数据")
@@ -459,8 +520,7 @@ class QueryTest extends BaseH2Test {
         SimpleJdbcTemplate template = createTemplate();
 
         assertThrows(SQLException.class, () ->
-                template.queryValues("SELECT * FROM non_existent_table",
-                        new Object[0], String.class));
+                template.queryValues("SELECT * FROM non_existent_table", String.class));
     }
 
     @Test
@@ -469,13 +529,12 @@ class QueryTest extends BaseH2Test {
         SimpleJdbcTemplate template = createTemplate();
 
         assertThrows(SQLException.class, () ->
-                template.queryValues("SELEC * FROM users",
-                        new Object[0], String.class));
+                template.queryValues("SELEC * FROM users", String.class));
     }
 
     @Test
-    @DisplayName("边界：HASH_MAP_MAPPER 同名列静默覆盖")
-    void testHashMapMapperColumnOverride() throws SQLException {
+    @DisplayName("边界：重复列标签后者静默覆盖")
+    void testDuplicateColumnLabelOverride() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
         // 两列标签相同（后者为字面量），验证后者覆盖前者
@@ -511,4 +570,8 @@ class QueryTest extends BaseH2Test {
 
         assertEquals(5, users.size());
     }
+
+    // ================================
+    // #endregion - 边界情况
+    // ================================
 }

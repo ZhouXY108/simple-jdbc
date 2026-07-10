@@ -275,6 +275,8 @@ public interface NamedParamJdbcOperations {
     /**
      * 执行查询，每行转为 {@code Map<String, Object>}，返回结果列表。
      *
+     * <p>自 1.1.0 起，默认实现使用 {@link java.util.LinkedHashMap}，保持列的查询顺序。</p>
+     *
      * @param sql    包含命名参数的 SQL
      * @param params 命名参数映射
      * @return 结果列表
@@ -290,6 +292,8 @@ public interface NamedParamJdbcOperations {
     /**
      * 执行查询，每行转为 {@code Map<String, Object>}，返回结果列表。
      *
+     * <p>自 1.1.0 起，默认实现使用 {@link java.util.LinkedHashMap}，保持列的查询顺序。</p>
+     *
      * @param template 预解析的命名参数 SQL 模板
      * @param params   命名参数映射
      * @return 结果列表
@@ -303,6 +307,8 @@ public interface NamedParamJdbcOperations {
 
     /**
      * 执行查询，每行转为 {@code Map<String, Object>}，返回结果列表。
+     *
+     * <p>自 1.1.0 起，默认实现使用 {@link java.util.LinkedHashMap}，保持列的查询顺序。</p>
      *
      * @param ps 预构建的命名参数 SQL
      * @return 结果列表
@@ -478,6 +484,8 @@ public interface NamedParamJdbcOperations {
     /**
      * 执行查询，将第一行转为 {@code Map<String, Object>}，返回结果。
      *
+     * <p>自 1.1.0 起，默认实现使用 {@link java.util.LinkedHashMap}，保持列的查询顺序。</p>
+     *
      * @param sql    包含命名参数的 SQL
      * @param params 命名参数映射
      * @return 第一行结果，可能为 {@code Optional.empty()}
@@ -493,6 +501,8 @@ public interface NamedParamJdbcOperations {
     /**
      * 执行查询，将第一行转为 {@code Map<String, Object>}，返回结果。
      *
+     * <p>自 1.1.0 起，默认实现使用 {@link java.util.LinkedHashMap}，保持列的查询顺序。</p>
+     *
      * @param template 预解析的命名参数 SQL 模板
      * @param params   命名参数映射
      * @return 第一行结果，可能为 {@code Optional.empty()}
@@ -506,6 +516,8 @@ public interface NamedParamJdbcOperations {
 
     /**
      * 执行查询，将第一行转为 {@code Map<String, Object>}，返回结果。
+     *
+     * <p>自 1.1.0 起，默认实现使用 {@link java.util.LinkedHashMap}，保持列的查询顺序。</p>
      *
      * @param ps 预构建的命名参数 SQL
      * @return 第一行结果，可能为 {@code Optional.empty()}

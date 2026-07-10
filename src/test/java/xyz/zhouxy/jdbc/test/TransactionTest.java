@@ -2,9 +2,11 @@ package xyz.zhouxy.jdbc.test;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static xyz.zhouxy.jdbc.ParamBuilder.buildParams;
+import static xyz.zhouxy.jdbc.test.JdbcTestAssertions.assertLinkedHashMapOrder;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -207,6 +209,29 @@ class TransactionTest extends BaseH2Test {
             assertTrue(user.isPresent());
 
             logger.info("事务内查询可见性验证通过");
+        });
+    }
+
+    @Test
+    @DisplayName("execute：事务内 queryList/queryFirst(Map) 默认返回 LinkedHashMap 并保持列顺序")
+    void testTransactionMapQueryReturnsLinkedHashMap() throws Exception {
+        SimpleJdbcTemplate template = createTemplate();
+
+        template.transaction().execute((JdbcOperations ops) -> {
+            List<Map<String, Object>> users = ops.queryList(
+                    "SELECT id, username FROM users ORDER BY id");
+
+            assertFalse(users.isEmpty());
+            assertLinkedHashMapOrder(users.get(0), "id", "username");
+
+            Optional<Map<String, Object>> first = ops.queryFirst(
+                    "SELECT email, age, id, username FROM users WHERE username = ?",
+                    buildParams("bob"));
+
+            assertTrue(first.isPresent());
+            assertLinkedHashMapOrder(first.get(), "email", "age", "id", "username");
+
+            logger.info("事务内 Map 查询顺序验证通过");
         });
     }
 

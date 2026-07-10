@@ -324,7 +324,7 @@ public class TransactionTemplate {
         public List<@Nullable Map<String, @Nullable Object>> queryList(
                 String sql, @Nullable Object @Nullable [] params)
                 throws SQLException {
-            return JdbcOperationSupport.queryList(this.conn, sql, params, RowMapper.HASH_MAP_MAPPER);
+            return JdbcOperationSupport.queryList(this.conn, sql, params, RowMapper.LINKED_HASH_MAP_MAPPER);
         }
 
         // #endregion
@@ -357,7 +357,7 @@ public class TransactionTemplate {
                 String sql, @Nullable Object @Nullable [] params)
                 throws SQLException {
             final Map<String, @Nullable Object> result = JdbcOperationSupport
-                    .queryFirst(this.conn, sql, params, RowMapper.HASH_MAP_MAPPER);
+                    .queryFirst(this.conn, sql, params, RowMapper.LINKED_HASH_MAP_MAPPER);
             return Optional.ofNullable(result);
         }
 

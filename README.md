@@ -421,7 +421,8 @@ jdbcTemplate.transaction().executeNamed(nops -> {
 
 - **`ResultHandler`**：处理完整的 `ResultSet`，允许自定义逻辑将结果集映射为任意类型（包括集合）。
 - **`RowMapper`**：将 `ResultSet` 中的单行数据映射为 Java 对象。内置以下默认实现：
-  - `RowMapper.HASH_MAP_MAPPER`：将每行数据映射为 `HashMap<String, Object>`。
+  - `RowMapper.HASH_MAP_MAPPER`：将每行数据映射为 `HashMap<String, Object>`，不保证键的迭代顺序。
+  - `RowMapper.LINKED_HASH_MAP_MAPPER`：将每行数据映射为 `LinkedHashMap<String, Object>`，保持列的查询顺序。`queryList(sql, params)` 和 `queryFirst(sql, params)` 默认使用此映射器。
   - `DefaultBeanRowMapper`：将 `ResultSet` 中的一行数据映射为 Java Bean 的默认实现。使用反射获取类型信息、调用无参构造器和 `setter` 方法。**（注：实际生产中更建议针对目标类型自定义 `RowMapper` 以提升性能）**
     - `RowMapper.beanRowMapper(Class)`：自动匹配 **属性名（小驼峰） ↔ 列名（小写蛇形）**。
     - `RowMapper.beanRowMapper(Class, Map<String, String>)`：通过 `Map` 自定义属性名与列名映射关系。

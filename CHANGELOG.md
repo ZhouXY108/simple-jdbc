@@ -17,6 +17,9 @@
   - `TransactionTemplate` 新增命名参数事务方法：`executeNamed` / `commitIfTrueNamed`（纯命名参数回调），以及双参数回调重载（混用位置与命名参数）
   - 补充命名参数查询、更新、批量操作的完整单元测试
 - `ParamBuilder.handleItem` 方法由 `private` 提升为 `public`
+### 修复
+
+- **Map 映射器重复列名取值修正**：重复列名场景下，Map 映射器现在按列索引依次取值，最终 Map 中保留的是最后一列的值。旧实现按列名取值时，重复标签始终返回第一列的值；显式使用 `HASH_MAP_MAPPER` 并依赖旧行为的代码需要调整。
 
 ### 重构
 

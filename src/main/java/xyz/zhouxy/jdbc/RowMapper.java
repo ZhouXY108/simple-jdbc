@@ -53,7 +53,7 @@ public interface RowMapper<T extends @Nullable Object> {
         int columnCount = metaData.getColumnCount();
         for (int i = 1; i <= columnCount; i++) {
             String colName = metaData.getColumnLabel(i);
-            result.put(colName, rs.getObject(colName));
+            result.put(colName, rs.getObject(i));
         }
         return result;
     };

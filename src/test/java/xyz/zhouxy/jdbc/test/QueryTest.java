@@ -478,14 +478,13 @@ class QueryTest extends BaseH2Test {
     void testHashMapMapperColumnOverride() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        // 查询同名列（如自连接或别名相同的情况）
+        // 两列标签相同（后者为字面量），验证后者覆盖前者
         List<Map<String, Object>> results = template.queryList(
-                "SELECT id, id AS duplicated_id FROM users WHERE id = 1",
-                new Object[0]);
+                "SELECT username, 'aa' AS username FROM users WHERE username = ?",
+                new Object[]{"alice"});
 
         assertEquals(1, results.size());
-        // HASH_MAP_MAPPER 注：同名后者覆盖前者，所以 key 为 duplicated_id 的值存在
-        assertNotNull(results.get(0).get("duplicated_id"));
+        assertEquals("aa", results.get(0).get("username"));
     }
 
     @Test

@@ -28,14 +28,14 @@ import org.jspecify.annotations.Nullable;
  * <p>
  * 本工具类不封装过多判断逻辑，鼓励充分使用项目中的工具类进行逻辑判断。
  *
- * <pre>
+ * <pre>{@code
  * checkArgument(StringUtils.hasText(str), "The argument cannot be blank.");
  * checkState(ArrayUtils.isNotEmpty(result), "The result cannot be empty.");
  * checkCondition(!CollectionUtils.isEmpty(roles),
  *     () -&gt; new InvalidInputException("The roles cannot be empty."));
  * checkCondition(RegexTools.matches(email, PatternConsts.EMAIL),
  *     "must be a well-formed email address");
- * </pre>
+ * }</pre>
  *
  * @author ZhouXY
  */

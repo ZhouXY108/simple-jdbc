@@ -39,8 +39,9 @@ class NamingToolsTest {
 
     @Test
     @DisplayName("camelToSnake：null 输入返回 null")
+    @SuppressWarnings({"null", "DataFlowIssue"})
     void testCamelToSnakeNull() {
-        assertNull(NamingTools.camelToSnake(null));
+        assertThrows(IllegalArgumentException.class, () -> NamingTools.camelToSnake(null));
     }
 
     @Test
@@ -146,7 +147,7 @@ class NamingToolsTest {
 
     @Test
     @DisplayName("私有构造器抛 IllegalStateException")
-    void testPrivateConstructor() throws Exception {
+    void testPrivateConstructor() {
         Constructor<?>[] constructors = NamingTools.class.getDeclaredConstructors();
         Arrays.stream(constructors)
                 .forEach(constructor -> {

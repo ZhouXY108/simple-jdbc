@@ -99,7 +99,7 @@ public class TransactionTemplate {
      * 执行事务。如果未发生异常，则提交事务；当有异常发生时，回滚事务
      *
      * <p>
-     * operations 中使用 JdbcExecutor 实参进行 JDBC 操作，这些操作在一个连接中
+     * operations 中使用 JdbcOperations 实参进行 JDBC 操作，这些操作在一个连接中
      * </p>
      *
      * @param <E>                   异常类型

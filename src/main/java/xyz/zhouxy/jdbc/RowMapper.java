@@ -54,7 +54,7 @@ public interface RowMapper<T extends @Nullable Object> {
      */
     RowMapper<Map<String, @Nullable Object>> HASH_MAP_MAPPER = new MapRowMapper<Map<String, @Nullable Object>>() {
         @Override
-        protected @NonNull Map<String, @Nullable Object> createMap() {
+        protected Map<String, @Nullable Object> createMap() {
             return new HashMap<>();
         }
     };
@@ -74,7 +74,7 @@ public interface RowMapper<T extends @Nullable Object> {
      */
     RowMapper<Map<String, @Nullable Object>> LINKED_HASH_MAP_MAPPER = new MapRowMapper<Map<String, @Nullable Object>>() {
         @Override
-        protected @NonNull Map<String, @Nullable Object> createMap() {
+        protected Map<String, @Nullable Object> createMap() {
             return new LinkedHashMap<>();
         }
     };

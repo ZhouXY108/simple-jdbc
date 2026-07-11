@@ -20,17 +20,16 @@ import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.NullMarked;
@@ -50,9 +49,10 @@ import xyz.zhouxy.jdbc.util.NamingTools;
  * <p>
  * 说明：
  * <ul>
- * <li>使用反射获取类型信息，也是使用反射调用无参构造器和 {@code setter} 方法。</li>
+ * <li>使用 {@link MethodHandle} 调用无参构造器和 {@code setter} 方法，避免传统反射的运行时开销。
+ *     要求 Bean 具有 {@code public} 无参构造器且 setter 为 {@code public} 方法。</li>
  * <li>支持自定义列名和属性名的映射，当未指定 {@code propertyColMap} 时，默认 JavaBean 的属性名为小驼峰，列名为小写蛇形命名。</li>
- * <li>使用 {@link ResultSet#getObject(String, Class)} 从 {@link ResultSet} 中获取属性值。</li>
+ * <li>使用 {@link ResultSet#getObject(int, Class)} 从 {@link ResultSet} 中获取属性值。</li>
  * <li>JavaBean 属性仅支持引用类型，不支持基本数据类型。</li>
  * </ul>
  *
@@ -65,23 +65,31 @@ public class SimpleBeanRowMapper<T extends @Nullable Object> implements RowMappe
     /** JavaBean 类型 */
     private final Class<T> beanType;
 
-    /** Bean 的无参构造器 */
-    private final Constructor<T> constructor;
+    /** Bean 的无参构造器 MethodHandle */
+    private final MethodHandle constructorHandle;
 
-    /** 列名到属性的映射 */
-    private final Map<String, PropertyDescriptor> colPropertyMap;
+    /** 列名到属性类型与 setter MethodHandle 的映射 */
+    private final Map<String, ColMapping> colMappings;
 
-    /** 列名与 setter 的映射 */
-    private final Map<String, Method> colSetterMap;
+    /**
+     * 列映射信息：属性类型 + setter MethodHandle
+     */
+    private static final class ColMapping {
+        final Class<?> propertyType;
+        final MethodHandle setterHandle;
 
-    private SimpleBeanRowMapper(Class<@NonNull T> beanType,
-                                 Constructor<@NonNull T> constructor,
-                                 Map<String, PropertyDescriptor> colPropertyMap,
-                                 Map<String, Method> colSetterMap) {
+        ColMapping(Class<?> propertyType, MethodHandle setterHandle) {
+            this.propertyType = propertyType;
+            this.setterHandle = setterHandle;
+        }
+    }
+
+    private SimpleBeanRowMapper(Class<T> beanType,
+                                MethodHandle constructorHandle,
+                                Map<String, ColMapping> colMappings) {
         this.beanType = beanType;
-        this.constructor = constructor;
-        this.colPropertyMap = colPropertyMap;
-        this.colSetterMap = colSetterMap;
+        this.constructorHandle = constructorHandle;
+        this.colMappings = colMappings;
     }
 
     /**
@@ -109,13 +117,15 @@ public class SimpleBeanRowMapper<T extends @Nullable Object> implements RowMappe
             Class<@NonNull T> beanType,
             @Nullable Map<String, String> propertyColMap) {
         try {
-            // 获取无参构造器
-            Constructor<@NonNull T> constructor = beanType.getDeclaredConstructor();
-            constructor.setAccessible(true); // NOSONAR
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
 
-            final Map<String, PropertyDescriptor> colPropertyMap = buildColPropertyMap(beanType, propertyColMap);
-            final Map<String, Method> colSetterMap = buildColSetterMap(colPropertyMap);
-            return new SimpleBeanRowMapper<>(beanType, constructor, colPropertyMap, colSetterMap);
+            // 无参构造器 → MethodHandle
+            Constructor<@NonNull T> constructor = beanType.getDeclaredConstructor();
+            MethodHandle ctorHandle = lookup.unreflectConstructor(constructor);
+
+            final Map<String, ColMapping> colMappings = buildColMappings(
+                    lookup, beanType, propertyColMap);
+            return new SimpleBeanRowMapper<>(beanType, ctorHandle, colMappings);
         }
         catch (IntrospectionException e) {
             throw new IllegalStateException("There is an exception occurs during introspection.", e);
@@ -123,44 +133,43 @@ public class SimpleBeanRowMapper<T extends @Nullable Object> implements RowMappe
         catch (NoSuchMethodException e) {
             throw new IllegalStateException("Could not find a no-args constructor in " + beanType.getName(), e);
         }
+        catch (IllegalAccessException e) {
+            throw new IllegalStateException("Could not access constructor in " + beanType.getName(), e);
+        }
     }
 
     /** {@inheritDoc} */
     @Override
     public T mapRow(ResultSet rs, int rowNumber) throws SQLException {
         try {
-            // 调用无参构造器创建实例
-            T newInstance = this.constructor.newInstance();
+            @SuppressWarnings("unchecked")
+            T newInstance = (T) this.constructorHandle.invoke();
             ResultSetMetaData metaData = rs.getMetaData();
             // 遍历结果的每一列
             for (int i = 1; i <= metaData.getColumnCount(); i++) {
                 String colName = metaData.getColumnLabel(i);
-                // 获取查询结果列名对应的属性，调用 setter
-                PropertyDescriptor propertyDescriptor = this.colPropertyMap.get(colName);
-                Method setter = this.colSetterMap.get(colName);
-                if (propertyDescriptor != null && setter != null) {
-                    Class<?> propertyType = propertyDescriptor.getPropertyType();
-                    setter.invoke(newInstance, rs.getObject(colName, propertyType));
+                ColMapping mapping = this.colMappings.get(colName);
+                if (mapping != null) {
+                    mapping.setterHandle.invoke(newInstance, rs.getObject(i, mapping.propertyType));
                 }
             }
             return newInstance;
         }
-        catch (IllegalAccessException | InstantiationException | InvocationTargetException e) {
+        catch (SQLException e) {
+            throw e;
+        }
+        catch (Throwable e) {
             throw new IllegalStateException("Could not map row to " + beanType.getName(), e);
         }
     }
 
     /**
-     * 构建 column name 和 PropertyDescriptor 的 映射
-     *
-     * @param <T> Java bean 类型
-     * @param beanType       Java bean 类型
-     * @param propertyColMap 属性与列名的映射
-     * @return column name 和 PropertyDescriptor 的映射
-     * @throws IntrospectionException if an exception occurs during introspection.
+     * 构建 column name 到 ColMapping 的映射。
      */
-    private static <T extends @Nullable Object> Map<String, PropertyDescriptor> buildColPropertyMap(
-            Class<@NonNull T> beanType, @Nullable Map<String, String> propertyColMap) throws IntrospectionException {
+    private static <T extends @Nullable Object> Map<String, ColMapping> buildColMappings(
+            MethodHandles.Lookup lookup,
+            Class<@NonNull T> beanType,
+            @Nullable Map<String, String> propertyColMap) throws IntrospectionException, IllegalAccessException {
 
         BeanInfo beanInfo = Introspector.getBeanInfo(beanType);
         PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
@@ -178,19 +187,18 @@ public class SimpleBeanRowMapper<T extends @Nullable Object> implements RowMappe
                     : NamingTools.camelToSnake(propertyName);
             };
         }
-        return Arrays.stream(propertyDescriptors)
-                .collect(Collectors.toMap(keyMapper, Function.identity(), (a, b) -> b));
-    }
 
-    private static Map<String, Method> buildColSetterMap(Map<String, PropertyDescriptor> colPropertyMap) {
-        final Map<String, Method> colSetterMap = new HashMap<>(colPropertyMap.size());
-        colPropertyMap.forEach((col, propertyDescriptor) -> {
-            Method setter = propertyDescriptor.getWriteMethod();
+        final Map<String, ColMapping> result = new HashMap<>();
+        for (PropertyDescriptor pd : propertyDescriptors) {
+            Method setter = pd.getWriteMethod();
             if (setter != null) {
-                setter.setAccessible(true); // NOSONAR
-                colSetterMap.put(col, setter);
+                String colName = keyMapper.apply(pd);
+                ColMapping mapping = new ColMapping(
+                        pd.getPropertyType(),
+                        lookup.unreflect(setter));
+                result.put(colName, mapping);
             }
-        });
-        return colSetterMap;
+        }
+        return result;
     }
 }

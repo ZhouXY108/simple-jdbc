@@ -150,14 +150,16 @@ class RowMapperTest extends BaseH2Test {
     @DisplayName("SimpleBeanRowMapper：无无参构造器的 Bean 抛出 IllegalStateException")
     void testSimpleBeanRowMapperNoNoArgConstructor() {
         assertThrows(IllegalStateException.class, () ->
-                RowMapper.beanRowMapper(BeanWithoutNoArgConstructor.class));
+                SimpleBeanRowMapper.of(BeanWithoutNoArgConstructor.class));
     }
 
     @Test
-    @DisplayName("SimpleBeanRowMapper：RowMapper.beanRowMapper 静态工厂方法")
+    @DisplayName("SimpleBeanRowMapper：RowMapper.beanRowMapper 静态工厂方法返回 SimpleBeanRowMapper")
     void testRowMapperStaticBeanRowMapper() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
         RowMapper<User> rowMapper = RowMapper.beanRowMapper(User.class);
+
+        assertInstanceOf(SimpleBeanRowMapper.class, rowMapper);
 
         Optional<User> user = template.queryFirst(
                 "SELECT * FROM users WHERE username = ?",

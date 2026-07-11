@@ -4,7 +4,7 @@
 
 ### ⚠️ 破坏性变更
 
-- **`DefaultBeanRowMapper` 重命名为 `SimpleBeanRowMapper`**：原 `DefaultBeanRowMapper` 在 1.1.0 中保留为 `@Deprecated` 兼容别名，**将在 1.2.0 中移除**。`RowMapper.beanRowMapper(...)` 静态工厂方法内部已改为返回 `SimpleBeanRowMapper`。建议直接引用新类名。
+- **`DefaultBeanRowMapper` 重命名为 `SimpleBeanRowMapper`**：原 `DefaultBeanRowMapper` 在 1.1.0 中保留为 `@Deprecated` 兼容别名，**将在 1.2.0 中移除**。`RowMapper.beanRowMapper(...)` 静态工厂方法内部已改为返回 `SimpleBeanRowMapper` 实例（未来版本可自由切换实现）。建议直接引用新类名。
 - **`DefaultBeanRowMapper.of()` 不再抛出 `SQLException`**：工厂方法在反射异常时改为抛出非受检异常 `IllegalStateException`。调用方如果 `catch (SQLException e)` 包裹 `of()` 调用，该捕获将失效，需移除相关 `catch` 块或改为捕获 `IllegalStateException`。
 - **`ThrowingConsumer` 与 `ThrowingPredicate` 迁移至 `xyz.zhouxy.jdbc.function` 子包**：需更新 import 路径。
 - **`queryList` / `queryFirst` 默认 Map 映射器由 `RowMapper.HASH_MAP_MAPPER` 改为 `RowMapper.LINKED_HASH_MAP_MAPPER`**
@@ -33,6 +33,7 @@
   - 依赖由 `com.google.code.findbugs:jsr305` 替换为 `org.jspecify:jspecify:1.0.0`
   - `AssertTools.checkCondition` 异常边界约束收紧为 `<T extends @NonNull Exception>`
   - 测试代码同步更新：`UserRowMapper.mapRow` 参数加 `@NonNull`，`ParamBuilderTest` 加 `@SuppressWarnings("null")`
+- **`SimpleBeanRowMapper` 改用 `MethodHandle` 替代传统反射**：构造器和 setter 调用由 `Constructor.newInstance()` + `setter.invoke()`（需 `setAccessible(true)`）切换为 `java.lang.invoke.MethodHandle`。要求 Bean 具有 `public` 无参构造器且 setter 为 `public` 方法。`RowMapper.beanRowMapper(...)` 静态工厂方法当前返回 `SimpleBeanRowMapper` 实例（未来版本可自由切换实现）。
 - **单列查询方法语义优化**：消除 Class 参数重载歧义，补全方法族
   - `queryList(sql, params, Class<T>)` → 已过时，请使用 `queryValues(sql, params, Class<T>)`（多行单列 → 值列表）
   - `queryFirst(sql, params, Class<T>)` → 已过时，请使用 `queryValue(sql, params, Class<T>)`（单行单列 → 单值 Optional）

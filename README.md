@@ -94,8 +94,8 @@ List<Account> mappedAccounts = jdbcTemplate.queryList(
     RowMapper.beanRowMapper(Account.class)
 );
 
-// RowMapper.beanRowMapper(...) 内部是基于反射的 `SimpleBeanRowMapper`，仅适合对性能不敏感、图方便的场景。
-// 实际生产环境中，建议为具体类型自定义 RowMapper，以避免反射带来的运行时开销。
+// RowMapper.beanRowMapper(...) 内部是基于 MethodHandle 的 `SimpleBeanRowMapper`，仅适合对性能不敏感的场景。
+// 实际生产环境中，建议为具体类型自定义 RowMapper。
 
 // 查询列表（使用自定义 RowMapper 映射）
 List<Account> customMappedAccounts = jdbcTemplate.queryList(
@@ -426,10 +426,10 @@ jdbcTemplate.transaction().executeNamed(nops -> {
 - **`RowMapper`**：将 `ResultSet` 中的单行数据映射为 Java 对象。内置以下实现：
   - `RowMapper.HASH_MAP_MAPPER`：将每行数据映射为 `HashMap<String, Object>`，不保证键的迭代顺序。
   - `RowMapper.LINKED_HASH_MAP_MAPPER`：将每行数据映射为 `LinkedHashMap<String, Object>`，保持列的查询顺序。`queryList(sql, params)` 和 `queryFirst(sql, params)` 默认使用此映射器。
-  - `SimpleBeanRowMapper`：将 `ResultSet` 中的一行数据映射为 Java Bean 的简易实现，运行时通过反射调用构造器和 setter。
+  - `SimpleBeanRowMapper`：将 `ResultSet` 中的一行数据映射为 Java Bean 的简易实现，运行时通过 `MethodHandle` 调用构造器和 setter。
 
 > **定位说明**：`SimpleBeanRowMapper` 是一个优先级很低的存在，项目提供它只是为了"开箱即用"的便捷性，**并非推荐的映射方式**。原因如下：
-> - 由于运行时需要进行类型发现和反射调用，它仍存在可观的运行时开销；
+> - 由于运行时需要进行类型发现和 MethodHandle 调用，它仍存在可观的运行时开销；
 > - 因此它的定位只是“有这么个简单实现”，更鼓励用户针对自己的类型编写自定义 `RowMapper`。
 >
 > 如果你仍然想使用，可通过以下工厂方法：

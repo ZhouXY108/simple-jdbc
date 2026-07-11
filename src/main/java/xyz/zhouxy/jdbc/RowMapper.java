@@ -82,6 +82,12 @@ public interface RowMapper<T extends @Nullable Object> {
     /**
      * 简易的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。
      *
+     * <p>
+     * 内部由 {@link SimpleBeanRowMapper} 实现，通过 {@link java.lang.invoke.MethodHandle}
+     * 调用无参构造器及 setter，因此要求 Bean 提供 {@code public} 无参构造器且 setter 为 {@code public}。
+     * 该实现仅适用于对性能不敏感的场景，生产环境建议针对目标类型自定义 {@link RowMapper}。
+     * </p>
+     *
      * @param beanType Java Bean 的类型
      * @param <T> Java Bean 的类型
      *
@@ -94,6 +100,12 @@ public interface RowMapper<T extends @Nullable Object> {
 
     /**
      * 简易的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。
+     *
+     * <p>
+     * 内部由 {@link SimpleBeanRowMapper} 实现，通过 {@link java.lang.invoke.MethodHandle}
+     * 调用无参构造器及 setter，因此要求 Bean 提供 {@code public} 无参构造器且 setter 为 {@code public}。
+     * 该实现仅适用于对性能不敏感的场景，生产环境建议针对目标类型自定义 {@link RowMapper}。
+     * </p>
      *
      * @param beanType Java Bean 的类型
      * @param propertyColMap Java Bean 属性名与数据库列名的映射关系

@@ -148,7 +148,7 @@ public class TransactionTemplate {
             final ThrowingConsumer<NamedParamJdbcOperations, E> operations)
             throws TransactionException, SQLException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
-        execute(ops -> operations.accept((NamedParamJdbcOperations) ops));
+        execute(ops -> operations.accept(ops.getNamedParamJdbcOperations()));
     }
 
     /**
@@ -169,7 +169,7 @@ public class TransactionTemplate {
             final ThrowingBiConsumer<JdbcOperations, NamedParamJdbcOperations, E> operations)
             throws TransactionException, SQLException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
-        execute(ops -> operations.accept(ops, (NamedParamJdbcOperations) ops));
+        execute(ops -> operations.accept(ops, ops.getNamedParamJdbcOperations()));
     }
 
     /**
@@ -224,7 +224,7 @@ public class TransactionTemplate {
             final ThrowingPredicate<NamedParamJdbcOperations, E> operations)
             throws SQLException, TransactionException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
-        commitIfTrue(ops -> operations.test((NamedParamJdbcOperations) ops));
+        commitIfTrue(ops -> operations.test(ops.getNamedParamJdbcOperations()));
     }
 
     /**
@@ -242,7 +242,7 @@ public class TransactionTemplate {
             final ThrowingBiPredicate<JdbcOperations, NamedParamJdbcOperations, E> operations)
             throws SQLException, TransactionException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
-        commitIfTrue(ops -> operations.test(ops, (NamedParamJdbcOperations) ops));
+        commitIfTrue(ops -> operations.test(ops, ops.getNamedParamJdbcOperations()));
     }
 
     private void rollbackSilently(Connection conn, Exception e) {
@@ -284,6 +284,12 @@ public class TransactionTemplate {
         /** {@inheritDoc} */
         @Override
         public JdbcOperations getJdbcOperations() {
+            return this;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public NamedParamJdbcOperations getNamedParamJdbcOperations() {
             return this;
         }
 

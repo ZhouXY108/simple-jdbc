@@ -26,6 +26,8 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import xyz.zhouxy.jdbc.namedparam.NamedParamJdbcOperations;
+
 /**
  * JDBC 位置参数操作接口，使用 {@code ?} 占位符的数据库操作方法集合。
  *
@@ -523,6 +525,36 @@ public interface JdbcOperations {
         String sql, @Nullable Collection<@Nullable Object @Nullable []> params,
         int batchSize, boolean quietly)
             throws SQLException;
+
+    // #endregion
+
+    // #region - named parameter operations access
+
+    /**
+     * 获取当前操作对象对应的命名参数操作视图。
+     *
+     * <p>
+     * 如果当前实现同时实现了 {@link NamedParamJdbcOperations}，通常返回 {@code this}；
+     * 否则应抛出 {@link UnsupportedOperationException} 表示不支持命名参数。
+     * </p>
+     *
+     * <p>
+     * 默认实现会检查当前对象是否为 {@link NamedParamJdbcOperations} 实例，以减少
+     * {@link JdbcOperations} 与 {@link NamedParamJdbcOperations} 混用时的强制转换。
+     * </p>
+     *
+     * @return 命名参数操作视图
+     * @throws UnsupportedOperationException 当前实现不支持命名参数时抛出
+     * @since 1.1.0
+     */
+    default NamedParamJdbcOperations getNamedParamJdbcOperations() {
+        if (this instanceof NamedParamJdbcOperations) {
+            return (NamedParamJdbcOperations) this;
+        }
+        throw new UnsupportedOperationException(
+                "Named parameters are not supported by this JdbcOperations implementation. "
+                        + "Implement NamedParamJdbcOperations or override this method.");
+    }
 
     // #endregion
 }

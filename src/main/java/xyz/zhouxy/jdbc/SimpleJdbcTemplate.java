@@ -219,6 +219,12 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
         return this;
     }
 
+    /** {@inheritDoc} */
+    @Override
+    public NamedParamJdbcOperations getNamedParamJdbcOperations() {
+        return this;
+    }
+
     // #endregion
 
     // #region - transaction

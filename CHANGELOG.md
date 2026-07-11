@@ -20,6 +20,7 @@
   - `SimpleJdbcTemplate` 同时实现 `JdbcOperations` 与 `NamedParamJdbcOperations`
   - `TransactionTemplate` 新增命名参数事务方法：`executeNamed` / `commitIfTrueNamed`（纯命名参数回调），以及双参数回调重载（混用位置与命名参数）
   - 补充命名参数查询、更新、批量操作的完整单元测试
+- `JdbcOperations` 新增方法 `getNamedParamJdbcOperations()`
 - `ParamBuilder.handleItem` 方法由 `private` 提升为 `public`
 
 ### 修复

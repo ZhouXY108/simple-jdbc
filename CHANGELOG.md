@@ -4,6 +4,7 @@
 
 ### ⚠️ 破坏性变更
 
+- **`DefaultBeanRowMapper` 重命名为 `SimpleBeanRowMapper`**：原 `DefaultBeanRowMapper` 在 1.1.0 中保留为 `@Deprecated` 兼容别名，**将在 1.2.0 中移除**。`RowMapper.beanRowMapper(...)` 静态工厂方法内部已改为返回 `SimpleBeanRowMapper`。建议直接引用新类名。
 - **`DefaultBeanRowMapper.of()` 不再抛出 `SQLException`**：工厂方法在反射异常时改为抛出非受检异常 `IllegalStateException`。调用方如果 `catch (SQLException e)` 包裹 `of()` 调用，该捕获将失效，需移除相关 `catch` 块或改为捕获 `IllegalStateException`。
 - **`ThrowingConsumer` 与 `ThrowingPredicate` 迁移至 `xyz.zhouxy.jdbc.function` 子包**：需更新 import 路径。
 - **`queryList` / `queryFirst` 默认 Map 映射器由 `RowMapper.HASH_MAP_MAPPER` 改为 `RowMapper.LINKED_HASH_MAP_MAPPER`**
@@ -41,7 +42,7 @@
 
 ### 文档
 
-- 优化 `DefaultBeanRowMapper` 类注释，明确性能限制和使用建议
+- 优化 `SimpleBeanRowMapper` 类注释，明确性能限制和使用建议
 - 更新 README，补充命名参数使用说明和示例
 - 更新 NOTICE，声明 MyBatis 代码引用及许可
 

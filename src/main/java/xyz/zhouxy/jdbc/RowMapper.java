@@ -80,30 +80,30 @@ public interface RowMapper<T extends @Nullable Object> {
     };
 
     /**
-     * 默认实现的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。
+     * 简易的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。
      *
      * @param beanType Java Bean 的类型
      * @param <T> Java Bean 的类型
      *
-     * @return {@link DefaultBeanRowMapper}
-     * @throws IllegalStateException 如果创建 {@link DefaultBeanRowMapper} 失败
+     * @return {@link SimpleBeanRowMapper}
+     * @throws IllegalStateException 如果创建 {@link SimpleBeanRowMapper} 失败
      */
     static <T extends @Nullable Object> RowMapper<T> beanRowMapper(Class<@NonNull T> beanType) {
-        return DefaultBeanRowMapper.of(beanType);
+        return SimpleBeanRowMapper.of(beanType);
     }
 
     /**
-     * 默认实现的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。
+     * 简易的将 {@link ResultSet} 转换为 Java Bean 的 {@link RowMapper}。
      *
      * @param beanType Java Bean 的类型
      * @param propertyColMap Java Bean 属性名与数据库列名的映射关系
      * @param <T> Java Bean 的类型
      *
-     * @return {@link DefaultBeanRowMapper}
-     * @throws IllegalStateException 如果创建 {@link DefaultBeanRowMapper} 失败
+     * @return {@link SimpleBeanRowMapper}
+     * @throws IllegalStateException 如果创建 {@link SimpleBeanRowMapper} 失败
      */
     static <T extends @Nullable Object> RowMapper<T> beanRowMapper(Class<@NonNull T> beanType,
             Map<String, String> propertyColMap) {
-        return DefaultBeanRowMapper.of(beanType, propertyColMap);
+        return SimpleBeanRowMapper.of(beanType, propertyColMap);
     }
 }

@@ -10,7 +10,7 @@
 
 - **轻量无依赖**：基于原生 JDBC 封装，无第三方重量级依赖。
 - **API 简洁**：提供丰富的快捷方法，大幅减少样板代码。
-- **灵活的映射**：支持自定义 `ResultHandler` 与 `RowMapper`，内置默认 Bean 映射策略。
+- **灵活的映射**：支持自定义 `ResultHandler` 与 `RowMapper` 灵活处理结果集，内置 `Map` 类型支持（`LinkedHashMap` / `HashMap`）。
 - **事务与批处理**：提供声明式的事务模板与完善的批量更新错误处理机制。
 - **命名参数支持**：同时支持传统位置参数（`?`）与命名参数（`#{paramName}`）两种 SQL 风格，可在同一模板实例中无缝切换或混用，提升 SQL 可读性。
 - **线程安全**：核心模板类无状态设计，天然支持多线程环境。
@@ -93,6 +93,9 @@ List<Account> mappedAccounts = jdbcTemplate.queryList(
     buildParams("admin%", "0000"),
     RowMapper.beanRowMapper(Account.class)
 );
+
+// RowMapper.beanRowMapper(...) 内部是基于反射的 `SimpleBeanRowMapper`，仅适合对性能不敏感、图方便的场景。
+// 实际生产环境中，建议为具体类型自定义 RowMapper，以避免反射带来的运行时开销。
 
 // 查询列表（使用自定义 RowMapper 映射）
 List<Account> customMappedAccounts = jdbcTemplate.queryList(
@@ -420,12 +423,18 @@ jdbcTemplate.transaction().executeNamed(nops -> {
 ### 4.2 结果映射策略
 
 - **`ResultHandler`**：处理完整的 `ResultSet`，允许自定义逻辑将结果集映射为任意类型（包括集合）。
-- **`RowMapper`**：将 `ResultSet` 中的单行数据映射为 Java 对象。内置以下默认实现：
+- **`RowMapper`**：将 `ResultSet` 中的单行数据映射为 Java 对象。内置以下实现：
   - `RowMapper.HASH_MAP_MAPPER`：将每行数据映射为 `HashMap<String, Object>`，不保证键的迭代顺序。
   - `RowMapper.LINKED_HASH_MAP_MAPPER`：将每行数据映射为 `LinkedHashMap<String, Object>`，保持列的查询顺序。`queryList(sql, params)` 和 `queryFirst(sql, params)` 默认使用此映射器。
-  - `DefaultBeanRowMapper`：将 `ResultSet` 中的一行数据映射为 Java Bean 的默认实现。使用反射获取类型信息、调用无参构造器和 `setter` 方法。**（注：实际生产中更建议针对目标类型自定义 `RowMapper` 以提升性能）**
-    - `RowMapper.beanRowMapper(Class)`：自动匹配 **属性名（小驼峰） ↔ 列名（小写蛇形）**。
-    - `RowMapper.beanRowMapper(Class, Map<String, String>)`：通过 `Map` 自定义属性名与列名映射关系。
+  - `SimpleBeanRowMapper`：将 `ResultSet` 中的一行数据映射为 Java Bean 的简易实现，运行时通过反射调用构造器和 setter。
+
+> **定位说明**：`SimpleBeanRowMapper` 是一个优先级很低的存在，项目提供它只是为了"开箱即用"的便捷性，**并非推荐的映射方式**。原因如下：
+> - 由于运行时需要进行类型发现和反射调用，它仍存在可观的运行时开销；
+> - 因此它的定位只是“有这么个简单实现”，更鼓励用户针对自己的类型编写自定义 `RowMapper`。
+>
+> 如果你仍然想使用，可通过以下工厂方法：
+> - `RowMapper.beanRowMapper(Class)`：自动匹配 **属性名（小驼峰）↔ 列名（小写蛇形）**。
+> - `RowMapper.beanRowMapper(Class, Map<String, String>)`：通过 `Map` 自定义属性名与列名映射关系。
 
 ---
 

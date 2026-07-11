@@ -8,7 +8,7 @@ import java.util.Objects;
 /**
  * 测试用的 Java Bean，用于验证 RowMapper 映射。
  *
- * <p>注意：属性全部使用引用类型，以匹配 DefaultBeanRowMapper 的设计约束。</p>
+ * <p>注意：属性全部使用引用类型，以匹配 SimpleBeanRowMapper 的设计约束。</p>
  */
 public class User {
 

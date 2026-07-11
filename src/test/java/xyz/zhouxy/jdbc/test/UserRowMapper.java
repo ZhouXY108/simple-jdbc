@@ -10,7 +10,7 @@ import xyz.zhouxy.jdbc.RowMapper;
 /**
  * 自定义 User RowMapper，直接操作 ResultSet 进行映射。
  *
- * <p>相较于 DefaultBeanRowMapper，自定义 RowMapper 避免了反射开销，性能更优。</p>
+ * <p>相较于 SimpleBeanRowMapper，自定义 RowMapper 避免了反射开销，性能更优。</p>
  */
 public class UserRowMapper implements RowMapper<User> {
 

@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
+import org.jspecify.annotations.NullMarked;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,23 +24,24 @@ import org.slf4j.LoggerFactory;
 import xyz.zhouxy.jdbc.DefaultBeanRowMapper;
 import xyz.zhouxy.jdbc.MapRowMapper;
 import xyz.zhouxy.jdbc.RowMapper;
+import xyz.zhouxy.jdbc.SimpleBeanRowMapper;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 
 /**
- * RowMapper 测试：DefaultBeanRowMapper、MapRowMapper、自定义 RowMapper。
+ * RowMapper 测试：SimpleBeanRowMapper、MapRowMapper、自定义 RowMapper。
  *
- * <p>验证 DefaultBeanRowMapper 的默认映射和自定义列映射，以及 RowMapper 接口的静态工厂方法。</p>
+ * <p>验证 SimpleBeanRowMapper / DefaultBeanRowMapper 的默认映射和自定义列映射，以及 RowMapper 接口的静态工厂方法。</p>
  */
 @DisplayName("RowMapper 映射测试")
 class RowMapperTest extends BaseH2Test {
 
     private static final Logger logger = LoggerFactory.getLogger(RowMapperTest.class);
 
-    // ==================== DefaultBeanRowMapper 默认映射 ====================
+    // ==================== SimpleBeanRowMapper 默认映射 ====================
 
     @Test
-    @DisplayName("DefaultBeanRowMapper：默认小驼峰→小写下划线映射")
-    void testDefaultBeanRowMapperDefaultMapping() throws SQLException {
+    @DisplayName("SimpleBeanRowMapper：默认小驼峰→小写下划线映射")
+    void testSimpleBeanRowMapperDefaultMapping() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
         RowMapper<User> rowMapper = RowMapper.beanRowMapper(User.class);
 
@@ -56,12 +58,12 @@ class RowMapperTest extends BaseH2Test {
         assertEquals(Long.valueOf(15000), u.getBalance());
         assertTrue(u.getActive());
 
-        logger.info("DefaultBeanRowMapper 默认映射: {}", u);
+        logger.info("SimpleBeanRowMapper 默认映射: {}", u);
     }
 
     @Test
-    @DisplayName("DefaultBeanRowMapper：null 值字段映射为 null")
-    void testDefaultBeanRowMapperNullFields() throws SQLException {
+    @DisplayName("SimpleBeanRowMapper：null 值字段映射为 null")
+    void testSimpleBeanRowMapperNullFields() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
         RowMapper<User> rowMapper = RowMapper.beanRowMapper(User.class);
 
@@ -79,11 +81,11 @@ class RowMapperTest extends BaseH2Test {
         assertEquals("charlie", u.getUsername());
     }
 
-    // ==================== DefaultBeanRowMapper 自定义列映射 ====================
+    // ==================== SimpleBeanRowMapper 自定义列映射 ====================
 
     @Test
-    @DisplayName("DefaultBeanRowMapper：propertyColMap 自定义列名映射")
-    void testDefaultBeanRowMapperWithPropertyColMap() throws SQLException {
+    @DisplayName("SimpleBeanRowMapper：propertyColMap 自定义列名映射")
+    void testSimpleBeanRowMapperWithPropertyColMap() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
         // 自定义映射：属性名 -> 列名
@@ -104,8 +106,8 @@ class RowMapperTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("DefaultBeanRowMapper：propertyColMap 未覆盖的属性走默认映射")
-    void testDefaultBeanRowMapperPartialPropertyColMap() throws SQLException {
+    @DisplayName("SimpleBeanRowMapper：propertyColMap 未覆盖的属性走默认映射")
+    void testSimpleBeanRowMapperPartialPropertyColMap() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
         // 只映射 username，其他走默认小驼峰→下划线
@@ -124,11 +126,11 @@ class RowMapperTest extends BaseH2Test {
         assertEquals(Integer.valueOf(31), user.get().getAge());
     }
 
-    // ==================== DefaultBeanRowMapper 边界 ====================
+    // ==================== SimpleBeanRowMapper 边界 ====================
 
     @Test
-    @DisplayName("DefaultBeanRowMapper：Bean 包含不匹配列时正常忽略")
-    void testDefaultBeanRowMapperUnmatchedColumns() throws SQLException {
+    @DisplayName("SimpleBeanRowMapper：Bean 包含不匹配列时正常忽略")
+    void testSimpleBeanRowMapperUnmatchedColumns() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
         RowMapper<User> rowMapper = RowMapper.beanRowMapper(User.class);
 
@@ -145,14 +147,14 @@ class RowMapperTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("DefaultBeanRowMapper：无无参构造器的 Bean 抛出 IllegalStateException")
-    void testDefaultBeanRowMapperNoNoArgConstructor() {
+    @DisplayName("SimpleBeanRowMapper：无无参构造器的 Bean 抛出 IllegalStateException")
+    void testSimpleBeanRowMapperNoNoArgConstructor() {
         assertThrows(IllegalStateException.class, () ->
-                DefaultBeanRowMapper.of(BeanWithoutNoArgConstructor.class));
+                RowMapper.beanRowMapper(BeanWithoutNoArgConstructor.class));
     }
 
     @Test
-    @DisplayName("DefaultBeanRowMapper：RowMapper.beanRowMapper 静态工厂方法")
+    @DisplayName("SimpleBeanRowMapper：RowMapper.beanRowMapper 静态工厂方法")
     void testRowMapperStaticBeanRowMapper() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
         RowMapper<User> rowMapper = RowMapper.beanRowMapper(User.class);
@@ -165,11 +167,11 @@ class RowMapperTest extends BaseH2Test {
         assertEquals("alice", user.get().getUsername());
     }
 
-    // ==================== DefaultBeanRowMapper 连续大写缩写映射 ====================
+    // ==================== SimpleBeanRowMapper 连续大写缩写映射 ====================
 
     @Test
-    @DisplayName("DefaultBeanRowMapper：连续大写缩写属性正确映射为 snake_case")
-    void testDefaultBeanRowMapperAcronymMapping() throws SQLException {
+    @DisplayName("SimpleBeanRowMapper：连续大写缩写属性正确映射为 snake_case")
+    void testSimpleBeanRowMapperAcronymMapping() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
         // 创建测试表，列名使用 snake_case
@@ -207,11 +209,172 @@ class RowMapperTest extends BaseH2Test {
     }
 
     @Test
-    @DisplayName("DefaultBeanRowMapper：纯小写属性名映射为同名列")
-    void testDefaultBeanRowMapperAllLowercaseMapping() throws SQLException {
+    @DisplayName("SimpleBeanRowMapper：纯小写属性名映射为同名列")
+    void testSimpleBeanRowMapperAllLowercaseMapping() throws SQLException {
         // 通过 User Bean 验证纯小写属性映射（username → username, email → email）
         SimpleJdbcTemplate template = createTemplate();
         RowMapper<User> rowMapper = RowMapper.beanRowMapper(User.class);
+
+        Optional<User> user = template.queryFirst(
+                "SELECT username, email FROM users WHERE username = ?",
+                new Object[]{"alice"}, rowMapper);
+
+        assertTrue(user.isPresent());
+        assertEquals("alice", user.get().getUsername());
+        assertEquals("alice@example.com", user.get().getEmail());
+    }
+
+    // ==================== DefaultBeanRowMapper 兼容别名测试 ====================
+
+    @Test
+    @DisplayName("DefaultBeanRowMapper：默认小驼峰→小写下划线映射")
+    @SuppressWarnings("deprecation")
+    void testDefaultBeanRowMapperDefaultMapping() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        RowMapper<User> rowMapper = DefaultBeanRowMapper.of(User.class);
+
+        Optional<User> user = template.queryFirst(
+                "SELECT * FROM users WHERE username = ?",
+                new Object[]{"alice"}, rowMapper);
+
+        assertTrue(user.isPresent());
+        User u = user.get();
+        assertEquals(Long.valueOf(1), u.getId());
+        assertEquals("alice", u.getUsername());
+        assertEquals("alice@example.com", u.getEmail());
+        assertEquals(Integer.valueOf(28), u.getAge());
+        assertEquals(Long.valueOf(15000), u.getBalance());
+        assertTrue(u.getActive());
+
+        logger.info("DefaultBeanRowMapper 默认映射: {}", u);
+    }
+
+    @Test
+    @DisplayName("DefaultBeanRowMapper：null 值字段映射为 null")
+    @SuppressWarnings("deprecation")
+    void testDefaultBeanRowMapperNullFields() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        RowMapper<User> rowMapper = DefaultBeanRowMapper.of(User.class);
+
+        Optional<User> user = template.queryFirst(
+                "SELECT * FROM users WHERE username = ?",
+                new Object[]{"charlie"}, rowMapper);
+
+        assertTrue(user.isPresent());
+        User u = user.get();
+        assertNull(u.getEmail());
+        assertNull(u.getAge());
+        assertNull(u.getBirthDate());
+        assertNull(u.getWorkStartTime());
+        assertEquals("charlie", u.getUsername());
+    }
+
+    @Test
+    @DisplayName("DefaultBeanRowMapper：propertyColMap 自定义列名映射")
+    @SuppressWarnings("deprecation")
+    void testDefaultBeanRowMapperWithPropertyColMap() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        Map<String, String> propertyColMap = new HashMap<>();
+        propertyColMap.put("username", "user_name_1");
+
+        RowMapper<User> rowMapper = DefaultBeanRowMapper.of(User.class, propertyColMap);
+
+        Optional<User> user = template.queryFirst(
+                "SELECT id, username AS user_name_1, email, age, balance, active FROM users WHERE username = ?",
+                new Object[]{"bob"}, rowMapper);
+
+        assertTrue(user.isPresent());
+        assertEquals("bob", user.get().getUsername());
+    }
+
+    @Test
+    @DisplayName("DefaultBeanRowMapper：propertyColMap 未覆盖的属性走默认映射")
+    @SuppressWarnings("deprecation")
+    void testDefaultBeanRowMapperPartialPropertyColMap() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        Map<String, String> propertyColMap = new HashMap<>();
+        propertyColMap.put("username", "user_label");
+
+        RowMapper<User> rowMapper = DefaultBeanRowMapper.of(User.class, propertyColMap);
+
+        Optional<User> user = template.queryFirst(
+                "SELECT id, username AS user_label, email, age FROM users WHERE username = ?",
+                new Object[]{"eve"}, rowMapper);
+
+        assertTrue(user.isPresent());
+        assertEquals("eve", user.get().getUsername());
+        assertEquals("eve@example.com", user.get().getEmail());
+        assertEquals(Integer.valueOf(31), user.get().getAge());
+    }
+
+    @Test
+    @DisplayName("DefaultBeanRowMapper：Bean 包含不匹配列时正常忽略")
+    @SuppressWarnings("deprecation")
+    void testDefaultBeanRowMapperUnmatchedColumns() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        RowMapper<User> rowMapper = DefaultBeanRowMapper.of(User.class);
+
+        Optional<User> user = template.queryFirst(
+                "SELECT id, username FROM users WHERE username = ?",
+                new Object[]{"alice"}, rowMapper);
+
+        assertTrue(user.isPresent());
+        assertEquals("alice", user.get().getUsername());
+        assertNull(user.get().getEmail());
+        assertNull(user.get().getAge());
+    }
+
+    @Test
+    @DisplayName("DefaultBeanRowMapper：无无参构造器的 Bean 抛出 IllegalStateException")
+    @SuppressWarnings("deprecation")
+    void testDefaultBeanRowMapperNoNoArgConstructor() {
+        assertThrows(IllegalStateException.class, () ->
+                DefaultBeanRowMapper.of(BeanWithoutNoArgConstructor.class));
+    }
+
+    @Test
+    @DisplayName("DefaultBeanRowMapper：连续大写缩写属性正确映射为 snake_case")
+    @SuppressWarnings("deprecation")
+    void testDefaultBeanRowMapperAcronymMapping() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        template.update("CREATE TABLE acronym_test_default ("
+                + "id BIGINT AUTO_INCREMENT PRIMARY KEY,"
+                + "home_url VARCHAR(100),"
+                + "xml_parser VARCHAR(100),"
+                + "parse_url VARCHAR(100),"
+                + "user_id VARCHAR(100),"
+                + "parse_html VARCHAR(100),"
+                + "multi_http_client VARCHAR(100))");
+        template.update(
+                "INSERT INTO acronym_test_default (home_url, xml_parser, parse_url, user_id, parse_html, multi_http_client)"
+                        + " VALUES (?, ?, ?, ?, ?, ?)",
+                new Object[]{"https://example.com", "SAXParser", "/api/v1",
+                        "user-001", "<div>test</div>", "ApacheHttpClient"});
+
+        RowMapper<AcronymBean> rowMapper = DefaultBeanRowMapper.of(AcronymBean.class);
+        Optional<AcronymBean> result = template.queryFirst(
+                "SELECT * FROM acronym_test_default WHERE id = ?",
+                new Object[]{1L}, rowMapper);
+
+        assertTrue(result.isPresent());
+        AcronymBean bean = result.get();
+        assertEquals("https://example.com", bean.getHomeURL());
+        assertEquals("SAXParser", bean.getXmlParser());
+        assertEquals("/api/v1", bean.getParseURL());
+        assertEquals("user-001", bean.getUserID());
+        assertEquals("<div>test</div>", bean.getParseHTML());
+        assertEquals("ApacheHttpClient", bean.getMultiHttpClient());
+    }
+
+    @Test
+    @DisplayName("DefaultBeanRowMapper：纯小写属性名映射为同名列")
+    @SuppressWarnings("deprecation")
+    void testDefaultBeanRowMapperAllLowercaseMapping() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+        RowMapper<User> rowMapper = DefaultBeanRowMapper.of(User.class);
 
         Optional<User> user = template.queryFirst(
                 "SELECT username, email FROM users WHERE username = ?",
@@ -308,6 +471,7 @@ class RowMapperTest extends BaseH2Test {
 
     @Test
     @DisplayName("自定义 MapRowMapper 子类：使用 TreeMap 按自然顺序排序")
+    @NullMarked
     void testCustomMapRowMapperTreeMap() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
@@ -338,36 +502,36 @@ class RowMapperTest extends BaseH2Test {
     // ==================== 自定义 RowMapper 对比 ====================
 
     @Test
-    @DisplayName("自定义 RowMapper 与 DefaultBeanRowMapper 结果一致")
-    void testCustomVsDefaultRowMapper() throws SQLException {
+    @DisplayName("自定义 RowMapper 与 SimpleBeanRowMapper 结果一致")
+    void testCustomVsSimpleRowMapper() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
         UserRowMapper customMapper = new UserRowMapper();
-        DefaultBeanRowMapper<User> defaultMapper = DefaultBeanRowMapper.of(User.class);
+        SimpleBeanRowMapper<User> simpleMapper = SimpleBeanRowMapper.of(User.class);
 
         Optional<User> userByCustom = template.queryFirst(
                 "SELECT * FROM users WHERE username = ?",
                 new Object[]{"alice"}, customMapper);
 
-        Optional<User> userByDefault = template.queryFirst(
+        Optional<User> userBySimple = template.queryFirst(
                 "SELECT * FROM users WHERE username = ?",
-                new Object[]{"alice"}, defaultMapper);
+                new Object[]{"alice"}, simpleMapper);
 
         assertTrue(userByCustom.isPresent());
-        assertTrue(userByDefault.isPresent());
+        assertTrue(userBySimple.isPresent());
 
-        assertEquals(userByCustom.get().getId(), userByDefault.get().getId());
-        assertEquals(userByCustom.get().getUsername(), userByDefault.get().getUsername());
-        assertEquals(userByCustom.get().getEmail(), userByDefault.get().getEmail());
+        assertEquals(userByCustom.get().getId(), userBySimple.get().getId());
+        assertEquals(userByCustom.get().getUsername(), userBySimple.get().getUsername());
+        assertEquals(userByCustom.get().getEmail(), userBySimple.get().getEmail());
 
         logger.info("自定义 RowMapper: {}", userByCustom.get());
-        logger.info("DefaultBeanRowMapper: {}", userByDefault.get());
+        logger.info("SimpleBeanRowMapper: {}", userBySimple.get());
     }
 
     // ==================== 辅助类 ====================
 
     /**
-     * 无无参构造器的 Bean，用于验证 DefaultBeanRowMapper 的异常处理。
+     * 无无参构造器的 Bean，用于验证 SimpleBeanRowMapper / DefaultBeanRowMapper 的异常处理。
      */
     public static class BeanWithoutNoArgConstructor {
         private String name;

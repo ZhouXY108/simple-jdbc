@@ -12,6 +12,12 @@
     <url>https://gitea.zhouxy.xyz/plusone/simple-jdbc</url>
 
     <properties>
+        <!--
+          构建要求：JDK 17+
+          原因：jspecify 的 @NullMarked 注解使用了 ElementType.MODULE（Java 9 引入），
+          JDK 8 的 javac 无法解析该注解，因此当前项目选择使用 JDK 17 运行 Maven 构建。
+          但 source/target 设为 8，确保构建产物兼容 JDK 8 运行时。
+        -->
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -73,6 +79,35 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <id>enforce-java-version</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[17,)</version>
+                                    <message>构建需要 JDK 17+，当前 JDK 版本不满足要求。
+原因：jspecify 的 @NullMarked 注解使用了 ElementType.MODULE（Java 9 引入），
+JDK 8 的 javac 无法解析该注解。请使用 JDK 17 或更高版本运行 Maven 构建。
+注意：构建产物 target 为 JDK 8，运行时仍可使用 JDK 8。</message>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
     <profiles>
         <profile>

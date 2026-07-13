@@ -33,7 +33,10 @@
 
 ### 3.1 环境要求
 
-- **JDK 8** 或更高版本
+| 场景 | JDK 版本 | 说明 |
+|---|---|---|
+| **运行** | JDK 8+ | 构建产物 target 为 JDK 8，兼容 JDK 8 及以上版本 |
+| **构建/测试** | JDK 17+ | jspecify 的 `@NullMarked` 注解使用了 `ElementType.MODULE`（Java 9 引入），JDK 8 的 javac 无法解析该注解，因此当前项目选择使用 JDK 17 运行 Maven |
 
 ### 3.2 添加 Maven 依赖
 

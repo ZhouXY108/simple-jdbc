@@ -60,7 +60,8 @@ public interface ResultHandler<T extends @Nullable Object> {
      */
     static <T extends @Nullable Object> ResultHandler<List<T>>
     mapToList(RowMapper<T> rowMapper) {
-        return resultSet -> {
+        @SuppressWarnings("UnnecessaryLocalVariable")
+        ResultHandler<List<T>> resultHandler = resultSet -> {
             List<T> result = new ArrayList<>();
             int rowNumber = 0;
             while (resultSet.next()) {
@@ -69,5 +70,6 @@ public interface ResultHandler<T extends @Nullable Object> {
             }
             return result;
         };
+        return resultHandler;
     }
 }

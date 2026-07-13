@@ -63,7 +63,7 @@ public class BatchUpdateResult {
     /**
      * 本次分批更新的状态
      */
-    private BatchUpdateStatus status = BatchUpdateStatus.SUCCESS;
+    private final BatchUpdateStatus status;
 
     /**
      * 所有批次的更新结果
@@ -77,48 +77,54 @@ public class BatchUpdateResult {
     /**
      * 成功批次数量
      */
-    private int successBatchCount;
+    private final int successBatchCount;
 
     /**
      * 完成批次数量
      */
-    private int completeBatchCount;
+    private final int completeBatchCount;
 
-    BatchUpdateResult(int total, int batchCount, int batchSize, boolean quietly) {
+    /**
+     * 错误批次索引
+     */
+    private final int[] errorBatchIndexes;
+
+    /**
+     * 错误批次数量
+     */
+    private final int errorBatchCount;
+
+    /**
+     * 剩余批次数量
+     */
+    private final int remainingBatchCount;
+
+    private BatchUpdateResult(int total,
+                              int batchCount,
+                              int batchSize,
+                              boolean quietly,
+                              BatchUpdateStatus status,
+                              Map<Integer, int[]> allUpdateCounts,
+                              Map<Integer, BatchUpdateErrorInfo> allErrorsInfo,
+                              int successBatchCount,
+                              int completeBatchCount,
+                              int[] errorBatchIndexes,
+                              int errorBatchCount,
+                              int remainingBatchCount) {
         this.total = total;
         this.batchCount = batchCount;
         this.batchSize = batchSize;
         this.quietly = quietly;
-
-        this.allUpdateCounts = new HashMap<>(batchCount);
-        this.allErrorsInfo = new HashMap<>(batchCount);
+        this.status = status;
+        this.allUpdateCounts = allUpdateCounts;
+        this.allErrorsInfo = allErrorsInfo;
+        this.successBatchCount = successBatchCount;
+        this.completeBatchCount = completeBatchCount;
+        this.errorBatchIndexes = errorBatchIndexes;
+        this.errorBatchCount = errorBatchCount;
+        this.remainingBatchCount = remainingBatchCount;
     }
 
-    /**
-     * 记录成功批次
-     */
-    void recordSuccessBatch(int batchIndex, int[] updateCounts) {
-        this.completeBatchCount++;
-        this.allUpdateCounts.put(batchIndex, updateCounts);
-        this.successBatchCount++;
-    }
-
-    /**
-     * 记录失败批次
-     */
-    void recordErrorBatch(int batchIndex, int[] updateCounts, Throwable cause) {
-        this.completeBatchCount++;
-        this.allUpdateCounts.put(batchIndex, updateCounts);
-        this.allErrorsInfo.put(batchIndex, new BatchUpdateErrorInfo(batchIndex, cause));
-        if (this.status == BatchUpdateStatus.SUCCESS) {
-            if (this.quietly) {
-                this.status = BatchUpdateStatus.COMPLETED_WITH_ERRORS;
-            }
-            else {
-                this.status = BatchUpdateStatus.INTERRUPTED;
-            }
-        }
-    }
 
     /**
      * 获取指定批次更新结果
@@ -140,7 +146,7 @@ public class BatchUpdateResult {
      * @return 错误批次号
      */
     public int[] getErrorBatchIndexes() {
-        return this.allErrorsInfo.keySet().stream().mapToInt(Integer::intValue).toArray();
+        return this.errorBatchIndexes.clone();
     }
 
     /**
@@ -159,7 +165,7 @@ public class BatchUpdateResult {
      * @return 批次错误信息
      */
     public Map<Integer, BatchUpdateErrorInfo> getAllErrorsInfo() {
-        return Collections.unmodifiableMap(allErrorsInfo);
+        return allErrorsInfo;
     }
 
     /**
@@ -222,7 +228,7 @@ public class BatchUpdateResult {
      * @return 错误批次数量
      */
     public int getErrorBatchCount() {
-        return allErrorsInfo.size();
+        return this.errorBatchCount;
     }
 
     /**
@@ -234,7 +240,7 @@ public class BatchUpdateResult {
      * @return 剩余批次数量
      */
     public int getRemainingBatchCount() {
-        return batchCount - successBatchCount - getErrorBatchCount();
+        return remainingBatchCount;
     }
 
     /** {@inheritDoc} */
@@ -245,10 +251,136 @@ public class BatchUpdateResult {
                 + ", total=" + total
                 + ", batchSize=" + batchSize
                 + ", batchCount=" + batchCount
+                + ", quietly=" + quietly
                 + ", completeBatchCount=" + completeBatchCount
                 + ", successBatchCount=" + successBatchCount
-                + ", errorBatchCount=" + getErrorBatchCount()
-                + ", remainingBatchCount=" + getRemainingBatchCount()
+                + ", errorBatchCount=" + errorBatchCount
+                + ", remainingBatchCount=" + remainingBatchCount
                 + "]";
+    }
+
+    /**
+     * 创建空的 BatchUpdateResult（无参数时快速创建）
+     *
+     * @param batchSize 批次大小
+     * @param quietly   是否静默模式
+     * @return 空的 BatchUpdateResult 实例
+     */
+    public static BatchUpdateResult empty(int batchSize, boolean quietly) {
+        return new BatchUpdateResult(
+                0,
+                0,
+                batchSize,
+                quietly,
+                BatchUpdateStatus.SUCCESS,
+                Collections.emptyMap(),
+                Collections.emptyMap(),
+                0,
+                0,
+                new int[0],
+                0,
+                0
+        );
+    }
+
+    /**
+     * 创建 Builder
+     *
+     * @param total     总数据量
+     * @param batchCount 批次数量
+     * @param batchSize  批次大小
+     * @param quietly    是否静默模式
+     * @return Builder 实例
+     */
+    public static Builder builder(int total, int batchCount, int batchSize, boolean quietly) {
+        return new Builder(total, batchCount, batchSize, quietly);
+    }
+
+    /**
+     * Builder 类，用于构建不可变的 BatchUpdateResult
+     */
+    public static class Builder {
+        private final int total;
+        private final int batchCount;
+        private final int batchSize;
+        private final boolean quietly;
+
+        private BatchUpdateStatus status = BatchUpdateStatus.SUCCESS;
+        private final Map<Integer, int[]> allUpdateCounts = new HashMap<>();
+        private final Map<Integer, BatchUpdateErrorInfo> allErrorsInfo = new HashMap<>();
+        private int successBatchCount = 0;
+        private int completeBatchCount = 0;
+
+        private Builder(int total, int batchCount, int batchSize, boolean quietly) {
+            this.total = total;
+            this.batchCount = batchCount;
+            this.batchSize = batchSize;
+            this.quietly = quietly;
+        }
+
+        /**
+         * 记录成功批次
+         */
+        public Builder recordSuccessBatch(int batchIndex, int[] updateCounts) {
+            this.completeBatchCount++;
+            this.allUpdateCounts.put(batchIndex, updateCounts);
+            this.successBatchCount++;
+            return this;
+        }
+
+        /**
+         * 记录失败批次
+         */
+        public Builder recordErrorBatch(int batchIndex, int[] updateCounts, Throwable cause) {
+            this.completeBatchCount++;
+            this.allUpdateCounts.put(batchIndex, updateCounts);
+            this.allErrorsInfo.put(batchIndex, new BatchUpdateErrorInfo(batchIndex, cause));
+            if (this.status == BatchUpdateStatus.SUCCESS) {
+                if (this.quietly) {
+                    this.status = BatchUpdateStatus.COMPLETED_WITH_ERRORS;
+                }
+                else {
+                    this.status = BatchUpdateStatus.INTERRUPTED;
+                }
+            }
+            return this;
+        }
+
+        /**
+         * 构建不可变的 BatchUpdateResult
+         *
+         * @return BatchUpdateResult 实例
+         */
+        public BatchUpdateResult build() {
+            // 预计算错误批次索引
+            int[] errorBatchIndexes = this.allErrorsInfo.keySet().stream()
+                    .mapToInt(Integer::intValue)
+                    .toArray();
+
+            // 预计算统计信息
+            int errorBatchCount = this.allErrorsInfo.size();
+            int remainingBatchCount = this.batchCount - this.successBatchCount - errorBatchCount;
+
+            // 构建不可变 Map
+            Map<Integer, int[]> unmodifiableUpdateCounts = Collections.unmodifiableMap(
+                    new HashMap<>(this.allUpdateCounts));
+            Map<Integer, BatchUpdateErrorInfo> unmodifiableErrorsInfo = Collections.unmodifiableMap(
+                    new HashMap<>(this.allErrorsInfo));
+
+            return new BatchUpdateResult(
+                    this.total,
+                    this.batchCount,
+                    this.batchSize,
+                    this.quietly,
+                    this.status,
+                    unmodifiableUpdateCounts,
+                    unmodifiableErrorsInfo,
+                    this.successBatchCount,
+                    this.completeBatchCount,
+                    errorBatchIndexes,
+                    errorBatchCount,
+                    remainingBatchCount
+            );
+        }
     }
 }

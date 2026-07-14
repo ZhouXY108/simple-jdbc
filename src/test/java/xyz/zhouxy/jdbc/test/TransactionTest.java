@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static xyz.zhouxy.jdbc.ParamBuilder.buildParams;
 import static xyz.zhouxy.jdbc.test.JdbcTestAssertions.assertLinkedHashMapOrder;
 
+import java.sql.Connection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import xyz.zhouxy.jdbc.JdbcOperations;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 import xyz.zhouxy.jdbc.TransactionException;
+import xyz.zhouxy.jdbc.TransactionIsolationLevel;
 import xyz.zhouxy.jdbc.function.ThrowingConsumer;
 import xyz.zhouxy.jdbc.namedparam.NamedParamJdbcOperations;
 
@@ -580,5 +582,180 @@ class TransactionTest extends BaseH2Test {
         TransactionException ex = new TransactionException(null);
         assertEquals("Transaction failed during execution", ex.getMessage());
         assertNull(ex.getCause());
+    }
+
+    // ==================== TransactionIsolationLevel 枚举 ====================
+
+    @Test
+    @DisplayName("TransactionIsolationLevel：枚举值与 JDBC 常量一致")
+    void testTransactionIsolationLevelMapping() {
+        assertEquals(Connection.TRANSACTION_NONE, TransactionIsolationLevel.NONE.getLevel());
+        assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, TransactionIsolationLevel.READ_UNCOMMITTED.getLevel());
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED, TransactionIsolationLevel.READ_COMMITTED.getLevel());
+        assertEquals(Connection.TRANSACTION_REPEATABLE_READ, TransactionIsolationLevel.REPEATABLE_READ.getLevel());
+        assertEquals(Connection.TRANSACTION_SERIALIZABLE, TransactionIsolationLevel.SERIALIZABLE.getLevel());
+    }
+
+    // ==================== execute(isolationLevel) 指定隔离级别 ====================
+
+    @Test
+    @DisplayName("execute(isolationLevel)：指定 READ_COMMITTED 正常提交")
+    void testExecuteIsolationLevelCommit() throws Exception {
+        SimpleJdbcTemplate template = createTemplate();
+
+        template.transaction().execute(TransactionIsolationLevel.READ_COMMITTED, (JdbcOperations ops) -> {
+            ops.update("INSERT INTO users (username, email, age, balance, active) VALUES (?, ?, ?, ?, ?)",
+                    buildParams("isoUser1", "iso1@test.com", 30, 5000L, true));
+            ops.update("UPDATE users SET balance = ? WHERE username = ?",
+                    buildParams(88888L, "bob"));
+        });
+
+        Optional<String> user = template.queryValue(
+                "SELECT username FROM users WHERE username = ?",
+                buildParams("isoUser1"), String.class);
+        assertTrue(user.isPresent());
+
+        Optional<Long> balance = template.queryValue(
+                "SELECT balance FROM users WHERE username = ?",
+                buildParams("bob"), Long.class);
+        assertEquals(Long.valueOf(88888L), balance.orElse(null));
+    }
+
+    @Test
+    @DisplayName("execute(isolationLevel)：指定 SERIALIZABLE，异常回滚")
+    void testExecuteIsolationLevelRollback() throws Exception {
+        SimpleJdbcTemplate template = createTemplate();
+
+        Optional<Long> originalBalance = template.queryValue(
+                "SELECT balance FROM users WHERE username = ?",
+                buildParams("charlie"), Long.class);
+
+        TransactionException ex = assertThrows(TransactionException.class, () ->
+                template.transaction().execute(TransactionIsolationLevel.SERIALIZABLE, (JdbcOperations ops) -> {
+                    ops.update("UPDATE users SET balance = ? WHERE username = ?",
+                            buildParams(0L, "charlie"));
+                    ops.update("INSERT INTO users (username, email) VALUES (?, ?)",
+                            buildParams("isoRbUser", "isor@test.com"));
+                    throw new RuntimeException("模拟回滚");
+                }));
+
+        assertEquals(RuntimeException.class, ex.getCause().getClass());
+
+        Optional<Long> currentBalance = template.queryValue(
+                "SELECT balance FROM users WHERE username = ?",
+                buildParams("charlie"), Long.class);
+        assertEquals(originalBalance.orElse(null), currentBalance.orElse(null));
+
+        Optional<String> rolledBackUser = template.queryValue(
+                "SELECT username FROM users WHERE username = ?",
+                buildParams("isoRbUser"), String.class);
+        assertFalse(rolledBackUser.isPresent());
+    }
+
+    @Test
+    @DisplayName("execute(isolationLevel)：传入 null 等同于无参重载")
+    void testExecuteIsolationLevelNull() throws Exception {
+        SimpleJdbcTemplate template = createTemplate();
+
+        assertDoesNotThrow(() ->
+                template.transaction().execute(null, ops -> { /* no-op */ }));
+
+        @SuppressWarnings("DataFlowIssue")
+        int count = template.queryValueOrDefault("SELECT COUNT(*) FROM users", Integer.class, 0);
+        assertEquals(5, count);
+    }
+
+    // ==================== commitIfTrue(isolationLevel) 指定隔离级别 ====================
+
+    @Test
+    @DisplayName("commitIfTrue(isolationLevel)：返回 true 提交事务")
+    void testCommitIfTrueIsolationLevelCommit() throws Exception {
+        SimpleJdbcTemplate template = createTemplate();
+
+        template.transaction().commitIfTrue(TransactionIsolationLevel.READ_COMMITTED, (JdbcOperations ops) -> {
+            ops.update("INSERT INTO users (username, email) VALUES (?, ?)",
+                    buildParams("isoCftUser", "isocft@test.com"));
+            return true;
+        });
+
+        Optional<String> user = template.queryValue(
+                "SELECT username FROM users WHERE username = ?",
+                buildParams("isoCftUser"), String.class);
+        assertTrue(user.isPresent());
+    }
+
+    @Test
+    @DisplayName("commitIfTrue(isolationLevel)：返回 false 回滚事务")
+    void testCommitIfTrueIsolationLevelFalseRollback() throws Exception {
+        SimpleJdbcTemplate template = createTemplate();
+
+        template.transaction().commitIfTrue(TransactionIsolationLevel.SERIALIZABLE, (JdbcOperations ops) -> {
+            ops.update("INSERT INTO users (username, email) VALUES (?, ?)",
+                    buildParams("isoCffUser", "isocff@test.com"));
+            return false;
+        });
+
+        Optional<String> user = template.queryValue(
+                "SELECT username FROM users WHERE username = ?",
+                buildParams("isoCffUser"), String.class);
+        assertFalse(user.isPresent());
+    }
+
+    @Test
+    @DisplayName("commitIfTrue(isolationLevel)：传入 null 等同于无参重载")
+    void testCommitIfTrueIsolationLevelNull() throws Exception {
+        SimpleJdbcTemplate template = createTemplate();
+
+        assertDoesNotThrow(() ->
+                template.transaction().commitIfTrue(null, ops -> true));
+
+        @SuppressWarnings("DataFlowIssue")
+        int count = template.queryValueOrDefault("SELECT COUNT(*) FROM users", Integer.class, 0);
+        assertEquals(5, count);
+    }
+
+    // ==================== executeNamed(isolationLevel) 命名参数 + 隔离级别 ====================
+
+    @Test
+    @DisplayName("executeNamed(isolationLevel)：指定 REPEATABLE_READ 正常提交")
+    void testExecuteNamedIsolationLevelCommit() throws Exception {
+        SimpleJdbcTemplate template = createTemplate();
+
+        template.transaction().executeNamed(TransactionIsolationLevel.REPEATABLE_READ, nops -> {
+            Map<String, Object> params = new HashMap<>();
+            params.put("name", "isoNpUser");
+            params.put("email", "isonp@test.com");
+            nops.update("INSERT INTO users (username, email) VALUES(#{name}, #{email})", params);
+        });
+
+        Optional<String> user = template.queryValue(
+                "SELECT username FROM users WHERE username = ?",
+                buildParams("isoNpUser"), String.class);
+        assertTrue(user.isPresent());
+    }
+
+    // ==================== 指定隔离级别后验证后续操作正常（连接状态恢复） ====================
+
+    @Test
+    @DisplayName("事务指定隔离级别后，后续非事务操作正常执行")
+    void testAfterIsolationLevelTransactionNormalQueryWorks() throws Exception {
+        SimpleJdbcTemplate template = createTemplate();
+
+        // 第一次事务指定 SERIALIZABLE
+        template.transaction().execute(TransactionIsolationLevel.SERIALIZABLE, (JdbcOperations ops) -> {
+            ops.update("INSERT INTO users (username, email) VALUES (?, ?)",
+                    buildParams("afterIsoUser", "afteriso@test.com"));
+        });
+
+        // 验证事务已提交
+        Optional<String> user = template.queryValue(
+                "SELECT username FROM users WHERE username = ?",
+                buildParams("afterIsoUser"), String.class);
+        assertTrue(user.isPresent());
+
+        // 后续非事务查询正常执行
+        @SuppressWarnings("DataFlowIssue")
+        int count = template.queryValueOrDefault("SELECT COUNT(*) FROM users", Integer.class, 0);
+        assertEquals(6, count);
     }
 }

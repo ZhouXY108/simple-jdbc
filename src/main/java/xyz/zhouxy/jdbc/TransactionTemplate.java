@@ -110,11 +110,35 @@ public class TransactionTemplate {
     public <E extends @Nullable Exception> void execute(
             final ThrowingConsumer<JdbcOperations, E> operations)
             throws TransactionException, SQLException {
+        execute(null, operations);
+    }
+
+    /**
+     * 执行事务。如果未发生异常，则提交事务；当有异常发生时，回滚事务
+     *
+     * <p>
+     * operations 中使用 JdbcOperations 实参进行 JDBC 操作，这些操作在一个连接中
+     * </p>
+     *
+     * @param <E>                   异常类型
+     * @param isolationLevel        事务隔离级别
+     * @param operations            事务操作
+     * @throws SQLException         SQL 异常
+     * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
+     */
+    public <E extends @Nullable Exception> void execute(
+            @Nullable final TransactionIsolationLevel isolationLevel,
+            final ThrowingConsumer<JdbcOperations, E> operations)
+            throws TransactionException, SQLException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
         try (Connection conn = this.dataSource.getConnection()) {
-            final boolean autoCommit = conn.getAutoCommit();
+            final boolean srcAutoCommit = conn.getAutoCommit();
+            final int srcIsolationLevel = conn.getTransactionIsolation();
             Exception caught = null;
             try {
+                if (isolationLevel != null) {
+                    conn.setTransactionIsolation(isolationLevel.getLevel());
+                }
                 conn.setAutoCommit(false);
                 operations.accept(new TransactionJdbcExecutor(conn));
                 conn.commit();
@@ -125,7 +149,8 @@ public class TransactionTemplate {
                 throw new TransactionException(e);
             }
             finally {
-                restoreAutoCommitSilently(conn, autoCommit, caught);
+                restoreAutoCommitSilently(conn, srcAutoCommit, caught);
+                restoreTransactionIsolationSilently(conn, srcIsolationLevel, caught);
             }
         }
     }
@@ -147,8 +172,30 @@ public class TransactionTemplate {
     public <E extends @Nullable Exception> void executeNamed(
             final ThrowingConsumer<NamedParamJdbcOperations, E> operations)
             throws TransactionException, SQLException {
+        executeNamed(null, operations);
+    }
+
+    /**
+     * 执行事务（纯命名参数）。如果未发生异常，则提交事务；当有异常发生时，回滚事务
+     *
+     * <p>
+     * 适用于事务中所有 SQL 都使用命名参数（{@code #{paramName}}）的场景。
+     * 如需混用位置参数和命名参数，请使用 {@link #execute(ThrowingBiConsumer)}。
+     * </p>
+     *
+     * @param <E>                   异常类型
+     * @param isolationLevel        事务隔离级别
+     * @param operations            事务操作
+     * @throws SQLException         SQL 异常
+     * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
+     * @since 1.1.0
+     */
+    public <E extends @Nullable Exception> void executeNamed(
+            @Nullable final TransactionIsolationLevel isolationLevel,
+            final ThrowingConsumer<NamedParamJdbcOperations, E> operations)
+            throws TransactionException, SQLException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
-        execute(ops -> operations.accept(ops.getNamedParamJdbcOperations()));
+        execute(isolationLevel, ops -> operations.accept(ops.getNamedParamJdbcOperations()));
     }
 
     /**
@@ -168,8 +215,30 @@ public class TransactionTemplate {
     public <E extends @Nullable Exception> void execute(
             final ThrowingBiConsumer<JdbcOperations, NamedParamJdbcOperations, E> operations)
             throws TransactionException, SQLException {
+        execute(null, operations);
+    }
+
+    /**
+     * 执行事务（混用位置参数与命名参数）。如果未发生异常，则提交事务；当有异常发生时，回滚事务
+     *
+     * <p>
+     * 回调同时提供 {@link JdbcOperations} 和 {@link NamedParamJdbcOperations}，
+     * 可在同一事务中按需选择位置参数或命名参数风格。
+     * </p>
+     *
+     * @param <E>                   异常类型
+     * @param isolationLevel        事务隔离级别
+     * @param operations            事务操作
+     * @throws SQLException         SQL 异常
+     * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
+     * @since 1.1.0
+     */
+    public <E extends @Nullable Exception> void execute(
+            @Nullable final TransactionIsolationLevel isolationLevel,
+            final ThrowingBiConsumer<JdbcOperations, NamedParamJdbcOperations, E> operations)
+            throws TransactionException, SQLException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
-        execute(ops -> operations.accept(ops, ops.getNamedParamJdbcOperations()));
+        execute(isolationLevel, ops -> operations.accept(ops, ops.getNamedParamJdbcOperations()));
     }
 
     /**
@@ -185,11 +254,33 @@ public class TransactionTemplate {
     public <E extends @Nullable Exception> void commitIfTrue(
             final ThrowingPredicate<JdbcOperations, E> operations)
             throws SQLException, TransactionException {
+        commitIfTrue(null, operations);
+    }
+
+    /**
+     * 执行事务。
+     * 如果 {@code operations} 返回 {@code true}，则提交事务；
+     * 如果抛出异常，或返回 {@code false}，则回滚事务
+     *
+     * @param <E>                   事务中的异常
+     * @param isolationLevel        事务隔离级别
+     * @param operations            事务操作
+     * @throws SQLException         数据库异常
+     * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
+     */
+    public <E extends @Nullable Exception> void commitIfTrue(
+            @Nullable final TransactionIsolationLevel isolationLevel,
+            final ThrowingPredicate<JdbcOperations, E> operations)
+            throws SQLException, TransactionException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
         try (Connection conn = this.dataSource.getConnection()) {
-            final boolean autoCommit = conn.getAutoCommit();
+            final boolean srcAutoCommit = conn.getAutoCommit();
+            final int srcIsolationLevel = conn.getTransactionIsolation();
             Exception caught = null;
             try {
+                if (isolationLevel != null) {
+                    conn.setTransactionIsolation(isolationLevel.getLevel());
+                }
                 conn.setAutoCommit(false);
                 if (operations.test(new TransactionJdbcExecutor(conn))) {
                     conn.commit();
@@ -204,7 +295,8 @@ public class TransactionTemplate {
                 throw new TransactionException(e);
             }
             finally {
-                restoreAutoCommitSilently(conn, autoCommit, caught);
+                restoreAutoCommitSilently(conn, srcAutoCommit, caught);
+                restoreTransactionIsolationSilently(conn, srcIsolationLevel, caught);
             }
         }
     }
@@ -223,8 +315,27 @@ public class TransactionTemplate {
     public <E extends @Nullable Exception> void commitIfTrueNamed(
             final ThrowingPredicate<NamedParamJdbcOperations, E> operations)
             throws SQLException, TransactionException {
+        commitIfTrueNamed(null, operations);
+    }
+
+    /**
+     * 执行事务（纯命名参数）。
+     * 如果 {@code operations} 返回 {@code true}，则提交事务；
+     * 如果抛出异常，或返回 {@code false}，则回滚事务
+     *
+     * @param <E>                   事务中的异常
+     * @param isolationLevel        事务隔离级别
+     * @param operations            事务操作
+     * @throws SQLException         数据库异常
+     * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
+     * @since 1.1.0
+     */
+    public <E extends @Nullable Exception> void commitIfTrueNamed(
+            @Nullable final TransactionIsolationLevel isolationLevel,
+            final ThrowingPredicate<NamedParamJdbcOperations, E> operations)
+            throws SQLException, TransactionException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
-        commitIfTrue(ops -> operations.test(ops.getNamedParamJdbcOperations()));
+        commitIfTrue(isolationLevel, ops -> operations.test(ops.getNamedParamJdbcOperations()));
     }
 
     /**
@@ -241,8 +352,27 @@ public class TransactionTemplate {
     public <E extends @Nullable Exception> void commitIfTrue(
             final ThrowingBiPredicate<JdbcOperations, NamedParamJdbcOperations, E> operations)
             throws SQLException, TransactionException {
+        commitIfTrue(null, operations);
+    }
+
+    /**
+     * 执行事务（混用位置参数与命名参数）。
+     * 如果 {@code operations} 返回 {@code true}，则提交事务；
+     * 如果抛出异常，或返回 {@code false}，则回滚事务
+     *
+     * @param <E>                   事务中的异常
+     * @param isolationLevel        事务隔离级别
+     * @param operations            事务操作
+     * @throws SQLException         数据库异常
+     * @throws TransactionException 事务异常。事务中的异常会包装在该异常中。
+     * @since 1.1.0
+     */
+    public <E extends @Nullable Exception> void commitIfTrue(
+            @Nullable final TransactionIsolationLevel isolationLevel,
+            final ThrowingBiPredicate<JdbcOperations, NamedParamJdbcOperations, E> operations)
+            throws SQLException, TransactionException {
         AssertTools.checkNotNull(operations, "Operations can not be null.");
-        commitIfTrue(ops -> operations.test(ops, ops.getNamedParamJdbcOperations()));
+        commitIfTrue(isolationLevel, ops -> operations.test(ops, ops.getNamedParamJdbcOperations()));
     }
 
     private void rollbackSilently(Connection conn, Exception e) {
@@ -258,6 +388,21 @@ public class TransactionTemplate {
             Connection conn, boolean autoCommit, @Nullable Exception e) throws SQLException {
         try {
             conn.setAutoCommit(autoCommit);
+        }
+        catch (SQLException ex) {
+            if (e != null) {
+                e.addSuppressed(ex);
+            }
+            else {
+                throw ex;
+            }
+        }
+    }
+
+    private void restoreTransactionIsolationSilently(
+            Connection conn, int srcTransactionIsolationLevel, @Nullable Exception e) throws SQLException {
+        try {
+            conn.setTransactionIsolation(srcTransactionIsolationLevel);
         }
         catch (SQLException ex) {
             if (e != null) {

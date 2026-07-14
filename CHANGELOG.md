@@ -13,6 +13,7 @@
 
 ### 新增
 
+- `TransactionTemplate` 支持指定事务隔离级别
 - 命名参数 JDBC 操作支持（`#{paramName}` 风格）：
   - `NamedParamJdbcOperations` 接口：提供查询、更新、批量操作的命名参数重载
   - `NamedParamSql`：SQL 模板解析（`#{param}` → `?`），支持参数名自省

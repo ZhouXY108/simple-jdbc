@@ -445,7 +445,7 @@ public class TransactionTemplate {
         public <T extends @Nullable Object> T query(String sql, @Nullable Object @Nullable [] params,
                 ResultHandler<T> resultHandler)
                 throws SQLException {
-            return JdbcOperationSupport.query(this.conn, sql, params, resultHandler);
+            return JdbcExecutor.query(this.conn, sql, params, resultHandler);
         }
 
         // #endregion
@@ -458,7 +458,7 @@ public class TransactionTemplate {
                 String sql, @Nullable Object @Nullable [] params,
                 RowMapper<T> rowMapper)
                 throws SQLException {
-            return JdbcOperationSupport.queryList(this.conn, sql, params, rowMapper);
+            return JdbcExecutor.queryList(this.conn, sql, params, rowMapper);
         }
 
         /** {@inheritDoc} */
@@ -467,7 +467,7 @@ public class TransactionTemplate {
                 String sql, @Nullable Object @Nullable [] params,
                 Class<@NonNull T> clazz)
                 throws SQLException {
-            return JdbcOperationSupport.queryValues(this.conn, sql, params, clazz);
+            return JdbcExecutor.queryValues(this.conn, sql, params, clazz);
         }
 
         /** {@inheritDoc} */
@@ -475,7 +475,7 @@ public class TransactionTemplate {
         public List<@Nullable Map<String, @Nullable Object>> queryList(
                 String sql, @Nullable Object @Nullable [] params)
                 throws SQLException {
-            return JdbcOperationSupport.queryList(this.conn, sql, params, RowMapper.LINKED_HASH_MAP_MAPPER);
+            return JdbcExecutor.queryList(this.conn, sql, params);
         }
 
         // #endregion
@@ -488,8 +488,7 @@ public class TransactionTemplate {
                 String sql, @Nullable Object @Nullable [] params,
                 RowMapper<T> rowMapper)
                 throws SQLException {
-            final T result = JdbcOperationSupport.queryFirst(this.conn, sql, params, rowMapper);
-            return Optional.ofNullable(result);
+            return JdbcExecutor.queryFirst(this.conn, sql, params, rowMapper);
         }
 
         /** {@inheritDoc} */
@@ -498,8 +497,7 @@ public class TransactionTemplate {
                 String sql, @Nullable Object @Nullable [] params,
                 Class<T> clazz)
                 throws SQLException {
-            final T result = JdbcOperationSupport.queryValue(this.conn, sql, params, clazz);
-            return Optional.ofNullable(result);
+            return JdbcExecutor.queryValue(this.conn, sql, params, clazz);
         }
 
         /** {@inheritDoc} */
@@ -507,18 +505,14 @@ public class TransactionTemplate {
         public Optional<Map<String, @Nullable Object>> queryFirst(
                 String sql, @Nullable Object @Nullable [] params)
                 throws SQLException {
-            final Map<String, @Nullable Object> result = JdbcOperationSupport
-                    .queryFirst(this.conn, sql, params, RowMapper.LINKED_HASH_MAP_MAPPER);
-            return Optional.ofNullable(result);
+            return JdbcExecutor.queryFirst(this.conn, sql, params);
         }
 
         /** {@inheritDoc} */
         @Override
         public boolean queryBoolean(String sql, @Nullable Object @Nullable [] params)
                 throws SQLException {
-            final Boolean result = JdbcOperationSupport
-                    .queryValue(this.conn, sql, params, Boolean.class);
-            return Boolean.TRUE.equals(result);
+            return JdbcExecutor.queryBoolean(this.conn, sql, params);
         }
 
         // #endregion
@@ -529,7 +523,7 @@ public class TransactionTemplate {
         @Override
         public int update(String sql, @Nullable Object @Nullable [] params)
                 throws SQLException {
-            return JdbcOperationSupport.update(this.conn, sql, params);
+            return JdbcExecutor.update(this.conn, sql, params);
         }
 
         /** {@inheritDoc} */
@@ -538,7 +532,7 @@ public class TransactionTemplate {
                 String sql, @Nullable Object @Nullable [] params,
                 RowMapper<T> rowMapper)
                 throws SQLException {
-            return JdbcOperationSupport.updateAndReturnKeys(this.conn, sql, params, rowMapper);
+            return JdbcExecutor.updateAndReturnKeys(this.conn, sql, params, rowMapper);
         }
 
         /** {@inheritDoc} */
@@ -547,7 +541,7 @@ public class TransactionTemplate {
                 String sql, @Nullable Collection<@Nullable Object @Nullable []> params,
                 int batchSize)
                 throws SQLException {
-            return JdbcOperationSupport.batchUpdate(this.conn, sql, params, batchSize, false);
+            return JdbcExecutor.batchUpdate(this.conn, sql, params, batchSize);
         }
 
         /** {@inheritDoc} */
@@ -556,8 +550,7 @@ public class TransactionTemplate {
                 String sql, @Nullable Collection<@Nullable Object @Nullable []> params,
                 int batchSize,
                 boolean quietly) throws SQLException {
-            return JdbcOperationSupport
-                    .batchUpdate(this.conn, sql, params, batchSize, quietly);
+            return JdbcExecutor.batchUpdate(this.conn, sql, params, batchSize, quietly);
         }
 
         // #endregion

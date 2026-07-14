@@ -21,6 +21,7 @@
   - `SimpleJdbcTemplate` 同时实现 `JdbcOperations` 与 `NamedParamJdbcOperations`
   - `TransactionTemplate` 新增命名参数事务方法：`executeNamed` / `commitIfTrueNamed`（纯命名参数回调），以及双参数回调重载（混用位置与命名参数）
   - 补充命名参数查询、更新、批量操作的完整单元测试
+- 新增 `JdbcExecutor` 与 `NamedParamJdbcExecutor` 支持JTA / 容器托管事务等外部持有 `Connection` 的场景
 - `JdbcOperations` 新增方法 `getNamedParamJdbcOperations()`
 - `ParamBuilder.handleItem` 方法由 `private` 提升为 `public`
 
@@ -36,6 +37,7 @@
   - `AssertTools.checkCondition` 异常边界约束收紧为 `<T extends @NonNull Exception>`
   - 测试代码同步更新：`UserRowMapper.mapRow` 参数加 `@NonNull`，`ParamBuilderTest` 加 `@SuppressWarnings("null")`
 - **`SimpleBeanRowMapper` 改用 `MethodHandle` 替代传统反射**：构造器和 setter 调用由 `Constructor.newInstance()` + `setter.invoke()`（需 `setAccessible(true)`）切换为 `java.lang.invoke.MethodHandle`。要求 Bean 具有 `public` 无参构造器且 setter 为 `public` 方法。`RowMapper.beanRowMapper(...)` 静态工厂方法当前返回 `SimpleBeanRowMapper` 实例（未来版本可自由切换实现）。
+- **`TransactionTemplate` 移除强制类型转换**：命名参数相关重载内部由 `(NamedParamJdbcOperations) ops` 改为调用 `ops.getNamedParamJdbcOperations()`，避免依赖具体实现类型
 - **单列查询方法语义优化**：消除 Class 参数重载歧义，补全方法族
   - `queryList(sql, params, Class<T>)` → 已过时，请使用 `queryValues(sql, params, Class<T>)`（多行单列 → 值列表）
   - `queryFirst(sql, params, Class<T>)` → 已过时，请使用 `queryValue(sql, params, Class<T>)`（单行单列 → 单值 Optional）
@@ -45,8 +47,12 @@
 
 ### 文档
 
+- 为核心包（`xyz.zhouxy.jdbc`）及 `function`、`namedparam`、`util` 子包新增 `package-info.java` 文档注释，说明各包职责并标注 JSpecify 空值安全注解
+- 完善 `JdbcOperations` 接口文档注释，明确各方法签名、参数与返回值说明
 - 优化 `SimpleBeanRowMapper` 类注释，明确性能限制和使用建议
-- 更新 README，补充命名参数使用说明和示例
+- 更新 README，补充命名参数使用说明和示例；删除“不支持直接传入 Connection”的过时声明
+- 完善 `package-info.java` 核心组件列表，补充 `JdbcExecutor` / `NamedParamJdbcExecutor`
+- `TransactionTemplate.TransactionJdbcExecutor` 改为委托 `JdbcExecutor` 静态方法，消除重复实现
 - 更新 NOTICE，声明 MyBatis 代码引用及许可
 
 ---

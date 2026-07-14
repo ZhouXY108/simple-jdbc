@@ -27,6 +27,8 @@
  *   <li>{@link xyz.zhouxy.jdbc.namedparam.NamedParamJdbcOperations} ——
  *       命名参数 JDBC 操作接口，提供与 {@link xyz.zhouxy.jdbc.JdbcOperations}
  *       对等的查询、更新、批量操作方法</li>
+ *   <li>{@link xyz.zhouxy.jdbc.namedparam.NamedParamJdbcExecutor} ——
+ *       命名参数静态执行器，面向外部已持有 Connection 的场景</li>
  * </ul>
  *
  * @author ZhouXY

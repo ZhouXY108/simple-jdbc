@@ -30,8 +30,7 @@ import org.jspecify.annotations.Nullable;
  * 位置参数 JDBC 执行器，面向“外部已经持有 {@link Connection}”的场景。
  *
  * <p>
- * 本类的所有方法均为静态方法，每个方法均显式接收一个 {@link Connection} 形参，
- * 在该连接上执行 SQL 并立即返回结果，方法体委托 {@link JdbcOperationSupport} 完成。
+ * 本类的所有方法接收一个 {@link Connection} 形参，在该连接上执行 SQL。
  * </p>
  *
  * <p>
@@ -75,9 +74,6 @@ import org.jspecify.annotations.Nullable;
 @NullMarked
 public final class JdbcExecutor {
 
-    private JdbcExecutor() {
-    }
-
     // #region - query
 
     /**
@@ -91,7 +87,7 @@ public final class JdbcExecutor {
      * @return 查询结果
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> T query(
+    public <T extends @Nullable Object> T query(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
             ResultHandler<T> resultHandler)
@@ -109,7 +105,7 @@ public final class JdbcExecutor {
      * @return 查询结果
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> T query(
+    public <T extends @Nullable Object> T query(
             Connection conn,
             String sql, ResultHandler<T> resultHandler)
             throws SQLException {
@@ -131,7 +127,7 @@ public final class JdbcExecutor {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> queryList(
+    public <T extends @Nullable Object> List<T> queryList(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
             RowMapper<T> rowMapper)
@@ -150,7 +146,7 @@ public final class JdbcExecutor {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> queryValues(
+    public <T extends @Nullable Object> List<T> queryValues(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
             Class<@NonNull T> clazz)
@@ -169,7 +165,7 @@ public final class JdbcExecutor {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    public static List<@Nullable Map<String, @Nullable Object>> queryList(
+    public List<@Nullable Map<String, @Nullable Object>> queryList(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
@@ -186,7 +182,7 @@ public final class JdbcExecutor {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> queryValues(
+    public <T extends @Nullable Object> List<T> queryValues(
             Connection conn,
             String sql, Class<@NonNull T> clazz)
             throws SQLException {
@@ -203,7 +199,7 @@ public final class JdbcExecutor {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> queryList(
+    public <T extends @Nullable Object> List<T> queryList(
             Connection conn,
             String sql, RowMapper<T> rowMapper)
             throws SQLException {
@@ -220,7 +216,7 @@ public final class JdbcExecutor {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    public static List<@Nullable Map<String, @Nullable Object>> queryList(
+    public List<@Nullable Map<String, @Nullable Object>> queryList(
             Connection conn,
             String sql)
             throws SQLException {
@@ -242,7 +238,7 @@ public final class JdbcExecutor {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static <T> Optional<T> queryFirst(
+    public <T> Optional<T> queryFirst(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
             RowMapper<T> rowMapper)
@@ -262,7 +258,7 @@ public final class JdbcExecutor {
      * @return 第一行第一列的值，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static <T> Optional<T> queryValue(
+    public <T> Optional<T> queryValue(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
             Class<T> clazz)
@@ -281,7 +277,7 @@ public final class JdbcExecutor {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static Optional<Map<String, @Nullable Object>> queryFirst(
+    public Optional<Map<String, @Nullable Object>> queryFirst(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
@@ -299,7 +295,7 @@ public final class JdbcExecutor {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static <T> Optional<T> queryFirst(
+    public <T> Optional<T> queryFirst(
             Connection conn,
             String sql, RowMapper<T> rowMapper)
             throws SQLException {
@@ -316,7 +312,7 @@ public final class JdbcExecutor {
      * @return 第一行第一列的值，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static <T> Optional<T> queryValue(
+    public <T> Optional<T> queryValue(
             Connection conn,
             String sql, Class<T> clazz)
             throws SQLException {
@@ -333,7 +329,7 @@ public final class JdbcExecutor {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static Optional<Map<String, @Nullable Object>> queryFirst(
+    public Optional<Map<String, @Nullable Object>> queryFirst(
             Connection conn,
             String sql)
             throws SQLException {
@@ -352,7 +348,7 @@ public final class JdbcExecutor {
      * @return 第一行第一列的值，如果查询结果为空则返回 {@code defaultValue}
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> T queryValueOrDefault(
+    public <T extends @Nullable Object> T queryValueOrDefault(
             Connection conn,
             String sql,
             @Nullable Object @Nullable [] params,
@@ -373,7 +369,7 @@ public final class JdbcExecutor {
      * @return 第一行第一列的值，如果查询结果为空则返回 {@code defaultValue}
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> T queryValueOrDefault(
+    public <T extends @Nullable Object> T queryValueOrDefault(
             Connection conn,
             String sql, Class<@NonNull T> clazz, T defaultValue)
             throws SQLException {
@@ -389,7 +385,7 @@ public final class JdbcExecutor {
      * @return 查询结果。如果查询结果为空，则返回 {@code false}。
      * @throws SQLException SQL 异常
      */
-    public static boolean queryBoolean(
+    public boolean queryBoolean(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
@@ -404,7 +400,7 @@ public final class JdbcExecutor {
      * @return 查询结果。如果查询结果为空，则返回 {@code false}。
      * @throws SQLException SQL 异常
      */
-    public static boolean queryBoolean(
+    public boolean queryBoolean(
             Connection conn,
             String sql)
             throws SQLException {
@@ -424,7 +420,7 @@ public final class JdbcExecutor {
      * @return 更新记录数
      * @throws SQLException SQL 异常
      */
-    public static int update(
+    public int update(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
@@ -439,7 +435,7 @@ public final class JdbcExecutor {
      * @return 更新记录数
      * @throws SQLException SQL 异常
      */
-    public static int update(
+    public int update(
             Connection conn,
             String sql)
             throws SQLException {
@@ -457,7 +453,7 @@ public final class JdbcExecutor {
      * @return 生成的主键列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> updateAndReturnKeys(
+    public <T extends @Nullable Object> List<T> updateAndReturnKeys(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
             RowMapper<T> rowMapper)
@@ -475,7 +471,7 @@ public final class JdbcExecutor {
      * @return 生成的主键列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> updateAndReturnKeys(
+    public <T extends @Nullable Object> List<T> updateAndReturnKeys(
             Connection conn,
             String sql, RowMapper<T> rowMapper)
             throws SQLException {
@@ -497,7 +493,7 @@ public final class JdbcExecutor {
      * @return 批量更新结果
      * @throws SQLException SQL 异常
      */
-    public static BatchUpdateResult batchUpdate(
+    public BatchUpdateResult batchUpdate(
             Connection conn,
             String sql, @Nullable Collection<@Nullable Object @Nullable []> params, int batchSize)
             throws SQLException {
@@ -521,7 +517,7 @@ public final class JdbcExecutor {
      * @return 批量更新结果
      * @throws SQLException SQL 异常
      */
-    public static BatchUpdateResult batchUpdate(
+    public BatchUpdateResult batchUpdate(
             Connection conn,
             String sql, @Nullable Collection<@Nullable Object @Nullable []> params,
             int batchSize, boolean quietly)

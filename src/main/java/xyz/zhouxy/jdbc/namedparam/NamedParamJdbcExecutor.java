@@ -30,13 +30,12 @@ import xyz.zhouxy.jdbc.ResultHandler;
 import xyz.zhouxy.jdbc.RowMapper;
 
 /**
- * 命名参数 JDBC 执行器，面向“外部已经持有 {@link Connection}”的场景，
- * 是 {@link NamedParamJdbcOperations} 的静态对应物。
+ * 命名参数 JDBC 执行器，面向“外部已经持有 {@link Connection}”的场景。
  *
  * <p>
- * 本类的所有方法均为静态方法，每个方法均显式接收一个 {@link Connection} 形参，
- * 在该连接上执行 SQL 并立即返回结果。内部通过 {@link NamedParamSql} / {@link PreparedSql}
- * 解析命名参数后委托 {@link JdbcExecutor} 完成。
+ * 本类的所有方法接收一个 {@link Connection} 形参，在该连接上执行 SQL 并立即返回结果。
+ * 内部通过 {@link NamedParamSql} / {@link PreparedSql} 解析命名参数后委托给
+ * {@link JdbcExecutor} 完成实际执行。
  * </p>
  *
  * <p>
@@ -56,8 +55,8 @@ import xyz.zhouxy.jdbc.RowMapper;
  * try (Connection conn = xaDataSource.getConnection()) {
  *     userTx.begin();
  *     try {
- *         JdbcExecutor.update(conn, "UPDATE accounts SET balance = ? WHERE id = ?", buildParams(100, 1));
- *         NamedParamJdbcExecutor.update(conn,
+ *         jdbcExec.update(conn, "UPDATE accounts SET balance = ? WHERE id = ?", buildParams(100, 1));
+ *         namedExec.update(conn,
  *                 "INSERT INTO logs(msg, user) VALUES(#{msg}, #{user})",
  *                 Map.of("msg", "transfer", "user", "Alice"));
  *         userTx.commit();
@@ -88,8 +87,7 @@ import xyz.zhouxy.jdbc.RowMapper;
  */
 public final class NamedParamJdbcExecutor {
 
-    private NamedParamJdbcExecutor() {
-    }
+    private final JdbcExecutor jdbcExecutor = new JdbcExecutor();
 
     // #region - query
 
@@ -104,13 +102,13 @@ public final class NamedParamJdbcExecutor {
      * @return 查询结果
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> T query(
+    public <T extends @Nullable Object> T query(
             Connection conn,
             String sql,
             Map<String, ?> params,
             ResultHandler<T> resultHandler) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
-        return JdbcExecutor.query(conn, tmpl.getSql(), tmpl.toArgs(params), resultHandler);
+        return jdbcExecutor.query(conn, tmpl.getSql(), tmpl.toArgs(params), resultHandler);
     }
 
     /**
@@ -124,12 +122,12 @@ public final class NamedParamJdbcExecutor {
      * @return 查询结果
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> T query(
+    public <T extends @Nullable Object> T query(
             Connection conn,
             NamedParamSql template,
             Map<String, ?> params,
             ResultHandler<T> resultHandler) throws SQLException {
-        return JdbcExecutor.query(conn, template.getSql(), template.toArgs(params), resultHandler);
+        return jdbcExecutor.query(conn, template.getSql(), template.toArgs(params), resultHandler);
     }
 
     /**
@@ -142,11 +140,11 @@ public final class NamedParamJdbcExecutor {
      * @return 查询结果
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> T query(
+    public <T extends @Nullable Object> T query(
             Connection conn,
             PreparedSql ps,
             ResultHandler<T> resultHandler) throws SQLException {
-        return JdbcExecutor.query(conn, ps.getSql(), ps.getArgs(), resultHandler);
+        return jdbcExecutor.query(conn, ps.getSql(), ps.getArgs(), resultHandler);
     }
 
     // #endregion
@@ -164,13 +162,13 @@ public final class NamedParamJdbcExecutor {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> queryList(
+    public <T extends @Nullable Object> List<T> queryList(
             Connection conn,
             String sql,
             Map<String, ?> params,
             RowMapper<T> rowMapper) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
-        return JdbcExecutor.queryList(conn, tmpl.getSql(), tmpl.toArgs(params), rowMapper);
+        return jdbcExecutor.queryList(conn, tmpl.getSql(), tmpl.toArgs(params), rowMapper);
     }
 
     /**
@@ -184,12 +182,12 @@ public final class NamedParamJdbcExecutor {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> queryList(
+    public <T extends @Nullable Object> List<T> queryList(
             Connection conn,
             NamedParamSql template,
             Map<String, ?> params,
             RowMapper<T> rowMapper) throws SQLException {
-        return JdbcExecutor.queryList(conn, template.getSql(), template.toArgs(params), rowMapper);
+        return jdbcExecutor.queryList(conn, template.getSql(), template.toArgs(params), rowMapper);
     }
 
     /**
@@ -202,11 +200,11 @@ public final class NamedParamJdbcExecutor {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> queryList(
+    public <T extends @Nullable Object> List<T> queryList(
             Connection conn,
             PreparedSql ps,
             RowMapper<T> rowMapper) throws SQLException {
-        return JdbcExecutor.queryList(conn, ps.getSql(), ps.getArgs(), rowMapper);
+        return jdbcExecutor.queryList(conn, ps.getSql(), ps.getArgs(), rowMapper);
     }
 
     /**
@@ -220,13 +218,13 @@ public final class NamedParamJdbcExecutor {
      * @return 每一行第一列的值列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> queryValues(
+    public <T extends @Nullable Object> List<T> queryValues(
             Connection conn,
             String sql,
             Map<String, ?> params,
             Class<@NonNull T> clazz) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
-        return JdbcExecutor.queryValues(conn, tmpl.getSql(), tmpl.toArgs(params), clazz);
+        return jdbcExecutor.queryValues(conn, tmpl.getSql(), tmpl.toArgs(params), clazz);
     }
 
     /**
@@ -240,12 +238,12 @@ public final class NamedParamJdbcExecutor {
      * @return 每一行第一列的值列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> queryValues(
+    public <T extends @Nullable Object> List<T> queryValues(
             Connection conn,
             NamedParamSql template,
             Map<String, ?> params,
             Class<@NonNull T> clazz) throws SQLException {
-        return JdbcExecutor.queryValues(conn, template.getSql(), template.toArgs(params), clazz);
+        return jdbcExecutor.queryValues(conn, template.getSql(), template.toArgs(params), clazz);
     }
 
     /**
@@ -258,11 +256,11 @@ public final class NamedParamJdbcExecutor {
      * @return 每一行第一列的值列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> queryValues(
+    public <T extends @Nullable Object> List<T> queryValues(
             Connection conn,
             PreparedSql ps,
             Class<@NonNull T> clazz) throws SQLException {
-        return JdbcExecutor.queryValues(conn, ps.getSql(), ps.getArgs(), clazz);
+        return jdbcExecutor.queryValues(conn, ps.getSql(), ps.getArgs(), clazz);
     }
 
     /**
@@ -276,12 +274,12 @@ public final class NamedParamJdbcExecutor {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    public static List<@Nullable Map<String, @Nullable Object>> queryList(
+    public List<@Nullable Map<String, @Nullable Object>> queryList(
             Connection conn,
             String sql,
             Map<String, ?> params) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
-        return JdbcExecutor.queryList(conn, tmpl.getSql(), tmpl.toArgs(params));
+        return jdbcExecutor.queryList(conn, tmpl.getSql(), tmpl.toArgs(params));
     }
 
     /**
@@ -295,11 +293,11 @@ public final class NamedParamJdbcExecutor {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    public static List<@Nullable Map<String, @Nullable Object>> queryList(
+    public List<@Nullable Map<String, @Nullable Object>> queryList(
             Connection conn,
             NamedParamSql template,
             Map<String, ?> params) throws SQLException {
-        return JdbcExecutor.queryList(conn, template.getSql(), template.toArgs(params));
+        return jdbcExecutor.queryList(conn, template.getSql(), template.toArgs(params));
     }
 
     /**
@@ -312,10 +310,10 @@ public final class NamedParamJdbcExecutor {
      * @return 结果列表
      * @throws SQLException SQL 异常
      */
-    public static List<@Nullable Map<String, @Nullable Object>> queryList(
+    public List<@Nullable Map<String, @Nullable Object>> queryList(
             Connection conn,
             PreparedSql ps) throws SQLException {
-        return JdbcExecutor.queryList(conn, ps.getSql(), ps.getArgs());
+        return jdbcExecutor.queryList(conn, ps.getSql(), ps.getArgs());
     }
 
     // #endregion
@@ -333,13 +331,13 @@ public final class NamedParamJdbcExecutor {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static <T> Optional<T> queryFirst(
+    public <T> Optional<T> queryFirst(
             Connection conn,
             String sql,
             Map<String, ?> params,
             RowMapper<T> rowMapper) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
-        return JdbcExecutor.queryFirst(conn, tmpl.getSql(), tmpl.toArgs(params), rowMapper);
+        return jdbcExecutor.queryFirst(conn, tmpl.getSql(), tmpl.toArgs(params), rowMapper);
     }
 
     /**
@@ -353,12 +351,12 @@ public final class NamedParamJdbcExecutor {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static <T> Optional<T> queryFirst(
+    public <T> Optional<T> queryFirst(
             Connection conn,
             NamedParamSql template,
             Map<String, ?> params,
             RowMapper<T> rowMapper) throws SQLException {
-        return JdbcExecutor.queryFirst(conn, template.getSql(), template.toArgs(params), rowMapper);
+        return jdbcExecutor.queryFirst(conn, template.getSql(), template.toArgs(params), rowMapper);
     }
 
     /**
@@ -371,11 +369,11 @@ public final class NamedParamJdbcExecutor {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static <T> Optional<T> queryFirst(
+    public <T> Optional<T> queryFirst(
             Connection conn,
             PreparedSql ps,
             RowMapper<T> rowMapper) throws SQLException {
-        return JdbcExecutor.queryFirst(conn, ps.getSql(), ps.getArgs(), rowMapper);
+        return jdbcExecutor.queryFirst(conn, ps.getSql(), ps.getArgs(), rowMapper);
     }
 
     /**
@@ -389,13 +387,13 @@ public final class NamedParamJdbcExecutor {
      * @return 第一行第一列的值，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static <T> Optional<T> queryValue(
+    public <T> Optional<T> queryValue(
             Connection conn,
             String sql,
             Map<String, ?> params,
             Class<T> clazz) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
-        return JdbcExecutor.queryValue(conn, tmpl.getSql(), tmpl.toArgs(params), clazz);
+        return jdbcExecutor.queryValue(conn, tmpl.getSql(), tmpl.toArgs(params), clazz);
     }
 
     /**
@@ -409,12 +407,12 @@ public final class NamedParamJdbcExecutor {
      * @return 第一行第一列的值，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static <T> Optional<T> queryValue(
+    public <T> Optional<T> queryValue(
             Connection conn,
             NamedParamSql template,
             Map<String, ?> params,
             Class<T> clazz) throws SQLException {
-        return JdbcExecutor.queryValue(conn, template.getSql(), template.toArgs(params), clazz);
+        return jdbcExecutor.queryValue(conn, template.getSql(), template.toArgs(params), clazz);
     }
 
     /**
@@ -427,11 +425,11 @@ public final class NamedParamJdbcExecutor {
      * @return 第一行第一列的值，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static <T> Optional<T> queryValue(
+    public <T> Optional<T> queryValue(
             Connection conn,
             PreparedSql ps,
             Class<T> clazz) throws SQLException {
-        return JdbcExecutor.queryValue(conn, ps.getSql(), ps.getArgs(), clazz);
+        return jdbcExecutor.queryValue(conn, ps.getSql(), ps.getArgs(), clazz);
     }
 
     /**
@@ -446,14 +444,14 @@ public final class NamedParamJdbcExecutor {
      * @return 第一行第一列的值，如果查询结果为空则返回 {@code defaultValue}
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> T queryValueOrDefault(
+    public <T extends @Nullable Object> T queryValueOrDefault(
             Connection conn,
             String sql,
             Map<String, ?> params,
             Class<@NonNull T> clazz,
             T defaultValue) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
-        return JdbcExecutor.queryValueOrDefault(conn, tmpl.getSql(), tmpl.toArgs(params), clazz, defaultValue);
+        return jdbcExecutor.queryValueOrDefault(conn, tmpl.getSql(), tmpl.toArgs(params), clazz, defaultValue);
     }
 
     /**
@@ -468,13 +466,13 @@ public final class NamedParamJdbcExecutor {
      * @return 第一行第一列的值，如果查询结果为空则返回 {@code defaultValue}
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> T queryValueOrDefault(
+    public <T extends @Nullable Object> T queryValueOrDefault(
             Connection conn,
             NamedParamSql template,
             Map<String, ?> params,
             Class<@NonNull T> clazz,
             T defaultValue) throws SQLException {
-        return JdbcExecutor.queryValueOrDefault(conn, template.getSql(), template.toArgs(params), clazz, defaultValue);
+        return jdbcExecutor.queryValueOrDefault(conn, template.getSql(), template.toArgs(params), clazz, defaultValue);
     }
 
     /**
@@ -488,12 +486,12 @@ public final class NamedParamJdbcExecutor {
      * @return 第一行第一列的值，如果查询结果为空则返回 {@code defaultValue}
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> T queryValueOrDefault(
+    public <T extends @Nullable Object> T queryValueOrDefault(
             Connection conn,
             PreparedSql ps,
             Class<@NonNull T> clazz,
             T defaultValue) throws SQLException {
-        return JdbcExecutor.queryValueOrDefault(conn, ps.getSql(), ps.getArgs(), clazz, defaultValue);
+        return jdbcExecutor.queryValueOrDefault(conn, ps.getSql(), ps.getArgs(), clazz, defaultValue);
     }
 
     /**
@@ -507,12 +505,12 @@ public final class NamedParamJdbcExecutor {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static Optional<Map<String, @Nullable Object>> queryFirst(
+    public Optional<Map<String, @Nullable Object>> queryFirst(
             Connection conn,
             String sql,
             Map<String, ?> params) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
-        return JdbcExecutor.queryFirst(conn, tmpl.getSql(), tmpl.toArgs(params));
+        return jdbcExecutor.queryFirst(conn, tmpl.getSql(), tmpl.toArgs(params));
     }
 
     /**
@@ -526,11 +524,11 @@ public final class NamedParamJdbcExecutor {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static Optional<Map<String, @Nullable Object>> queryFirst(
+    public Optional<Map<String, @Nullable Object>> queryFirst(
             Connection conn,
             NamedParamSql template,
             Map<String, ?> params) throws SQLException {
-        return JdbcExecutor.queryFirst(conn, template.getSql(), template.toArgs(params));
+        return jdbcExecutor.queryFirst(conn, template.getSql(), template.toArgs(params));
     }
 
     /**
@@ -543,10 +541,10 @@ public final class NamedParamJdbcExecutor {
      * @return 第一行结果，可能为 {@code Optional.empty()}
      * @throws SQLException SQL 异常
      */
-    public static Optional<Map<String, @Nullable Object>> queryFirst(
+    public Optional<Map<String, @Nullable Object>> queryFirst(
             Connection conn,
             PreparedSql ps) throws SQLException {
-        return JdbcExecutor.queryFirst(conn, ps.getSql(), ps.getArgs());
+        return jdbcExecutor.queryFirst(conn, ps.getSql(), ps.getArgs());
     }
 
     /**
@@ -558,12 +556,12 @@ public final class NamedParamJdbcExecutor {
      * @return 查询结果。如果查询结果为空，则返回 {@code false}。
      * @throws SQLException SQL 异常
      */
-    public static boolean queryBoolean(
+    public boolean queryBoolean(
             Connection conn,
             String sql,
             Map<String, ?> params) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
-        return JdbcExecutor.queryBoolean(conn, tmpl.getSql(), tmpl.toArgs(params));
+        return jdbcExecutor.queryBoolean(conn, tmpl.getSql(), tmpl.toArgs(params));
     }
 
     /**
@@ -575,11 +573,11 @@ public final class NamedParamJdbcExecutor {
      * @return 查询结果。如果查询结果为空，则返回 {@code false}。
      * @throws SQLException SQL 异常
      */
-    public static boolean queryBoolean(
+    public boolean queryBoolean(
             Connection conn,
             NamedParamSql template,
             Map<String, ?> params) throws SQLException {
-        return JdbcExecutor.queryBoolean(conn, template.getSql(), template.toArgs(params));
+        return jdbcExecutor.queryBoolean(conn, template.getSql(), template.toArgs(params));
     }
 
     /**
@@ -590,10 +588,10 @@ public final class NamedParamJdbcExecutor {
      * @return 查询结果。如果查询结果为空，则返回 {@code false}。
      * @throws SQLException SQL 异常
      */
-    public static boolean queryBoolean(
+    public boolean queryBoolean(
             Connection conn,
             PreparedSql ps) throws SQLException {
-        return JdbcExecutor.queryBoolean(conn, ps.getSql(), ps.getArgs());
+        return jdbcExecutor.queryBoolean(conn, ps.getSql(), ps.getArgs());
     }
 
     // #endregion
@@ -609,12 +607,12 @@ public final class NamedParamJdbcExecutor {
      * @return 更新记录数
      * @throws SQLException SQL 异常
      */
-    public static int update(
+    public int update(
             Connection conn,
             String sql,
             Map<String, ?> params) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
-        return JdbcExecutor.update(conn, tmpl.getSql(), tmpl.toArgs(params));
+        return jdbcExecutor.update(conn, tmpl.getSql(), tmpl.toArgs(params));
     }
 
     /**
@@ -626,11 +624,11 @@ public final class NamedParamJdbcExecutor {
      * @return 更新记录数
      * @throws SQLException SQL 异常
      */
-    public static int update(
+    public int update(
             Connection conn,
             NamedParamSql template,
             Map<String, ?> params) throws SQLException {
-        return JdbcExecutor.update(conn, template.getSql(), template.toArgs(params));
+        return jdbcExecutor.update(conn, template.getSql(), template.toArgs(params));
     }
 
     /**
@@ -641,10 +639,10 @@ public final class NamedParamJdbcExecutor {
      * @return 更新记录数
      * @throws SQLException SQL 异常
      */
-    public static int update(
+    public int update(
             Connection conn,
             PreparedSql ps) throws SQLException {
-        return JdbcExecutor.update(conn, ps.getSql(), ps.getArgs());
+        return jdbcExecutor.update(conn, ps.getSql(), ps.getArgs());
     }
 
     /**
@@ -658,13 +656,13 @@ public final class NamedParamJdbcExecutor {
      * @return 生成的主键列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> updateAndReturnKeys(
+    public <T extends @Nullable Object> List<T> updateAndReturnKeys(
             Connection conn,
             String sql,
             Map<String, ?> params,
             RowMapper<T> rowMapper) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
-        return JdbcExecutor.updateAndReturnKeys(conn, tmpl.getSql(), tmpl.toArgs(params), rowMapper);
+        return jdbcExecutor.updateAndReturnKeys(conn, tmpl.getSql(), tmpl.toArgs(params), rowMapper);
     }
 
     /**
@@ -678,12 +676,12 @@ public final class NamedParamJdbcExecutor {
      * @return 生成的主键列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> updateAndReturnKeys(
+    public <T extends @Nullable Object> List<T> updateAndReturnKeys(
             Connection conn,
             NamedParamSql template,
             Map<String, ?> params,
             RowMapper<T> rowMapper) throws SQLException {
-        return JdbcExecutor.updateAndReturnKeys(conn, template.getSql(), template.toArgs(params), rowMapper);
+        return jdbcExecutor.updateAndReturnKeys(conn, template.getSql(), template.toArgs(params), rowMapper);
     }
 
     /**
@@ -696,11 +694,11 @@ public final class NamedParamJdbcExecutor {
      * @return 生成的主键列表
      * @throws SQLException SQL 异常
      */
-    public static <T extends @Nullable Object> List<T> updateAndReturnKeys(
+    public <T extends @Nullable Object> List<T> updateAndReturnKeys(
             Connection conn,
             PreparedSql ps,
             RowMapper<T> rowMapper) throws SQLException {
-        return JdbcExecutor.updateAndReturnKeys(conn, ps.getSql(), ps.getArgs(), rowMapper);
+        return jdbcExecutor.updateAndReturnKeys(conn, ps.getSql(), ps.getArgs(), rowMapper);
     }
 
     /**
@@ -713,13 +711,13 @@ public final class NamedParamJdbcExecutor {
      * @return 批量更新结果
      * @throws SQLException SQL 异常
      */
-    public static BatchUpdateResult batchUpdate(
+    public BatchUpdateResult batchUpdate(
             Connection conn,
             String sql,
             List<Map<String, ?>> batchParams,
             int batchSize) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
-        return JdbcExecutor.batchUpdate(conn, tmpl.getSql(), tmpl.toBatchArgs(batchParams), batchSize);
+        return jdbcExecutor.batchUpdate(conn, tmpl.getSql(), tmpl.toBatchArgs(batchParams), batchSize);
     }
 
     /**
@@ -732,12 +730,12 @@ public final class NamedParamJdbcExecutor {
      * @return 批量更新结果
      * @throws SQLException SQL 异常
      */
-    public static BatchUpdateResult batchUpdate(
+    public BatchUpdateResult batchUpdate(
             Connection conn,
             NamedParamSql template,
             List<Map<String, ?>> batchParams,
             int batchSize) throws SQLException {
-        return JdbcExecutor.batchUpdate(conn, template.getSql(), template.toBatchArgs(batchParams), batchSize);
+        return jdbcExecutor.batchUpdate(conn, template.getSql(), template.toBatchArgs(batchParams), batchSize);
     }
 
     /**
@@ -752,13 +750,13 @@ public final class NamedParamJdbcExecutor {
      * @return 批量更新结果
      * @throws SQLException SQL 异常
      */
-    public static BatchUpdateResult batchUpdate(
+    public BatchUpdateResult batchUpdate(
             Connection conn,
             String sql,
             List<Map<String, ?>> batchParams,
             int batchSize, boolean quietly) throws SQLException {
         final NamedParamSql tmpl = NamedParamSql.of(sql);
-        return JdbcExecutor.batchUpdate(conn, tmpl.getSql(), tmpl.toBatchArgs(batchParams), batchSize, quietly);
+        return jdbcExecutor.batchUpdate(conn, tmpl.getSql(), tmpl.toBatchArgs(batchParams), batchSize, quietly);
     }
 
     /**
@@ -773,12 +771,12 @@ public final class NamedParamJdbcExecutor {
      * @return 批量更新结果
      * @throws SQLException SQL 异常
      */
-    public static BatchUpdateResult batchUpdate(
+    public BatchUpdateResult batchUpdate(
             Connection conn,
             NamedParamSql template,
             List<Map<String, ?>> batchParams,
             int batchSize, boolean quietly) throws SQLException {
-        return JdbcExecutor.batchUpdate(conn, template.getSql(), template.toBatchArgs(batchParams), batchSize, quietly);
+        return jdbcExecutor.batchUpdate(conn, template.getSql(), template.toBatchArgs(batchParams), batchSize, quietly);
     }
 
     // #endregion

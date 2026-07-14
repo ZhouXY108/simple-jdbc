@@ -21,15 +21,17 @@ import xyz.zhouxy.jdbc.namedparam.NamedParamJdbcExecutor;
 import xyz.zhouxy.jdbc.namedparam.NamedParamSql;
 import xyz.zhouxy.jdbc.namedparam.PreparedSql;
 
-@DisplayName("NamedParamJdbcExecutor 命名参数静态执行器")
+@DisplayName("NamedParamJdbcExecutor 命名参数实例执行器")
 class NamedParamJdbcExecutorTest extends BaseH2Test {
 
     private Connection conn;
+    private NamedParamJdbcExecutor namedExecutor;
 
     @BeforeEach
     void setUp() throws Exception {
         resetDatabase();
         conn = dataSource.getConnection();
+        namedExecutor = new NamedParamJdbcExecutor();
     }
 
     @AfterEach
@@ -44,7 +46,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
     @Test
     @DisplayName("query(String + Map)")
     void testQueryWithString() throws SQLException {
-        Integer count = NamedParamJdbcExecutor.query(conn,
+        Integer count = namedExecutor.query(conn,
                 "SELECT COUNT(*) FROM users WHERE active = #{active}",
                 Collections.singletonMap("active", true),
                 rs -> {
@@ -59,7 +61,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
     void testQueryWithNamedParamSql() throws SQLException {
         NamedParamSql tmpl = NamedParamSql.of(
                 "SELECT COUNT(*) FROM users WHERE active = #{active}");
-        Integer count = NamedParamJdbcExecutor.query(conn, tmpl,
+        Integer count = namedExecutor.query(conn, tmpl,
                 Collections.singletonMap("active", true),
                 rs -> {
                     rs.next();
@@ -75,7 +77,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
                 .sql("SELECT COUNT(*) FROM users WHERE active = #{active}")
                 .param("active", true)
                 .build();
-        Integer count = NamedParamJdbcExecutor.query(conn, ps,
+        Integer count = namedExecutor.query(conn, ps,
                 rs -> {
                     rs.next();
                     return rs.getInt(1);
@@ -88,7 +90,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
     @Test
     @DisplayName("queryList(String + Map + RowMapper)")
     void testQueryListWithRowMapper() throws SQLException {
-        List<User> users = NamedParamJdbcExecutor.queryList(conn,
+        List<User> users = namedExecutor.queryList(conn,
                 "SELECT * FROM users WHERE active = #{active} ORDER BY id",
                 Collections.singletonMap("active", true),
                 new UserRowMapper());
@@ -102,14 +104,14 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
                 .sql("SELECT * FROM users WHERE active = #{active} ORDER BY id")
                 .param("active", true)
                 .build();
-        List<User> users = NamedParamJdbcExecutor.queryList(conn, ps, new UserRowMapper());
+        List<User> users = namedExecutor.queryList(conn, ps, new UserRowMapper());
         assertEquals(4, users.size());
     }
 
     @Test
     @DisplayName("queryValues(String + Map)")
     void testQueryValues() throws SQLException {
-        List<String> usernames = NamedParamJdbcExecutor.queryValues(conn,
+        List<String> usernames = namedExecutor.queryValues(conn,
                 "SELECT username FROM users WHERE age > #{minAge} ORDER BY id",
                 Collections.singletonMap("minAge", 30),
                 String.class);
@@ -121,7 +123,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
     @Test
     @DisplayName("queryFirst(String + Map + RowMapper)")
     void testQueryFirstWithRowMapper() throws SQLException {
-        Optional<User> user = NamedParamJdbcExecutor.queryFirst(conn,
+        Optional<User> user = namedExecutor.queryFirst(conn,
                 "SELECT * FROM users WHERE id = #{id}",
                 Collections.singletonMap("id", 1),
                 new UserRowMapper());
@@ -134,7 +136,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
     void testQueryValueWithNamedParamSql() throws SQLException {
         NamedParamSql tmpl = NamedParamSql.of(
                 "SELECT username FROM users WHERE id = #{id}");
-        Optional<String> name = NamedParamJdbcExecutor.queryValue(conn, tmpl,
+        Optional<String> name = namedExecutor.queryValue(conn, tmpl,
                 Collections.singletonMap("id", 1), String.class);
         assertTrue(name.isPresent());
         assertEquals("alice", name.get());
@@ -147,14 +149,14 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
                 .sql("SELECT COUNT(*) FROM users WHERE active = #{active}")
                 .param("active", true)
                 .build();
-        long count = NamedParamJdbcExecutor.queryValueOrDefault(conn, ps, Long.class, 0L);
+        long count = namedExecutor.queryValueOrDefault(conn, ps, Long.class, 0L);
         assertEquals(4L, count);
     }
 
     @Test
     @DisplayName("queryValueOrDefault 空结果返回默认值")
     void testQueryValueOrDefaultEmpty() throws SQLException {
-        long count = NamedParamJdbcExecutor.queryValueOrDefault(conn,
+        long count = namedExecutor.queryValueOrDefault(conn,
                 "SELECT COUNT(*) FROM users WHERE id = #{id}",
                 Collections.singletonMap("id", 999),
                 Long.class, 0L);
@@ -166,7 +168,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
     @Test
     @DisplayName("queryBoolean(String + Map) true")
     void testQueryBooleanTrue() throws SQLException {
-        boolean active = NamedParamJdbcExecutor.queryBoolean(conn,
+        boolean active = namedExecutor.queryBoolean(conn,
                 "SELECT active FROM users WHERE id = #{id}",
                 Collections.singletonMap("id", 1));
         assertTrue(active);
@@ -177,7 +179,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
     void testQueryBooleanFalseWithNamedParamSql() throws SQLException {
         NamedParamSql tmpl = NamedParamSql.of(
                 "SELECT active FROM users WHERE id = #{id}");
-        boolean active = NamedParamJdbcExecutor.queryBoolean(conn, tmpl,
+        boolean active = namedExecutor.queryBoolean(conn, tmpl,
                 Collections.singletonMap("id", 3));
         assertFalse(active);
     }
@@ -190,7 +192,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
         HashMap<String, Object> params = new HashMap<>();
         params.put("name", "npUser");
         params.put("email", "np@test.com");
-        int rows = NamedParamJdbcExecutor.update(conn,
+        int rows = namedExecutor.update(conn,
                 "INSERT INTO users (username, email) VALUES(#{name}, #{email})",
                 params);
         assertEquals(1, rows);
@@ -204,7 +206,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
         HashMap<String, Object> params = new HashMap<>();
         params.put("email", "updated@test.com");
         params.put("name", "alice");
-        int rows = NamedParamJdbcExecutor.update(conn, tmpl, params);
+        int rows = namedExecutor.update(conn, tmpl, params);
         assertEquals(1, rows);
     }
 
@@ -216,14 +218,14 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
                 .param("email", "ps@test.com")
                 .param("name", "bob")
                 .build();
-        int rows = NamedParamJdbcExecutor.update(conn, ps);
+        int rows = namedExecutor.update(conn, ps);
         assertEquals(1, rows);
     }
 
     @Test
     @DisplayName("updateAndReturnKeys(String + Map)")
     void testUpdateAndReturnKeys() throws SQLException {
-        List<Long> keys = NamedParamJdbcExecutor.updateAndReturnKeys(conn,
+        List<Long> keys = namedExecutor.updateAndReturnKeys(conn,
                 "INSERT INTO users (username) VALUES(#{name})",
                 Collections.singletonMap("name", "keyNpUser"),
                 (rs, rowNum) -> rs.getLong(1));
@@ -245,7 +247,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
         row2.put("name", "batchNp2");
         row2.put("email", "bn2@t.com");
         batchParams.add(row2);
-        BatchUpdateResult result = NamedParamJdbcExecutor.batchUpdate(conn,
+        BatchUpdateResult result = namedExecutor.batchUpdate(conn,
                 "INSERT INTO users (username, email) VALUES(#{name}, #{email})",
                 batchParams, 10);
         assertEquals(2, result.getTotal());
@@ -265,7 +267,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
         q2.put("name", "qNp2");
         q2.put("email", "qn2@t.com");
         batchParams.add(q2);
-        BatchUpdateResult result = NamedParamJdbcExecutor.batchUpdate(conn, tmpl,
+        BatchUpdateResult result = namedExecutor.batchUpdate(conn, tmpl,
                 batchParams, 10, true);
         assertEquals(2, result.getTotal());
     }
@@ -276,7 +278,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
     @DisplayName("缺失参数名抛 IllegalArgumentException")
     void testMissingParamName() {
         assertThrows(IllegalArgumentException.class, () ->
-            NamedParamJdbcExecutor.queryValue(conn,
+            namedExecutor.queryValue(conn,
                     "SELECT username FROM users WHERE id = #{missing}",
                     Collections.singletonMap("id", 1),
                     String.class));
@@ -286,7 +288,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
     @DisplayName("null Connection 抛出异常")
     void testNullConnection() {
         assertThrows(Exception.class, () ->
-            NamedParamJdbcExecutor.query(null,
+            namedExecutor.query(null,
                     "SELECT #{a}", Collections.singletonMap("a", 1),
                     rs -> rs.getInt(1)));
     }
@@ -294,7 +296,7 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
     @Test
     @DisplayName("执行后连接不被关闭")
     void testConnectionNotClosed() throws SQLException {
-        NamedParamJdbcExecutor.query(conn,
+        namedExecutor.query(conn,
                 "SELECT #{a}", Collections.singletonMap("a", 1),
                 rs -> {
                     rs.next();

@@ -45,11 +45,18 @@ import xyz.zhouxy.jdbc.util.AssertTools;
  * </ul>
  *
  * <p>
+ * 本类支持通过 {@link JdbcConfig} 自定义实例级的 Statement 参数和 ResultSet 类型。
+ * {@link #transaction()} 返回的 {@link TransactionTemplate} 共享同一个 {@link JdbcConfig}。
+ * </p>
+ *
+ * <p>
  * 线程安全：本类无内部可变状态，线程安全。所依赖的 {@link DataSource}
  * 需自行保证线程安全。
+ * </p>
  *
  * @author ZhouXY
  * @since 1.0.0
+ * @see JdbcConfig
  * @see JdbcOperations
  * @see TransactionTemplate
  * @see ParamBuilder
@@ -59,17 +66,31 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
 
     private final DataSource dataSource;
 
+    private final JdbcExecutor jdbcExecutor;
+
     private final TransactionTemplate transactionTemplate;
 
     /**
-     * 构造一个 {@code SimpleJdbcTemplate} 实例
+     * 使用默认配置构造一个 {@code SimpleJdbcTemplate} 实例。
      *
      * @param dataSource 数据源，用于获取数据库连接；不可为 {@code null}
      */
     public SimpleJdbcTemplate(DataSource dataSource) {
+        this(dataSource, JdbcConfig.defaults());
+    }
+
+    /**
+     * 使用指定配置构造一个 {@code SimpleJdbcTemplate} 实例。
+     *
+     * @param dataSource 数据源，用于获取数据库连接；不可为 {@code null}
+     * @param config     JDBC 配置；不可为 {@code null}
+     */
+    public SimpleJdbcTemplate(DataSource dataSource, JdbcConfig config) {
         AssertTools.checkNotNull(dataSource);
+        AssertTools.checkNotNull(config);
         this.dataSource = dataSource;
-        this.transactionTemplate = new TransactionTemplate(dataSource);
+        this.jdbcExecutor = new JdbcExecutor(config);
+        this.transactionTemplate = new TransactionTemplate(dataSource, config);
     }
 
     // #region - query
@@ -80,7 +101,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
     T query(String sql, @Nullable Object @Nullable [] params, ResultHandler<T> resultHandler)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.query(conn, sql, params, resultHandler);
+            return this.jdbcExecutor.query(conn, sql, params, resultHandler);
         }
     }
 
@@ -94,7 +115,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
     List<T> queryList(String sql, @Nullable Object @Nullable [] params, RowMapper<T> rowMapper)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.queryList(conn, sql, params, rowMapper);
+            return this.jdbcExecutor.queryList(conn, sql, params, rowMapper);
         }
     }
 
@@ -104,7 +125,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
     List<T> queryValues(String sql, @Nullable Object @Nullable [] params, Class<@NonNull T> clazz)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.queryValues(conn, sql, params, clazz);
+            return this.jdbcExecutor.queryValues(conn, sql, params, clazz);
         }
     }
 
@@ -114,7 +135,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
             String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.queryList(conn, sql, params, RowMapper.LINKED_HASH_MAP_MAPPER);
+            return this.jdbcExecutor.queryList(conn, sql, params);
         }
     }
 
@@ -129,8 +150,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
             RowMapper<T> rowMapper)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            final T result = JdbcOperationSupport.queryFirst(conn, sql, params, rowMapper);
-            return Optional.ofNullable(result);
+            return this.jdbcExecutor.queryFirst(conn, sql, params, rowMapper);
         }
     }
 
@@ -140,8 +160,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
             String sql, @Nullable Object @Nullable [] params, Class<T> clazz)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            final T result = JdbcOperationSupport.queryValue(conn, sql, params, clazz);
-            return Optional.ofNullable(result);
+            return this.jdbcExecutor.queryValue(conn, sql, params, clazz);
         }
     }
 
@@ -150,9 +169,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
     public Optional<Map<String, @Nullable Object>> queryFirst(String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            final Map<String, @Nullable Object> result = JdbcOperationSupport
-                    .queryFirst(conn, sql, params, RowMapper.LINKED_HASH_MAP_MAPPER);
-            return Optional.ofNullable(result);
+            return this.jdbcExecutor.queryFirst(conn, sql, params);
         }
     }
 
@@ -161,9 +178,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
     public boolean queryBoolean(String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            final Boolean result = JdbcOperationSupport
-                    .queryValue(conn, sql, params, Boolean.class);
-            return Boolean.TRUE.equals(result);
+            return this.jdbcExecutor.queryBoolean(conn, sql, params);
         }
     }
 
@@ -176,7 +191,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
     public int update(String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.update(conn, sql, params);
+            return this.jdbcExecutor.update(conn, sql, params);
         }
     }
 
@@ -185,7 +200,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
     public <T extends @Nullable Object> List<T> updateAndReturnKeys(String sql, @Nullable Object @Nullable [] params, RowMapper<T> rowMapper)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.updateAndReturnKeys(conn, sql, params, rowMapper);
+            return this.jdbcExecutor.updateAndReturnKeys(conn, sql, params, rowMapper);
         }
     }
 
@@ -194,7 +209,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
     public BatchUpdateResult batchUpdate(String sql, @Nullable Collection<@Nullable Object @Nullable []> params, int batchSize)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport.batchUpdate(conn, sql, params, batchSize, false);
+            return this.jdbcExecutor.batchUpdate(conn, sql, params, batchSize);
         }
     }
 
@@ -204,8 +219,7 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
             int batchSize, boolean quietly)
             throws SQLException {
         try (Connection conn = this.dataSource.getConnection()) {
-            return JdbcOperationSupport
-                    .batchUpdate(conn, sql, params, batchSize, quietly);
+            return this.jdbcExecutor.batchUpdate(conn, sql, params, batchSize, quietly);
         }
     }
 
@@ -230,10 +244,11 @@ public class SimpleJdbcTemplate implements JdbcOperations, NamedParamJdbcOperati
     // #region - transaction
 
     /**
-     * 获取事务模板
+     * 获取事务模板。
      *
      * <p>
-     * 返回的 {@link TransactionTemplate} 与当前模板共享同一个 {@link DataSource}。
+     * 返回的 {@link TransactionTemplate} 与当前模板共享同一个 {@link DataSource}
+     * 和 {@link JdbcConfig}。
      *
      * @return 事务模板
      */

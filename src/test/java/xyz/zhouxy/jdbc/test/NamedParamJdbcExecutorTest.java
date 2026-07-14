@@ -3,6 +3,7 @@ package xyz.zhouxy.jdbc.test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import xyz.zhouxy.jdbc.BatchUpdateResult;
+import xyz.zhouxy.jdbc.JdbcConfig;
 import xyz.zhouxy.jdbc.namedparam.NamedParamJdbcExecutor;
 import xyz.zhouxy.jdbc.namedparam.NamedParamSql;
 import xyz.zhouxy.jdbc.namedparam.PreparedSql;
@@ -303,5 +305,19 @@ class NamedParamJdbcExecutorTest extends BaseH2Test {
                     return rs.getInt(1);
                 });
         assertFalse(conn.isClosed());
+    }
+
+    @Test
+    @DisplayName("自定义 JdbcConfig 传递到内部 JdbcExecutor")
+    void testCustomConfig() throws SQLException {
+        JdbcConfig config = JdbcConfig.builder()
+                .resultSetType(ResultSet.TYPE_SCROLL_INSENSITIVE)
+                .build();
+        NamedParamJdbcExecutor customNamed = new NamedParamJdbcExecutor(config);
+        Integer type = customNamed.query(conn,
+                "SELECT #{val}",
+                Collections.singletonMap("val", 1),
+                rs -> rs.getType());
+        assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, type);
     }
 }

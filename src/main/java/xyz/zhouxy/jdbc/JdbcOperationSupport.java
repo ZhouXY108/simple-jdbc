@@ -65,16 +65,19 @@ class JdbcOperationSupport {
      * @param sql           SQL
      * @param params        参数
      * @param resultHandler 结果处理器，用于处理 {@link ResultSet}
+     * @param config        JDBC 配置
      */
     static <T extends @Nullable Object> T query(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
-            ResultHandler<T> resultHandler)
+            ResultHandler<T> resultHandler,
+            JdbcConfig config)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         assertResultHandlerNotNull(resultHandler);
-        return queryInternal(conn, sql, params, resultHandler);
+        assertConfigNotNull(config);
+        return queryInternal(conn, sql, params, resultHandler, config);
     }
 
     // #endregion
@@ -88,16 +91,19 @@ class JdbcOperationSupport {
      * @param sql       SQL
      * @param params    参数
      * @param rowMapper {@link ResultSet} 中每一行的数据的处理逻辑
+     * @param config    JDBC 配置
      */
     static <T extends @Nullable Object> List<T> queryList(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
-            RowMapper<T> rowMapper)
+            RowMapper<T> rowMapper,
+            JdbcConfig config)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         assertRowMapperNotNull(rowMapper);
-        return queryListInternal(conn, sql, params, rowMapper);
+        assertConfigNotNull(config);
+        return queryListInternal(conn, sql, params, rowMapper, config);
     }
 
     /**
@@ -107,16 +113,19 @@ class JdbcOperationSupport {
      * @param sql    SQL
      * @param params 参数
      * @param clazz  将结果映射为指定的类型
+     * @param config JDBC 配置
      */
     static <T extends @Nullable Object> List<T> queryValues(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
-            Class<@NonNull T> clazz)
+            Class<@NonNull T> clazz,
+            JdbcConfig config)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         assertClazzNotNull(clazz);
-        return queryListInternal(conn, sql, params, (rs, rowNumber) -> rs.getObject(1, clazz));
+        assertConfigNotNull(config);
+        return queryListInternal(conn, sql, params, (rs, rowNumber) -> rs.getObject(1, clazz), config);
     }
 
     // #endregion
@@ -130,16 +139,19 @@ class JdbcOperationSupport {
      * @param sql       SQL
      * @param params    参数
      * @param rowMapper {@link ResultSet} 中每一行的数据的处理逻辑
+     * @param config    JDBC 配置
      */
     static <T> @Nullable T queryFirst(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
-            RowMapper<T> rowMapper)
+            RowMapper<T> rowMapper,
+            JdbcConfig config)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         assertRowMapperNotNull(rowMapper);
-        return queryFirstInternal(conn, sql, params, rowMapper);
+        assertConfigNotNull(config);
+        return queryFirstInternal(conn, sql, params, rowMapper, config);
     }
 
     /**
@@ -150,17 +162,20 @@ class JdbcOperationSupport {
      * @param sql    SQL
      * @param params 参数
      * @param clazz  目标类型
+     * @param config JDBC 配置
      */
     static <T> @Nullable T queryValue(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
-            Class<T> clazz)
+            Class<T> clazz,
+            JdbcConfig config)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         assertClazzNotNull(clazz);
+        assertConfigNotNull(config);
         return queryFirstInternal(conn, sql, params,
-                (rs, rowNumber) -> rs.getObject(1, clazz));
+                (rs, rowNumber) -> rs.getObject(1, clazz), config);
     }
 
     // #endregion
@@ -173,20 +188,23 @@ class JdbcOperationSupport {
      * @param conn   数据库连接
      * @param sql    要执行的 SQL
      * @param params 参数
+     * @param config JDBC 配置
      * @return 更新记录数
      */
-    static int update(Connection conn, String sql, @Nullable Object @Nullable [] params)
+    static int update(Connection conn, String sql, @Nullable Object @Nullable [] params,
+            JdbcConfig config)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
+        assertConfigNotNull(config);
         if (params != null && params.length > 0) {
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                fillStatement(stmt, params);
+            try (PreparedStatement stmt = createPreparedStatement(conn, sql, params, config, false)) {
                 return stmt.executeUpdate();
             }
         }
         else {
             try (Statement stmt = conn.createStatement()) {
+                applyConfig(stmt, config);
                 return stmt.executeUpdate(sql);
             }
         }
@@ -199,20 +217,23 @@ class JdbcOperationSupport {
      * @param sql       要执行的 SQL
      * @param params    参数
      * @param rowMapper 行数据映射逻辑
-     *
+     * @param config    JDBC 配置
      * @return generated keys
      * @throws SQLException 数据库执行异常
      */
     static <T extends @Nullable Object> List<T> updateAndReturnKeys(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
-            RowMapper<T> rowMapper)
+            RowMapper<T> rowMapper,
+            JdbcConfig config)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
         assertRowMapperNotNull(rowMapper);
+        assertConfigNotNull(config);
         if (params != null && params.length > 0) {
             try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                applyConfig(stmt, config);
                 fillStatement(stmt, params);
                 stmt.executeUpdate();
                 try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
@@ -223,6 +244,7 @@ class JdbcOperationSupport {
         }
         else {
             try (Statement stmt = conn.createStatement()) {
+                applyConfig(stmt, config);
                 stmt.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
                 try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                     final ResultHandler<List<T>> resultHandler = ResultHandler.mapToList(rowMapper);
@@ -245,14 +267,17 @@ class JdbcOperationSupport {
      * @param quietly    静默分批更新。
      *                   如果 {@code quietly} 为 {@code true}，分批更新过程中发生异常不中断操作；
      *                   如果 {@code quietly} 为 {@code false}，分批更新过程中发生异常即中断操作，并返回结果。
+     * @param config     JDBC 配置
      */
     static BatchUpdateResult batchUpdate(
             Connection conn,
             String sql, @Nullable Collection<@Nullable Object @Nullable []> params,
-            int batchSize, boolean quietly)
+            int batchSize, boolean quietly,
+            JdbcConfig config)
             throws SQLException {
         assertConnectionNotNull(conn);
         assertSqlNotNull(sql);
+        assertConfigNotNull(config);
         checkArgument(batchSize > 0, "The batch size must be greater than 0.");
         if (params == null || params.isEmpty()) {
             return BatchUpdateResult.empty(batchSize, quietly);
@@ -264,7 +289,7 @@ class JdbcOperationSupport {
         final BatchUpdateResult.Builder builder =
                 BatchUpdateResult.builder(paramsSize, batchCount, batchSize, quietly);
 
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = prepareBatchStatement(conn, sql, config)) {
             // 表示第几条数据，1, 2, 3, ..., paramsSize
             int itemIndex = 0;
             // 表示第几个批次，0, 1, ..., batchCount-1
@@ -323,68 +348,110 @@ class JdbcOperationSupport {
      * @param sql           SQL
      * @param params        参数
      * @param resultHandler 结果处理器，用于处理 {@link ResultSet}
+     * @param config        JDBC 配置
+     * @return 查询结果
      */
     private static <T extends @Nullable Object> T queryInternal(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
-            ResultHandler<T> resultHandler)
+            ResultHandler<T> resultHandler,
+            JdbcConfig config)
             throws SQLException {
         if (params != null && params.length > 0) {
-            try (PreparedStatement stmt = createPreparedStatementInternal(conn, sql, params);
+            try (PreparedStatement stmt = createPreparedStatement(conn, sql, params, config, false);
                  ResultSet rs = stmt.executeQuery()) {
                 return resultHandler.handle(rs);
             }
         }
         else {
-            try (Statement stmt = conn.createStatement();
+            try (Statement stmt = createStatement(conn, config);
                  ResultSet rs = stmt.executeQuery(sql)) {
                 return resultHandler.handle(rs);
             }
         }
     }
 
-    private static PreparedStatement createPreparedStatementInternal(
+    private static <T extends @Nullable Object> List<T> queryListInternal(
+            Connection conn,
+            String sql, @Nullable Object @Nullable [] params,
+            RowMapper<T> rowMapper,
+            JdbcConfig config)
+            throws SQLException {
+        return queryInternal(conn, sql, params, ResultHandler.mapToList(rowMapper), config);
+    }
+
+    private static <T> @Nullable T queryFirstInternal(
+            Connection conn,
+            String sql, @Nullable Object @Nullable [] params,
+            RowMapper<T> rowMapper,
+            JdbcConfig config)
+            throws SQLException {
+        return queryInternal(conn, sql, params, rs ->
+                rs.next() ? rowMapper.mapRow(rs, 0) : null, config);
+    }
+
+    // #endregion
+
+    // #region - statement helpers
+
+    /**
+     * 创建 PreparedStatement 并设置参数
+     */
+    private static PreparedStatement createPreparedStatement(
             Connection conn,
             String sql,
-            @Nullable Object @Nullable [] params)
+            @Nullable Object @Nullable [] params,
+            JdbcConfig config,
+            boolean generatedKeys)
             throws SQLException {
-        PreparedStatement stmt = conn.prepareStatement(sql);
+        final PreparedStatement stmt;
+        if (generatedKeys) {
+            stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+        }
+        else {
+            stmt = conn.prepareStatement(sql, config.getResultSetType(), config.getResultSetConcurrency());
+        }
+        applyConfig(stmt, config);
         fillStatement(stmt, params);
         return stmt;
     }
 
     /**
-     * 执行查询，将查询结果的每一行数据按照指定逻辑进行处理，返回结果列表
-     *
-     * @param conn      数据库连接
-     * @param sql       SQL
-     * @param params    参数
-     * @param rowMapper {@link ResultSet} 中每一行的数据的处理逻辑
+     * 创建 Statement（用于无参数查询）
      */
-    private static <T extends @Nullable Object> List<T> queryListInternal(
-            Connection conn,
-            String sql, @Nullable Object @Nullable [] params,
-            RowMapper<T> rowMapper)
+    private static Statement createStatement(Connection conn, JdbcConfig config)
             throws SQLException {
-        return queryInternal(conn, sql, params, ResultHandler.mapToList(rowMapper));
+        Statement stmt = conn.createStatement(config.getResultSetType(), config.getResultSetConcurrency());
+        applyConfig(stmt, config);
+        return stmt;
     }
 
     /**
-     * 执行查询，将查询结果的第一行数据按照指定逻辑进行处理，返回映射结果
-     *
-     * @param conn      数据库连接
-     * @param sql       SQL
-     * @param params    参数
-     * @param rowMapper 行数据映射逻辑
-     * @return 映射结果。如果查询结果为空，则返回 null
+     * 创建 PreparedStatement（用于批量更新）
      */
-    private static <T> @Nullable T queryFirstInternal(
-            Connection conn,
-            String sql, @Nullable Object @Nullable [] params,
-            RowMapper<T> rowMapper)
+    private static PreparedStatement prepareBatchStatement(Connection conn, String sql, JdbcConfig config)
             throws SQLException {
-        return queryInternal(conn, sql, params, rs ->
-                rs.next() ? rowMapper.mapRow(rs, 0) : null);
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        applyConfig(stmt, config);
+        return stmt;
+    }
+
+    /**
+     * 对 Statement 应用配置参数
+     */
+    private static void applyConfig(Statement stmt, JdbcConfig config) throws SQLException {
+        final Integer fetchSize = config.getFetchSize();
+        if (fetchSize != null) {
+            stmt.setFetchSize(fetchSize);
+        }
+        final Integer maxRows = config.getMaxRows();
+        if (maxRows != null) {
+            stmt.setMaxRows(maxRows);
+        }
+        final Integer queryTimeout = config.getQueryTimeout();
+        if (queryTimeout != null) {
+            stmt.setQueryTimeout(queryTimeout);
+        }
     }
 
     // #endregion
@@ -440,6 +507,10 @@ class JdbcOperationSupport {
 
     private static void assertClazzNotNull(@Nullable Class<?> clazz) {
         checkArgumentNotNull(clazz, "The argument \"clazz\" could not be null.");
+    }
+
+    private static void assertConfigNotNull(@Nullable JdbcConfig config) {
+        checkArgumentNotNull(config, "The argument \"config\" could not be null.");
     }
 
     // #endregion

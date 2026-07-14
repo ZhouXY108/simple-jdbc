@@ -5,6 +5,7 @@ import static xyz.zhouxy.jdbc.ParamBuilder.buildParams;
 import static xyz.zhouxy.jdbc.test.JdbcTestAssertions.assertLinkedHashMapOrder;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import xyz.zhouxy.jdbc.JdbcConfig;
 import xyz.zhouxy.jdbc.JdbcOperations;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 import xyz.zhouxy.jdbc.TransactionException;
@@ -757,5 +759,38 @@ class TransactionTest extends BaseH2Test {
         @SuppressWarnings("DataFlowIssue")
         int count = template.queryValueOrDefault("SELECT COUNT(*) FROM users", Integer.class, 0);
         assertEquals(6, count);
+    }
+
+    // ==================== JdbcConfig 事务内集成测试 ====================
+
+    @Test
+    @DisplayName("默认配置事务内 ResultSetType 为 TYPE_FORWARD_ONLY")
+    void testTransactionDefaultConfigResultSetType() throws Exception {
+        SimpleJdbcTemplate template = createTemplate();
+
+        template.transaction().execute(ops -> {
+            Integer type = ops.query("SELECT 1", rs -> {
+                rs.next();
+                return rs.getType();
+            });
+            assertEquals(ResultSet.TYPE_FORWARD_ONLY, type);
+        });
+    }
+
+    @Test
+    @DisplayName("自定义 JdbcConfig 事务内 ResultSetType 生效")
+    void testTransactionCustomConfigResultSetType() throws Exception {
+        JdbcConfig config = JdbcConfig.builder()
+                .resultSetType(ResultSet.TYPE_SCROLL_INSENSITIVE)
+                .build();
+        SimpleJdbcTemplate template = new SimpleJdbcTemplate(dataSource, config);
+
+        template.transaction().execute(ops -> {
+            Integer type = ops.query("SELECT 1", rs -> {
+                rs.next();
+                return rs.getType();
+            });
+            assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, type);
+        });
     }
 }

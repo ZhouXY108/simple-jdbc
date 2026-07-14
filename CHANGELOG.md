@@ -13,6 +13,7 @@
 
 ### 新增
 
+- 支持通过 `JdbcConfig` 自定义 Statement 参数（fetchSize / maxRows / queryTimeout）和 ResultSet 类型（resultSetType / resultSetConcurrency），适用于 `SimpleJdbcTemplate`、`TransactionTemplate`、`JdbcExecutor`、`NamedParamJdbcExecutor`
 - `TransactionTemplate` 支持指定事务隔离级别
 - 命名参数 JDBC 操作支持（`#{paramName}` 风格）：
   - `NamedParamJdbcOperations` 接口：提供查询、更新、批量操作的命名参数重载
@@ -31,6 +32,7 @@
 
 ### 重构
 
+- **`JdbcExecutor` 与 `NamedParamJdbcExecutor` 改为纯实例模式**：移除所有静态方法，改为实例级构造器（持有 `JdbcConfig`），更符合库的整体设计。原有静态调用需改为实例调用。
 - **优化事务自动提交恢复逻辑**：`TransactionTemplate` 在 `finally` 块恢复 `autoCommit` 时，若原始事务已发生异常，则将恢复过程中的 `SQLException` 通过 `addSuppressed` 附加到原始异常上，避免异常信息丢失
 - **空值注解迁移：JSR-305 → JSpecify**
   - 依赖由 `com.google.code.findbugs:jsr305` 替换为 `org.jspecify:jspecify:1.0.0`

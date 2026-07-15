@@ -26,10 +26,13 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import xyz.zhouxy.jdbc.util.AssertTools;
+
 /**
  * 位置参数 JDBC 执行器，面向“外部已经持有 {@link Connection}”的场景。
  *
  * <p>
+ * 每个实例持有独立的 {@link JdbcConfig}，可通过构造器指定；默认使用 {@link JdbcConfig#defaults()}。
  * 本类的所有方法接收一个 {@link Connection} 形参，在该连接上执行 SQL。
  * </p>
  *
@@ -67,12 +70,32 @@ import org.jspecify.annotations.Nullable;
  *
  * @author ZhouXY
  * @since 1.1.0
+ * @see JdbcConfig
  * @see JdbcOperations
  * @see xyz.zhouxy.jdbc.namedparam.NamedParamJdbcExecutor
  * @see JdbcOperationSupport
  */
 @NullMarked
 public final class JdbcExecutor {
+
+    private final JdbcConfig config;
+
+    /**
+     * 使用默认配置构造一个 {@code JdbcExecutor} 实例。
+     */
+    public JdbcExecutor() {
+        this(JdbcConfig.defaults());
+    }
+
+    /**
+     * 使用指定配置构造一个 {@code JdbcExecutor} 实例。
+     *
+     * @param config JDBC 配置，不可为 {@code null}
+     */
+    public JdbcExecutor(JdbcConfig config) {
+        AssertTools.checkNotNull(config);
+        this.config = config;
+    }
 
     // #region - query
 
@@ -92,7 +115,7 @@ public final class JdbcExecutor {
             String sql, @Nullable Object @Nullable [] params,
             ResultHandler<T> resultHandler)
             throws SQLException {
-        return JdbcOperationSupport.query(conn, sql, params, resultHandler);
+        return JdbcOperationSupport.query(conn, sql, params, resultHandler, config);
     }
 
     /**
@@ -132,7 +155,7 @@ public final class JdbcExecutor {
             String sql, @Nullable Object @Nullable [] params,
             RowMapper<T> rowMapper)
             throws SQLException {
-        return JdbcOperationSupport.queryList(conn, sql, params, rowMapper);
+        return JdbcOperationSupport.queryList(conn, sql, params, rowMapper, config);
     }
 
     /**
@@ -151,7 +174,7 @@ public final class JdbcExecutor {
             String sql, @Nullable Object @Nullable [] params,
             Class<@NonNull T> clazz)
             throws SQLException {
-        return JdbcOperationSupport.queryValues(conn, sql, params, clazz);
+        return JdbcOperationSupport.queryValues(conn, sql, params, clazz, config);
     }
 
     /**
@@ -169,7 +192,7 @@ public final class JdbcExecutor {
             Connection conn,
             String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
-        return JdbcOperationSupport.queryList(conn, sql, params, RowMapper.LINKED_HASH_MAP_MAPPER);
+        return JdbcOperationSupport.queryList(conn, sql, params, RowMapper.LINKED_HASH_MAP_MAPPER, config);
     }
 
     /**
@@ -243,7 +266,7 @@ public final class JdbcExecutor {
             String sql, @Nullable Object @Nullable [] params,
             RowMapper<T> rowMapper)
             throws SQLException {
-        return Optional.ofNullable(JdbcOperationSupport.queryFirst(conn, sql, params, rowMapper));
+        return Optional.ofNullable(JdbcOperationSupport.queryFirst(conn, sql, params, rowMapper, config));
     }
 
     /**
@@ -263,7 +286,7 @@ public final class JdbcExecutor {
             String sql, @Nullable Object @Nullable [] params,
             Class<T> clazz)
             throws SQLException {
-        return Optional.ofNullable(JdbcOperationSupport.queryValue(conn, sql, params, clazz));
+        return Optional.ofNullable(JdbcOperationSupport.queryValue(conn, sql, params, clazz, config));
     }
 
     /**
@@ -282,7 +305,7 @@ public final class JdbcExecutor {
             String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
         return Optional.ofNullable(
-                JdbcOperationSupport.queryFirst(conn, sql, params, RowMapper.LINKED_HASH_MAP_MAPPER));
+                JdbcOperationSupport.queryFirst(conn, sql, params, RowMapper.LINKED_HASH_MAP_MAPPER, config));
     }
 
     /**
@@ -389,7 +412,8 @@ public final class JdbcExecutor {
             Connection conn,
             String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
-        return Boolean.TRUE.equals(JdbcOperationSupport.queryValue(conn, sql, params, Boolean.class));
+        return Boolean.TRUE.equals(
+                JdbcOperationSupport.queryValue(conn, sql, params, Boolean.class, config));
     }
 
     /**
@@ -424,7 +448,7 @@ public final class JdbcExecutor {
             Connection conn,
             String sql, @Nullable Object @Nullable [] params)
             throws SQLException {
-        return JdbcOperationSupport.update(conn, sql, params);
+        return JdbcOperationSupport.update(conn, sql, params, config);
     }
 
     /**
@@ -458,7 +482,7 @@ public final class JdbcExecutor {
             String sql, @Nullable Object @Nullable [] params,
             RowMapper<T> rowMapper)
             throws SQLException {
-        return JdbcOperationSupport.updateAndReturnKeys(conn, sql, params, rowMapper);
+        return JdbcOperationSupport.updateAndReturnKeys(conn, sql, params, rowMapper, config);
     }
 
     /**
@@ -497,7 +521,7 @@ public final class JdbcExecutor {
             Connection conn,
             String sql, @Nullable Collection<@Nullable Object @Nullable []> params, int batchSize)
             throws SQLException {
-        return JdbcOperationSupport.batchUpdate(conn, sql, params, batchSize, false);
+        return JdbcOperationSupport.batchUpdate(conn, sql, params, batchSize, false, config);
     }
 
     /**
@@ -522,7 +546,7 @@ public final class JdbcExecutor {
             String sql, @Nullable Collection<@Nullable Object @Nullable []> params,
             int batchSize, boolean quietly)
             throws SQLException {
-        return JdbcOperationSupport.batchUpdate(conn, sql, params, batchSize, quietly);
+        return JdbcOperationSupport.batchUpdate(conn, sql, params, batchSize, quietly, config);
     }
 
     // #endregion

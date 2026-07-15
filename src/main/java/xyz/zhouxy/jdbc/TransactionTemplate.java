@@ -43,6 +43,11 @@ import xyz.zhouxy.jdbc.util.AssertTools;
  * 所有操作共享同一个数据库连接。
  * </p>
  *
+ * <p>
+ * 本类支持通过 {@link JdbcConfig} 自定义事务内操作的 Statement 参数和 ResultSet 类型。
+ * 事务内的 {@link JdbcOperations} 实例与 {@link TransactionTemplate} 共享同一个 {@link JdbcConfig}。
+ * </p>
+ *
  * <p>使用示例：</p>
  * <pre>{@code
  * TransactionTemplate tx = new TransactionTemplate(dataSource);
@@ -79,21 +84,40 @@ import xyz.zhouxy.jdbc.util.AssertTools;
  *
  * @author ZhouXY
  * @since 1.1.0
+ * @see JdbcConfig
+ * @see JdbcOperations
+ * @see NamedParamJdbcOperations
  */
 @NullMarked
 public class TransactionTemplate {
 
     private final DataSource dataSource;
 
+    private final JdbcConfig config;
+
     /**
-     * 构造一个 {@code TransactionTemplate} 实例
+     * 使用默认配置构造一个 {@code TransactionTemplate} 实例。
      *
      * @param dataSource 数据源，用于获取数据库连接；不可为 {@code null}
      */
     public TransactionTemplate(DataSource dataSource) {
-        AssertTools.checkNotNull(dataSource);
-        this.dataSource = dataSource;
+        this(dataSource, JdbcConfig.defaults());
     }
+
+    /**
+     * 使用指定配置构造一个 {@code TransactionTemplate} 实例。
+     *
+     * @param dataSource 数据源，用于获取数据库连接；不可为 {@code null}
+     * @param config     JDBC 配置；不可为 {@code null}
+     */
+    public TransactionTemplate(DataSource dataSource, JdbcConfig config) {
+        AssertTools.checkNotNull(dataSource);
+        AssertTools.checkNotNull(config);
+        this.dataSource = dataSource;
+        this.config = config;
+    }
+
+    // #region - execute
 
     /**
      * 执行事务。如果未发生异常，则提交事务；当有异常发生时，回滚事务
@@ -137,10 +161,11 @@ public class TransactionTemplate {
             Exception caught = null;
             try {
                 if (isolationLevel != null) {
+                    //noinspection MagicConstant
                     conn.setTransactionIsolation(isolationLevel.getLevel());
                 }
                 conn.setAutoCommit(false);
-                operations.accept(new TransactionJdbcExecutor(conn));
+                operations.accept(new TransactionJdbcExecutor(conn, config));
                 conn.commit();
             }
             catch (Exception e) {
@@ -241,6 +266,10 @@ public class TransactionTemplate {
         execute(isolationLevel, ops -> operations.accept(ops, ops.getNamedParamJdbcOperations()));
     }
 
+    // #endregion
+
+    // #region - commitIfTrue
+
     /**
      * 执行事务。
      * 如果 {@code operations} 返回 {@code true}，则提交事务；
@@ -279,10 +308,11 @@ public class TransactionTemplate {
             Exception caught = null;
             try {
                 if (isolationLevel != null) {
+                    //noinspection MagicConstant
                     conn.setTransactionIsolation(isolationLevel.getLevel());
                 }
                 conn.setAutoCommit(false);
-                if (operations.test(new TransactionJdbcExecutor(conn))) {
+                if (operations.test(new TransactionJdbcExecutor(conn, config))) {
                     conn.commit();
                 }
                 else {
@@ -375,6 +405,10 @@ public class TransactionTemplate {
         commitIfTrue(isolationLevel, ops -> operations.test(ops, ops.getNamedParamJdbcOperations()));
     }
 
+    // #endregion
+
+    // #region - transaction helpers
+
     private void rollbackSilently(Connection conn, Exception e) {
         try {
             conn.rollback();
@@ -402,6 +436,7 @@ public class TransactionTemplate {
     private void restoreTransactionIsolationSilently(
             Connection conn, int srcTransactionIsolationLevel, @Nullable Exception e) throws SQLException {
         try {
+            //noinspection MagicConstant
             conn.setTransactionIsolation(srcTransactionIsolationLevel);
         }
         catch (SQLException ex) {
@@ -414,6 +449,8 @@ public class TransactionTemplate {
         }
     }
 
+    // #endregion
+
     // #region - TransactionJdbcExecutor
 
     @SuppressWarnings("java:S6665")
@@ -421,10 +458,11 @@ public class TransactionTemplate {
             implements JdbcOperations, NamedParamJdbcOperations {
 
         private final Connection conn;
-        private final JdbcExecutor jdbcExecutor = new JdbcExecutor();
+        private final JdbcExecutor jdbcExecutor;
 
-        private TransactionJdbcExecutor(Connection conn) {
+        private TransactionJdbcExecutor(Connection conn, JdbcConfig config) {
             this.conn = conn;
+            this.jdbcExecutor = new JdbcExecutor(config);
         }
 
         /** {@inheritDoc} */

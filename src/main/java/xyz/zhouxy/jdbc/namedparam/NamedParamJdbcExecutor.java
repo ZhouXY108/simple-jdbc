@@ -25,14 +25,17 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import xyz.zhouxy.jdbc.BatchUpdateResult;
+import xyz.zhouxy.jdbc.JdbcConfig;
 import xyz.zhouxy.jdbc.JdbcExecutor;
 import xyz.zhouxy.jdbc.ResultHandler;
 import xyz.zhouxy.jdbc.RowMapper;
+import xyz.zhouxy.jdbc.util.AssertTools;
 
 /**
  * 命名参数 JDBC 执行器，面向“外部已经持有 {@link Connection}”的场景。
  *
  * <p>
+ * 每个实例持有独立的 {@link JdbcConfig}，可通过构造器指定；默认使用 {@link JdbcConfig#defaults()}。
  * 本类的所有方法接收一个 {@link Connection} 形参，在该连接上执行 SQL 并立即返回结果。
  * 内部通过 {@link NamedParamSql} / {@link PreparedSql} 解析命名参数后委托给
  * {@link JdbcExecutor} 完成实际执行。
@@ -80,6 +83,7 @@ import xyz.zhouxy.jdbc.RowMapper;
  *
  * @author ZhouXY
  * @since 1.1.0
+ * @see JdbcConfig
  * @see JdbcExecutor
  * @see NamedParamJdbcOperations
  * @see NamedParamSql
@@ -87,7 +91,24 @@ import xyz.zhouxy.jdbc.RowMapper;
  */
 public final class NamedParamJdbcExecutor {
 
-    private final JdbcExecutor jdbcExecutor = new JdbcExecutor();
+    private final JdbcExecutor jdbcExecutor;
+
+    /**
+     * 使用默认配置构造一个 {@code NamedParamJdbcExecutor} 实例。
+     */
+    public NamedParamJdbcExecutor() {
+        this(JdbcConfig.defaults());
+    }
+
+    /**
+     * 使用指定配置构造一个 {@code NamedParamJdbcExecutor} 实例。
+     *
+     * @param config JDBC 配置，不可为 {@code null}
+     */
+    public NamedParamJdbcExecutor(JdbcConfig config) {
+        AssertTools.checkNotNull(config);
+        this.jdbcExecutor = new JdbcExecutor(config);
+    }
 
     // #region - query
 

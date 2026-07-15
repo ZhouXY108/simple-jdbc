@@ -3,6 +3,7 @@ package xyz.zhouxy.jdbc.test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import xyz.zhouxy.jdbc.BatchUpdateResult;
+import xyz.zhouxy.jdbc.JdbcConfig;
 import xyz.zhouxy.jdbc.JdbcExecutor;
 
 @DisplayName("JdbcExecutor 实例执行器")
@@ -248,6 +250,7 @@ class JdbcExecutorTest extends BaseH2Test {
     @Test
     @DisplayName("null Connection 抛出异常")
     void testNullConnection() {
+        //noinspection DataFlowIssue
         assertThrows(Exception.class, () ->
             executor.query(null, "SELECT 1", rs -> rs.getInt(1)));
     }
@@ -265,7 +268,21 @@ class JdbcExecutorTest extends BaseH2Test {
     @Test
     @DisplayName("null params 走 Statement 路径")
     void testNullParams() throws SQLException {
+        @SuppressWarnings("RedundantCast")
         int rows = executor.update(conn, "DELETE FROM users", (Object[]) null);
         assertEquals(5, rows);
+    }
+
+    @Test
+    @DisplayName("自定义 JdbcConfig 的 ResultSetType 生效")
+    void testCustomConfigResultSetType() throws SQLException {
+        JdbcConfig config = JdbcConfig.builder()
+                .resultSetType(ResultSet.TYPE_SCROLL_INSENSITIVE)
+                .build();
+        JdbcExecutor customExecutor = new JdbcExecutor(config);
+        Integer type = customExecutor.query(conn,
+                "SELECT 1",
+                rs -> rs.getType());
+        assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, type);
     }
 }

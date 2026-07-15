@@ -20,13 +20,15 @@
  * <p>
  * 核心组件：
  * <ul>
+ *   <li>{@link xyz.zhouxy.jdbc.JdbcConfig} —— JDBC 实例级配置，控制 Statement 参数与 ResultSet 类型</li>
  *   <li>{@link xyz.zhouxy.jdbc.SimpleJdbcTemplate} —— JDBC 操作模板类，提供查询、更新、
  *       批量操作及事务入口</li>
  *   <li>{@link xyz.zhouxy.jdbc.JdbcOperations} —— 统一操作接口，定义查询、更新、批量操作的 API</li>
  *   <li>{@link xyz.zhouxy.jdbc.TransactionTemplate} —— 事务模板，负责事务生命周期管理</li>
  *   <li>{@link xyz.zhouxy.jdbc.ParamBuilder} —— 参数构建工具</li>
  *   <li>{@link xyz.zhouxy.jdbc.JdbcOperationSupport} —— JDBC 底层操作支持类</li>
- *   <li>{@link xyz.zhouxy.jdbc.JdbcExecutor} —— 位置参数静态执行器，面向外部已持有 Connection 的场景</li>
+ *   <li>{@link xyz.zhouxy.jdbc.JdbcExecutor} —— 位置参数执行器，面向外部已持有 Connection 的场景</li>
+ *   <li>{@link xyz.zhouxy.jdbc.namedparam.NamedParamJdbcExecutor} —— 命名参数执行器，面向外部已持有 Connection 的场景</li>
  * </ul>
  *
  * <p>

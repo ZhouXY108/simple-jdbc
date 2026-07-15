@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static xyz.zhouxy.jdbc.ParamBuilder.buildParams;
 import static xyz.zhouxy.jdbc.test.JdbcTestAssertions.assertLinkedHashMapOrder;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import xyz.zhouxy.jdbc.JdbcConfig;
 import xyz.zhouxy.jdbc.ParamBuilder;
 import xyz.zhouxy.jdbc.SimpleJdbcTemplate;
 
@@ -344,7 +346,6 @@ class QueryTest extends BaseH2Test {
     void testQueryValueOrDefaultCount() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        @SuppressWarnings("DataFlowIssue")
         long count = template.queryValueOrDefault(
                 "SELECT COUNT(*) FROM users",
                 new Object[0], Long.class, 0L);
@@ -357,7 +358,6 @@ class QueryTest extends BaseH2Test {
     void testQueryValueOrDefaultSum() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        @SuppressWarnings("DataFlowIssue")
         long totalBalance = template.queryValueOrDefault(
                 "SELECT SUM(balance) FROM users",
                 new Object[0], Long.class, 0L);
@@ -371,7 +371,6 @@ class QueryTest extends BaseH2Test {
     void testQueryValueOrDefaultNoParams() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        @SuppressWarnings("DataFlowIssue")
         long count = template.queryValueOrDefault(
                 "SELECT COUNT(*) FROM users",
                 Long.class, 0L);
@@ -384,7 +383,6 @@ class QueryTest extends BaseH2Test {
     void testQueryValueOrDefaultEmptyTable() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        @SuppressWarnings("DataFlowIssue")
         long count = template.queryValueOrDefault(
                 "SELECT COUNT(*) FROM users WHERE id = ?",
                 new Object[]{999}, Long.class, 0L);
@@ -577,5 +575,34 @@ class QueryTest extends BaseH2Test {
 
     // ================================
     // #endregion - 边界情况
+    // ================================
+
+    // ================================
+    // #region - JdbcConfig 集成
+    // ================================
+
+    @Test
+    @DisplayName("默认配置 ResultSetType 为 TYPE_FORWARD_ONLY")
+    void testDefaultConfigResultSetType() throws SQLException {
+        SimpleJdbcTemplate template = createTemplate();
+
+        Integer type = template.query("SELECT 1", rs -> rs.getType());
+        assertEquals(ResultSet.TYPE_FORWARD_ONLY, type);
+    }
+
+    @Test
+    @DisplayName("自定义 JdbcConfig 的 ResultSetType 生效")
+    void testCustomConfigResultSetType() throws SQLException {
+        JdbcConfig config = JdbcConfig.builder()
+                .resultSetType(ResultSet.TYPE_SCROLL_INSENSITIVE)
+                .build();
+        SimpleJdbcTemplate template = new SimpleJdbcTemplate(dataSource, config);
+
+        Integer type = template.query("SELECT 1", rs -> rs.getType());
+        assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, type);
+    }
+
+    // ================================
+    // #endregion - JdbcConfig 集成
     // ================================
 }

@@ -198,7 +198,7 @@ class JdbcOperationSupport {
         assertSqlNotNull(sql);
         assertConfigNotNull(config);
         if (params != null && params.length > 0) {
-            try (PreparedStatement stmt = createPreparedStatement(conn, sql, params, config, false)) {
+            try (PreparedStatement stmt = createPreparedStatement(conn, sql, params, config)) {
                 return stmt.executeUpdate();
             }
         }
@@ -289,7 +289,9 @@ class JdbcOperationSupport {
         final BatchUpdateResult.Builder builder =
                 BatchUpdateResult.builder(paramsSize, batchCount, batchSize, quietly);
 
-        try (PreparedStatement stmt = prepareBatchStatement(conn, sql, config)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            applyConfig(stmt, config);
+
             // 表示第几条数据，1, 2, 3, ..., paramsSize
             int itemIndex = 0;
             // 表示第几个批次，0, 1, ..., batchCount-1
@@ -358,7 +360,7 @@ class JdbcOperationSupport {
             JdbcConfig config)
             throws SQLException {
         if (params != null && params.length > 0) {
-            try (PreparedStatement stmt = createPreparedStatement(conn, sql, params, config, false);
+            try (PreparedStatement stmt = createPreparedStatement(conn, sql, params, config);
                  ResultSet rs = stmt.executeQuery()) {
                 return resultHandler.handle(rs);
             }
@@ -401,16 +403,9 @@ class JdbcOperationSupport {
             Connection conn,
             String sql,
             @Nullable Object @Nullable [] params,
-            JdbcConfig config,
-            boolean generatedKeys)
+            JdbcConfig config)
             throws SQLException {
-        final PreparedStatement stmt;
-        if (generatedKeys) {
-            stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-        }
-        else {
-            stmt = conn.prepareStatement(sql, config.getResultSetType(), config.getResultSetConcurrency());
-        }
+        final PreparedStatement stmt = conn.prepareStatement(sql, config.getResultSetType(), config.getResultSetConcurrency());
         applyConfig(stmt, config);
         fillStatement(stmt, params);
         return stmt;
@@ -422,16 +417,6 @@ class JdbcOperationSupport {
     private static Statement createStatement(Connection conn, JdbcConfig config)
             throws SQLException {
         Statement stmt = conn.createStatement(config.getResultSetType(), config.getResultSetConcurrency());
-        applyConfig(stmt, config);
-        return stmt;
-    }
-
-    /**
-     * 创建 PreparedStatement（用于批量更新）
-     */
-    private static PreparedStatement prepareBatchStatement(Connection conn, String sql, JdbcConfig config)
-            throws SQLException {
-        PreparedStatement stmt = conn.prepareStatement(sql);
         applyConfig(stmt, config);
         return stmt;
     }

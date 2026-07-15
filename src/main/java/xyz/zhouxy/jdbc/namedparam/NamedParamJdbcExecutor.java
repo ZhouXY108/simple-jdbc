@@ -29,6 +29,7 @@ import xyz.zhouxy.jdbc.JdbcConfig;
 import xyz.zhouxy.jdbc.JdbcExecutor;
 import xyz.zhouxy.jdbc.ResultHandler;
 import xyz.zhouxy.jdbc.RowMapper;
+import xyz.zhouxy.jdbc.util.AssertTools;
 
 /**
  * 命名参数 JDBC 执行器，面向“外部已经持有 {@link Connection}”的场景。
@@ -105,6 +106,7 @@ public final class NamedParamJdbcExecutor {
      * @param config JDBC 配置，不可为 {@code null}
      */
     public NamedParamJdbcExecutor(JdbcConfig config) {
+        AssertTools.checkNotNull(config);
         this.jdbcExecutor = new JdbcExecutor(config);
     }
 

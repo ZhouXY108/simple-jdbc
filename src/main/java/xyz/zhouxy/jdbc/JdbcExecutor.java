@@ -26,6 +26,8 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import xyz.zhouxy.jdbc.util.AssertTools;
+
 /**
  * 位置参数 JDBC 执行器，面向“外部已经持有 {@link Connection}”的场景。
  *
@@ -91,6 +93,7 @@ public final class JdbcExecutor {
      * @param config JDBC 配置，不可为 {@code null}
      */
     public JdbcExecutor(JdbcConfig config) {
+        AssertTools.checkNotNull(config);
         this.config = config;
     }
 

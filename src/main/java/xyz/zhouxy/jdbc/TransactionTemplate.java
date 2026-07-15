@@ -159,23 +159,27 @@ public class TransactionTemplate {
             final boolean srcAutoCommit = conn.getAutoCommit();
             final int srcIsolationLevel = conn.getTransactionIsolation();
             Exception caught = null;
+            boolean needRollback = false;
             try {
                 if (isolationLevel != null) {
                     //noinspection MagicConstant
                     conn.setTransactionIsolation(isolationLevel.getLevel());
                 }
                 conn.setAutoCommit(false);
+                needRollback = true;
                 operations.accept(new TransactionJdbcExecutor(conn, config));
                 conn.commit();
+                needRollback = false;
             }
             catch (Exception e) {
                 caught = e;
-                rollbackSilently(conn, e);
+                if (needRollback) {
+                    rollbackSilently(conn, e);
+                }
                 throw new TransactionException(e);
             }
             finally {
-                restoreAutoCommitSilently(conn, srcAutoCommit, caught);
-                restoreTransactionIsolationSilently(conn, srcIsolationLevel, caught);
+                restoreConnectionState(conn, srcAutoCommit, srcIsolationLevel, caught);
             }
         }
     }
@@ -306,27 +310,31 @@ public class TransactionTemplate {
             final boolean srcAutoCommit = conn.getAutoCommit();
             final int srcIsolationLevel = conn.getTransactionIsolation();
             Exception caught = null;
+            boolean needRollback = false;
             try {
                 if (isolationLevel != null) {
                     //noinspection MagicConstant
                     conn.setTransactionIsolation(isolationLevel.getLevel());
                 }
                 conn.setAutoCommit(false);
+                needRollback = true;
                 if (operations.test(new TransactionJdbcExecutor(conn, config))) {
                     conn.commit();
                 }
                 else {
                     conn.rollback();
                 }
+                needRollback = false;
             }
             catch (Exception e) {
                 caught = e;
-                rollbackSilently(conn, e);
+                if (needRollback) {
+                    rollbackSilently(conn, e);
+                }
                 throw new TransactionException(e);
             }
             finally {
-                restoreAutoCommitSilently(conn, srcAutoCommit, caught);
-                restoreTransactionIsolationSilently(conn, srcIsolationLevel, caught);
+                restoreConnectionState(conn, srcAutoCommit, srcIsolationLevel, caught);
             }
         }
     }
@@ -418,33 +426,53 @@ public class TransactionTemplate {
         }
     }
 
-    private void restoreAutoCommitSilently(
-            Connection conn, boolean autoCommit, @Nullable Exception e) throws SQLException {
-        try {
-            conn.setAutoCommit(autoCommit);
-        }
-        catch (SQLException ex) {
-            if (e != null) {
-                e.addSuppressed(ex);
-            }
-            else {
-                throw ex;
-            }
-        }
-    }
+    /**
+     * 统一恢复连接的原始状态。
+     * 确保所有恢复步骤均被执行，并妥善处理多重异常的聚合（Suppressed Exceptions）。
+     *
+     * @param conn               当前数据库连接
+     * @param srcAutoCommit      事务开始前记录的原始 autoCommit 状态
+     * @param srcIsolationLevel  事务开始前记录的原始隔离级别
+     * @param primaryException   try 块中业务代码抛出的主异常（可能为 null）
+     */
+    private void restoreConnectionState(
+            @Nullable Connection conn,
+            boolean srcAutoCommit,
+            int srcIsolationLevel,
+            @Nullable Exception primaryException) throws SQLException {
 
-    private void restoreTransactionIsolationSilently(
-            Connection conn, int srcTransactionIsolationLevel, @Nullable Exception e) throws SQLException {
-        try {
-            //noinspection MagicConstant
-            conn.setTransactionIsolation(srcTransactionIsolationLevel);
+        if (conn == null) {
+            return;
         }
-        catch (SQLException ex) {
-            if (e != null) {
-                e.addSuppressed(ex);
+
+        SQLException firstRecoveryException = null;
+
+        // 1. 恢复 autoCommit (即使失败也继续执行后续步骤)
+        try {
+            conn.setAutoCommit(srcAutoCommit);
+        } catch (SQLException ex) {
+            firstRecoveryException = ex;
+        }
+
+        // 2. 恢复隔离级别 (即使失败也继续，并聚合异常)
+        try {
+            conn.setTransactionIsolation(srcIsolationLevel);
+        } catch (SQLException ex) {
+            if (firstRecoveryException == null) {
+                firstRecoveryException = ex;
+            } else {
+                firstRecoveryException.addSuppressed(ex);
             }
-            else {
-                throw ex;
+        }
+
+        // 3. 统一处理最终异常
+        if (firstRecoveryException != null) {
+            if (primaryException != null) {
+                // 如果业务执行过程中已经产生了异常，将恢复阶段的异常作为 Suppressed 附加
+                primaryException.addSuppressed(firstRecoveryException);
+            } else {
+                // 如果业务执行正常，则抛出恢复阶段产生的第一个异常
+                throw firstRecoveryException;
             }
         }
     }

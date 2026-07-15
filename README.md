@@ -51,7 +51,7 @@
 
 ### 3.3 基本用法
 
-SimpleJdbcTemplate：JDBC 操作模板
+**SimpleJdbcTemplate：JDBC 操作模板**
 
 ```java
 // 初始化
@@ -67,7 +67,7 @@ BatchUpdateResult batchResult = jdbcTemplate.batchUpdate("INSERT INTO account (u
     batchParams, 100);
 ```
 
-TransactionTemplate：事务管理
+**TransactionTemplate：事务管理**
 
 ```java
 // 初始化
@@ -92,7 +92,7 @@ tx.commitIfTrue(ops -> {
 });
 ```
 
-JdbcExecutor：外部连接执行器，适用于 JTA / 容器托管等场景
+**JdbcExecutor：外部连接执行器，适用于 JTA / 容器托管等场景**
 
 ```java
 // 初始化（所有方法首参需传入 Connection）
@@ -108,7 +108,7 @@ BatchUpdateResult extBatchResult = executor.batchUpdate(conn, "INSERT INTO accou
     batchParams, 100);
 ```
 
-NamedParamJdbcExecutor：命名参数外部连接执行器
+**NamedParamJdbcExecutor：命名参数外部连接执行器**
 
 ```java
 // 初始化
@@ -181,23 +181,44 @@ end note
 @enduml
 ```
 
-- **JdbcOperations**：位置参数（`?`）操作接口，定义了 `query`、`queryList`、`queryFirst`、`queryValues`、`queryValue`、`queryBoolean`、`update`、`updateAndReturnKeys`、`batchUpdate` 等核心方法。
-- **NamedParamJdbcOperations**：命名参数操作接口
-  - 方法与 `JdbcOperations` 一一对应
-  - SQL 中使用 `#{paramName}` 占位符，参数通过 `Map` 传递
-  - 三种传参模式：
-    - 直接传参（SQL + `Map`）：最简单，每次调用解析 SQL
-    - 模板传参（`NamedParamSql` + `Map`）：`NamedParamSql` 预解析 SQL，将 `#{paramName}` 转换为 `?`，后续调用只绑定参数值
-    - 预构建传参（`PreparedSql`）：通过链式 Builder 构建，SQL 与参数绑定为不可变对象，可跨方法传递
-- **SimpleJdbcTemplate**：项目入口，同时实现 `JdbcOperations` 与 `NamedParamJdbcOperations`，同一实例无缝混用两种参数风格。内部管理 `DataSource` 连接的获取与释放，无状态、线程安全。
-- **TransactionTemplate**：事务管理，通过 `SimpleJdbcTemplate.transaction()` 获取。内部持有私有嵌套类 `TransactionJdbcExecutor`（同时实现 `JdbcOperations` 与 `NamedParamJdbcOperations`），事务内所有操作通过该嵌套类执行，共享同一连接。支持三种回调模式：位置参数、命名参数、混用。
-- **JdbcExecutor / NamedParamJdbcExecutor**：纯执行器
-  - 方法签名分别与 `JdbcOperations` / `NamedParamJdbcOperations` 对应，但所有方法首参额外接收 `Connection`
-  - 不管理连接与事务，适用于 JTA / 容器托管等外部持有 `Connection` 的场景
-  - `NamedParamJdbcExecutor` 内部委托 `JdbcExecutor` 执行
-- **JdbcConfig**：`SimpleJdbcTemplate`、`TransactionTemplate`、`JdbcExecutor`、`NamedParamJdbcExecutor` 的实例级配置，用于自定义 `Statement` 参数（`fetchSize` / `maxRows` / `queryTimeout`）和 `ResultSet` 类型。
-- **ResultHandler / RowMapper**：结果映射的两层抽象。`ResultHandler` 处理完整 `ResultSet`，`RowMapper` 映射单行数据。
-- **ParamBuilder**：构建位置参数数组（`buildParams` / `buildBatchParams`），自动拆箱 `Optional`。
+#### 4.2.1 JdbcOperations
+
+位置参数（`?`）操作接口，定义了 `query`、`queryList`、`queryFirst`、`queryValues`、`queryValue`、`queryBoolean`、`update`、`updateAndReturnKeys`、`batchUpdate` 等核心方法。
+
+#### 4.2.2 NamedParamJdbcOperations
+
+命名参数操作接口
+- 方法与 `JdbcOperations` 一一对应
+- SQL 中使用 `#{paramName}` 占位符，参数通过 `Map` 传递
+- 三种传参模式：直接传参、模板传参、预构建传参（详见「[6.2.2 命名参数构建](#622-命名参数构建)」）。
+
+#### 4.2.3 SimpleJdbcTemplate
+
+项目入口，**同时实现 `JdbcOperations` 与 `NamedParamJdbcOperations`**，同一实例无缝混用两种参数风格。内部管理 `DataSource` 连接的获取与释放，无状态、线程安全。
+
+#### 4.2.4 TransactionTemplate
+
+**事务管理**，通过 `SimpleJdbcTemplate.transaction()` 获取。内部持有私有嵌套类 `TransactionJdbcExecutor`（同时实现 `JdbcOperations` 与 `NamedParamJdbcOperations`），事务内所有操作通过该嵌套类执行，共享同一连接。支持三种回调模式：位置参数、命名参数、混用。
+
+> 详见「[7. 事务管理 (Transaction)](#7-事务管理-Transaction)」
+
+#### 4.2.5 JdbcExecutor / NamedParamJdbcExecutor
+
+- 方法签名分别与 `JdbcOperations` / `NamedParamJdbcOperations` 对应，但所有方法首参额外接收 `Connection`
+- 不管理连接与事务，适用于 JTA / 容器托管等外部持有 `Connection` 的场景
+- `NamedParamJdbcExecutor` 内部委托 `JdbcExecutor` 执行
+
+#### 4.2.6 JdbcConfig
+
+`SimpleJdbcTemplate`、`TransactionTemplate`、`JdbcExecutor`、`NamedParamJdbcExecutor` 的实例级配置，用于自定义 `Statement` 参数（`fetchSize` / `maxRows` / `queryTimeout`）和 `ResultSet` 类型。
+
+#### 4.2.7 ResultHandler / RowMapper
+
+结果映射的两层抽象。`ResultHandler` 处理完整 `ResultSet`；`RowMapper` 映射单行数据。（详见「[5.2 结果映射策略](#52-结果映射策略)」）。
+
+#### 4.2.8 ParamBuilder
+
+构建位置参数数组（`buildParams` / `buildBatchParams`），自动拆箱 `Optional`。
 
 ---
 
@@ -205,21 +226,25 @@ end note
 
 ### 5.1 查询方法列表
 
-| 方法签名                                           | 说明                                                                  |
-| :------------------------------------------------- | :-------------------------------------------------------------------- |
-| `query(sql, params, resultHandler)`                | 最基础的查询，通过 `ResultHandler` 自定义完整的映射逻辑。             |
-| `queryList(sql, params, rowMapper)`                | 查询列表，通过 `RowMapper` 逐行映射。                                 |
-| `queryList(sql, params)`                           | 查询列表，每行自动转换为 `Map<String, Object>`。                      |
-| `queryFirst(sql, params, rowMapper)`               | 查询第一行，通过 `RowMapper` 映射，返回 `Optional<T>`。               |
-| `queryFirst(sql, params)`                          | 查询第一行，返回 `Optional<Map<String, Object>>`。                    |
-| `queryValues(sql, params, Class)`                  | 单列查询列表，每行提取第一列并转换为指定类型。                        |
-| `queryValue(sql, params, Class)`                   | 查询第一行第一列，返回 `Optional<T>`。                                |
-| `queryValueOrDefault(sql, params, Class, default)` | 查询第一行第一列，结果为空时返回默认值。适用于 COUNT/SUM 等聚合查询。 |
-| `queryBoolean(sql, params)`                        | 查询第一行第一列并转换为 `boolean`，若结果为空则返回 `false`。        |
+**方法语义：**
 
-*💡 提示：以上方法均有省略 `params` 的重载（如 `queryList(sql, rowMapper)`），适用于不含占位符的 SQL 语句。`queryValues`、`queryValue`、`queryValueOrDefault` 同理。*
+| 方法                               | 说明                                                                  |
+| :--------------------------------- | :-------------------------------------------------------------------- |
+| `query` + `ResultHandler`          | 最基础的查询，通过 `ResultHandler` 自定义完整的映射逻辑。             |
+| `queryList` + `RowMapper`          | 查询列表，通过 `RowMapper` 逐行映射。                                 |
+| `queryList`（不指定 RowMapper）    | 查询列表，每行自动转换为 `Map<String, Object>`。                      |
+| `queryFirst` + `RowMapper`         | 查询第一行，通过 `RowMapper` 映射，返回 `Optional<T>`。               |
+| `queryFirst`（不指定 RowMapper）   | 查询第一行，返回 `Optional<Map<String, Object>>`。                    |
+| `queryValues` + `Class<T>`         | 单列查询列表，每行提取第一列并转换为指定类型。                        |
+| `queryValue` + `Class<T>`          | 查询第一行第一列，返回 `Optional<T>`。                                |
+| `queryValueOrDefault` + `Class<T>` | 查询第一行第一列，结果为空时返回默认值。适用于 COUNT/SUM 等聚合查询。 |
+| `queryBoolean`                     | 查询第一行第一列并转换为 `boolean`，若结果为空则返回 `false`。        |
 
-*💡 命名参数：以上所有方法在 `SimpleJdbcTemplate` 上均有三种参数模式的重载：① 直接传参 — 直接传入 SQL 字符串 + `Map`（每次解析）；② 模板传参 — 先解析为 `NamedParamSql`，后续每次调用传入模板 + `Map`（解析一次、绑参多次）；③ 预构建传参 — 传入 `PreparedSql`（参数已绑死）。详见「[6.2.2 命名参数构建](#622-命名参数构建)」。*
+
+**SQL 与参数的传递方式：**
+
+- **位置参数**（`JdbcOperations` / `JdbcExecutor`）：传入 `sql` + `params`（`Object[]`）。每个方法均提供省略 `params` 的重载，适用于不含占位符的 SQL。`JdbcExecutor` 首参额外传入 `Connection`。
+- **命名参数**（`NamedParamJdbcOperations` / `NamedParamJdbcExecutor`）：每个方法提供三种参数模式的重载（详见「[6.2.2 命名参数构建](#622-命名参数构建)」）。
 
 ### 5.2 结果映射策略
 
@@ -229,11 +254,9 @@ end note
   - `RowMapper.LINKED_HASH_MAP_MAPPER`：将每行数据映射为 `LinkedHashMap<String, Object>`，保持列的查询顺序。`queryList(sql, params)` 和 `queryFirst(sql, params)` 默认使用此映射器。
   - `SimpleBeanRowMapper`：将 `ResultSet` 中的一行数据映射为 Java Bean 的简易实现，运行时通过 `MethodHandle` 调用构造器和 setter。
 
-> **定位说明**：`SimpleBeanRowMapper` 是一个优先级很低的存在，项目提供它只是为了"开箱即用"的便捷性，**并非推荐的映射方式**。原因如下：
-> - 由于运行时需要进行类型发现和 MethodHandle 调用，它仍存在可观的运行时开销；
-> - 因此它的定位只是"有这么个简单实现"，更鼓励用户针对自己的类型编写自定义 `RowMapper`。
+> **注意**：`SimpleBeanRowMapper` 是一个优先级很低的存在，**并非推荐的映射方式**。尽管 `SimpleBeanRowMapper` 使用了 `MethodHandle` 调用取代了传统反射的 `invoke()`，但再怎么优化，它都不可避免地存在可观的运行时开销。所以它的定位只是“有这么个简单实现”而已，还是更**鼓励用户针对自己的类型编写自定义 `RowMapper`**。
 >
-> 如果你仍然想使用，可通过以下工厂方法：
+> 如果你仍然想使用，可通过以下工厂方法获取对应类型的 `SimpleBeanRowMapper` 实例：
 > - `RowMapper.beanRowMapper(Class)`：自动匹配 **属性名（小驼峰）↔ 列名（小写蛇形）**。
 > - `RowMapper.beanRowMapper(Class, Map<String, String>)`：通过 `Map` 自定义属性名与列名映射关系。
 
@@ -466,7 +489,7 @@ jdbcTemplate.update(updateTmpl, Map.of("id", 2L));
 | 参数需固化在对象中、跨方法传递           | PreparedSql          | SQL 与参数数组整体封装。                       |
 | 需要自省参数名或获取 JDBC `Object[]`     | NamedParamSql + toArgs | 底层灵活控制，直接使用位置参数 API。         |
 
-**方式一：直接传参（最简，每次调用解析 SQL）**
+**# 直接传参（字符串 SQL + `Map`） - 每次调用都解析 SQL 字符串**
 
 ```java
 // 使用 Map.of() 快速构建参数
@@ -477,7 +500,7 @@ jdbcTemplate.queryList(
 );
 ```
 
-**方式二：NamedParamSql 模板传参（适合同一 SQL 多次执行、仅参数变化的场景）**
+**# 模板传参（`NamedParamSql` + `Map`） - 适合同一 SQL 多次绑定不同参数的场景**
 
 ```java
 // 解析一次模板，后续每次调用传入模板 + Map，避免重复解析 SQL
@@ -489,7 +512,25 @@ List<Account> r2 = jdbcTemplate.queryList(accountTmpl,
     Map.of("name", "user",  "org", "0001"), RowMapper.beanRowMapper(Account.class));
 ```
 
-**方式三：PreparedSql 预构建传参（适合需要将参数整体封装传递的场景）**
+> NamedParamSql 纯模板 + toArgs（适合底层灵活控制）
+>
+> ```java
+> NamedParamSql tmpl = NamedParamSql.of(
+>     "SELECT * FROM account WHERE id = #{id}");
+>
+> // 解析后的 JDBC SQL
+> String jdbcSql = tmpl.getSql();              // SELECT * FROM account WHERE id = ?
+> // 自省参数名
+> List<String> names = tmpl.getParamNames();   // [id]
+> // 延迟绑定参数值
+> Object[] args = tmpl.toArgs(Map.of("id", 10000L));
+>
+> // 委托给位置参数 API
+> List<Account> result = jdbcTemplate.queryList(jdbcSql, args,
+>     RowMapper.beanRowMapper(Account.class));
+> ```
+
+**# 预构建传参（PreparedSql） - 适合参数已绑死，可以将参数整体封装传递的场景**
 
 ```java
 import xyz.zhouxy.jdbc.namedparam.NamedParamSql;
@@ -517,24 +558,6 @@ PreparedSql ps3 = tmpl.prepare()
     .param("name", "admin")
     .param("org", "0000")
     .build();
-```
-
-**方式四：NamedParamSql 纯模板 + toArgs（适合底层灵活控制）**
-
-```java
-NamedParamSql tmpl = NamedParamSql.of(
-    "SELECT * FROM account WHERE id = #{id}");
-
-// 解析后的 JDBC SQL
-String jdbcSql = tmpl.getSql();              // SELECT * FROM account WHERE id = ?
-// 自省参数名
-List<String> names = tmpl.getParamNames();   // [id]
-// 延迟绑定参数值
-Object[] args = tmpl.toArgs(Map.of("id", 10000L));
-
-// 委托给位置参数 API
-List<Account> result = jdbcTemplate.queryList(jdbcSql, args,
-    RowMapper.beanRowMapper(Account.class));
 ```
 
 > 💡 **工作原理**：`NamedParamSql` 仅解析 SQL（`#{paramName}` → `?`）并记录参数名顺序，不绑定值。参数值通过 `toArgs(Map)` 或 `PreparedSql` 的 Builder 延迟绑定，值会经过 `ParamBuilder.handleItem` 处理（Optional 拆箱等）。两者均构建后不可变，线程安全。

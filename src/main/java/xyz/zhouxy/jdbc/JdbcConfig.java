@@ -16,6 +16,9 @@
 package xyz.zhouxy.jdbc;
 
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 import org.jspecify.annotations.NullMarked;
@@ -50,12 +53,21 @@ public final class JdbcConfig {
     private final int resultSetType;
     private final int resultSetConcurrency;
 
+    private final NullBindingStrategy nullBindingStrategy;
+    private final List<ParameterBinder> parameterBinders;
+
     private JdbcConfig(Builder builder) {
         this.fetchSize = builder.fetchSize;
         this.maxRows = builder.maxRows;
         this.queryTimeout = builder.queryTimeout;
         this.resultSetType = builder.resultSetType;
         this.resultSetConcurrency = builder.resultSetConcurrency;
+        this.nullBindingStrategy = builder.nullBindingStrategy != null
+                ? builder.nullBindingStrategy
+                : NullBindingStrategy.STANDARD;
+        this.parameterBinders = builder.parameterBinders != null
+                ? Collections.unmodifiableList(new ArrayList<>(builder.parameterBinders))
+                : Collections.emptyList();
     }
 
     /**
@@ -132,6 +144,24 @@ public final class JdbcConfig {
         return resultSetConcurrency;
     }
 
+    /**
+     * 获取 null 绑定策略。
+     *
+     * @return null 绑定策略
+     */
+    public NullBindingStrategy getNullBindingStrategy() {
+        return nullBindingStrategy;
+    }
+
+    /**
+     * 获取自定义参数绑定器列表。
+     *
+     * @return 自定义参数绑定器列表
+     */
+    public List<ParameterBinder> getParameterBinders() {
+        return parameterBinders;
+    }
+
     // #endregion
 
     // #region - equals, hashCode, toString
@@ -143,14 +173,19 @@ public final class JdbcConfig {
         JdbcConfig that = (JdbcConfig) o;
         return resultSetType == that.resultSetType
                 && resultSetConcurrency == that.resultSetConcurrency
+                && nullBindingStrategy == that.nullBindingStrategy
                 && Objects.equals(fetchSize, that.fetchSize)
                 && Objects.equals(maxRows, that.maxRows)
-                && Objects.equals(queryTimeout, that.queryTimeout);
+                && Objects.equals(queryTimeout, that.queryTimeout)
+                && Objects.equals(parameterBinders, that.parameterBinders);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(fetchSize, maxRows, queryTimeout, resultSetType, resultSetConcurrency);
+        return Objects.hash(
+                fetchSize, maxRows, queryTimeout,
+                resultSetType, resultSetConcurrency,
+                nullBindingStrategy, parameterBinders);
     }
 
     @Override
@@ -161,6 +196,8 @@ public final class JdbcConfig {
                 + ", queryTimeout=" + queryTimeout
                 + ", resultSetType=" + resultSetType
                 + ", resultSetConcurrency=" + resultSetConcurrency
+                + ", nullBindingStrategy=" + nullBindingStrategy
+                + ", parameterBinders=" + parameterBinders
                 + '}';
     }
 
@@ -176,6 +213,9 @@ public final class JdbcConfig {
         private @Nullable Integer queryTimeout;
         private int resultSetType = ResultSet.TYPE_FORWARD_ONLY;
         private int resultSetConcurrency = ResultSet.CONCUR_READ_ONLY;
+
+        private NullBindingStrategy nullBindingStrategy = NullBindingStrategy.STANDARD;
+        private List<ParameterBinder> parameterBinders = Collections.emptyList();
 
         private Builder() {
         }
@@ -250,6 +290,63 @@ public final class JdbcConfig {
                     "Invalid resultSetConcurrency: " + resultSetConcurrency);
             this.resultSetConcurrency = resultSetConcurrency;
             return this;
+        }
+
+        /**
+         * 设置 Null 值绑定策略。默认为 {@link NullBindingStrategy#STANDARD}。
+         *
+         * @param strategy null 值绑定策略
+         * @return this
+         * @see NullBindingStrategy
+         */
+        public Builder nullBindingStrategy(NullBindingStrategy strategy) {
+            this.nullBindingStrategy = AssertTools.checkArgumentNotNull(
+                    strategy, "nullBindingStrategy could not be null.");
+            return this;
+        }
+
+        /**
+         * 注册通用的自定义参数绑定器。
+         * <p>
+         * 适用于需要复杂条件判断的场景（如基于注解、接口组合等）。
+         * 框架保证传入的 value 非空。
+         *
+         * @param binder 自定义参数绑定器
+         * @return this
+         */
+        public Builder addParameterBinder(ParameterBinder binder) {
+            AssertTools.checkArgumentNotNull(binder, "parameterBinder could not be null.");
+            if (this.parameterBinders.isEmpty()) {
+                this.parameterBinders = new ArrayList<>();
+            }
+            this.parameterBinders.add(binder);
+            return this;
+        }
+
+        /**
+         * 注册针对特定类型的参数绑定器（推荐方式）。
+         * <p>
+         * 框架自动处理 {@code instanceof} 判断（支持多态），用户只需关注绑定逻辑。
+         * <p>
+         * 示例：
+         * <pre>{@code
+         * .addParameterBinder(Enum.class, (ps, i, v) -> ps.setString(i, v.name()))
+         * }</pre>
+         *
+         * @param type   要拦截的参数类型
+         * @param binder 绑定逻辑
+         * @return this
+         */
+        public <T> Builder addParameterBinder(Class<T> type, TypeBinder<T> binder) {
+            AssertTools.checkArgumentNotNull(type, "type could not be null.");
+            AssertTools.checkArgumentNotNull(binder, "typeBinder could not be null.");
+            return addParameterBinder((ps, index, value) -> {
+                if (type.isInstance(value)) {
+                    binder.bind(ps, index, type.cast(value));
+                    return true;
+                }
+                return false;
+            });
         }
 
         /**

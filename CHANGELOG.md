@@ -4,6 +4,7 @@
 
 ### ⚠️ 破坏性变更
 
+- **`java.time` 类型（`LocalDate` / `LocalTime` / `LocalDateTime` / `Instant`）不再自动转换为 `java.sql.*`**：原实现会在参数绑定前将上述类型显式转换为 `java.sql.Date` / `Time` / `Timestamp`；新版本统一走 `PreparedStatement.setObject(...)`，依赖 JDBC 4.2+ 驱动的原生支持。若使用的数据库驱动不支持 JSR-310 类型的 `setObject`，需通过 `JdbcConfig.Builder#addParameterBinder` 自行注册转换器。后续 README 将补充相关示例。
 - **`DefaultBeanRowMapper` 重命名为 `SimpleBeanRowMapper`**：原 `DefaultBeanRowMapper` 在 1.1.0 中保留为 `@Deprecated` 兼容别名，**将在 1.2.0 中移除**。`RowMapper.beanRowMapper(...)` 静态工厂方法内部已改为返回 `SimpleBeanRowMapper` 实例（未来版本可自由切换实现）。建议直接引用新类名。
 - **`DefaultBeanRowMapper.of()` 不再抛出 `SQLException`**：工厂方法在反射异常时改为抛出非受检异常 `IllegalStateException`。调用方如果 `catch (SQLException e)` 包裹 `of()` 调用，该捕获将失效，需移除相关 `catch` 块或改为捕获 `IllegalStateException`。
 - **`ThrowingConsumer` 与 `ThrowingPredicate` 迁移至 `xyz.zhouxy.jdbc.function` 子包**：需更新 import 路径。
@@ -14,6 +15,11 @@
 ### 新增
 
 - 支持通过 `JdbcConfig` 自定义 Statement 参数（fetchSize / maxRows / queryTimeout）和 ResultSet 类型（resultSetType / resultSetConcurrency），适用于 `SimpleJdbcTemplate`、`TransactionTemplate`、`JdbcExecutor`、`NamedParamJdbcExecutor`
+- `JdbcConfig` 新增 Null 值绑定与自定义参数绑定能力：
+  - `NullBindingStrategy`：配置 `null` 参数的绑定策略（`STANDARD` / `PARAMETER_METADATA` / `VARCHAR_FALLBACK`）
+  - `ParameterBinder`：通用参数绑定器，可拦截非空参数并自定义绑定逻辑
+  - `TypeBinder<T>`：针对特定类型的参数绑定器，简化类型匹配场景
+  - `JdbcConfig.Builder#nullBindingStrategy(...)` / `#addParameterBinder(...)` 配置入口
 - `TransactionTemplate` 支持指定事务隔离级别
 - 命名参数 JDBC 操作支持（`#{paramName}` 风格）：
   - `NamedParamJdbcOperations` 接口：提供查询、更新、批量操作的命名参数重载

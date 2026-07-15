@@ -21,15 +21,12 @@ import static xyz.zhouxy.jdbc.util.AssertTools.checkArgumentNotNull;
 
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
+import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -234,7 +231,7 @@ class JdbcOperationSupport {
         if (params != null && params.length > 0) {
             try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                 applyConfig(stmt, config);
-                fillStatement(stmt, params);
+                fillStatement(stmt, params, config);
                 stmt.executeUpdate();
                 try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                     final ResultHandler<List<T>> resultHandler = ResultHandler.mapToList(rowMapper);
@@ -299,7 +296,7 @@ class JdbcOperationSupport {
 
             for (Object[] ps : params) {
                 itemIndex++;
-                fillStatement(stmt, ps);
+                fillStatement(stmt, ps, config);
                 stmt.addBatch();
 
                 // 表示当前数据在批次中的索引，1, 2, 3, ..., batchSize-1, batchSize
@@ -428,7 +425,7 @@ class JdbcOperationSupport {
         @SuppressWarnings("MagicConstant")
         final PreparedStatement stmt = conn.prepareStatement(sql, config.getResultSetType(), config.getResultSetConcurrency());
         applyConfig(stmt, config);
-        fillStatement(stmt, params);
+        fillStatement(stmt, params, config);
         return stmt;
     }
 
@@ -464,33 +461,83 @@ class JdbcOperationSupport {
     // #endregion
 
     /**
-     * 填充参数
+     * 将参数数组绑定到 PreparedStatement。
+     * <p>
+     * 处理顺序：
+     * <ol>
+     *   <li>{@code null} 值 → 由 {@link NullBindingStrategy} 处理，不进入自定义规则</li>
+     *   <li>非空值 → 依次遍历 {@link ParameterBinder} 列表</li>
+     *   <li>未被拦截的非空值 → 直接调用 {@code ps.setObject()}，信任 JDBC 4.2+ 驱动</li>
+     * </ol>
      */
-    private static void fillStatement(PreparedStatement stmt, @Nullable Object @Nullable [] params)
-            throws SQLException {
-        if (params != null && params.length > 0) {
-            Object param;
-            for (int i = 0; i < params.length; i++) {
-                param = params[i];
-                if (param == null) {
-                    stmt.setObject(i + 1, null, Types.NULL);
+    private static void fillStatement(
+            PreparedStatement ps,
+            @Nullable Object @Nullable [] args,
+            JdbcConfig config) throws SQLException {
+        if (args == null || args.length == 0) {
+            return;
+        }
+
+        NullBindingStrategy nullStrategy = config.getNullBindingStrategy();
+        List<ParameterBinder> binders = config.getParameterBinders();
+
+        // PARAMETER_METADATA 策略的延迟加载与失败标记（仅在单次调用内有效）
+        ParameterMetaData pmd = null;
+        boolean pmdFailed = false;
+
+        for (int i = 0; i < args.length; i++) {
+            int paramIndex = i + 1;
+            Object inValue = args[i];
+
+            // null 值优先处理，不进入自定义规则
+            if (inValue == null) {
+                switch (nullStrategy) {
+                    case STANDARD:
+                        ps.setNull(paramIndex, Types.NULL);
+                        break;
+                    case VARCHAR_FALLBACK:
+                        ps.setNull(paramIndex, Types.VARCHAR);
+                        break;
+                    case PARAMETER_METADATA:
+                        if (pmdFailed) {
+                            ps.setNull(paramIndex, Types.VARCHAR);
+                        } else {
+                            if (pmd == null) {
+                                try {
+                                    pmd = ps.getParameterMetaData();
+                                } catch (SQLException ex) {
+                                    pmdFailed = true;
+                                    ps.setNull(paramIndex, Types.VARCHAR);
+                                    break;
+                                }
+                            }
+                            try {
+                                ps.setNull(paramIndex, pmd.getParameterType(paramIndex));
+                            } catch (SQLException ex) {
+                                ps.setNull(paramIndex, Types.VARCHAR);
+                            }
+                        }
+                        break;
                 }
-                else if (param instanceof LocalDate) {
-                    stmt.setDate(i + 1, java.sql.Date.valueOf((LocalDate) param));
-                }
-                else if (param instanceof LocalTime) {
-                    stmt.setTime(i + 1, java.sql.Time.valueOf((LocalTime) param));
-                }
-                else if (param instanceof LocalDateTime) {
-                    stmt.setTimestamp(i + 1, java.sql.Timestamp.valueOf((LocalDateTime) param));
-                }
-                else if (param instanceof Instant) {
-                    stmt.setTimestamp(i + 1, java.sql.Timestamp.from((Instant) param));
-                }
-                else {
-                    stmt.setObject(i + 1, param);
+                continue;
+            }
+
+            // ===== 2. 遍历用户自定义规则（inValue 保证非空） =====
+            boolean handled = false;
+            if (!binders.isEmpty()) {
+                for (ParameterBinder binder : binders) {
+                    if (binder.bind(ps, paramIndex, inValue)) {
+                        handled = true;
+                        break;
+                    }
                 }
             }
+            if (handled) {
+                continue;
+            }
+
+            // ===== 3. 默认处理：信任 JDBC 4.2+ 驱动的 setObject =====
+            ps.setObject(paramIndex, inValue);
         }
     }
 

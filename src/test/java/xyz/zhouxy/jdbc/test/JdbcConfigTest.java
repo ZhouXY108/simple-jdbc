@@ -759,14 +759,17 @@ class JdbcConfigTest extends BaseH2Test {
             NamedParamJdbcExecutor namedExecutor = new NamedParamJdbcExecutor(config);
 
             LocalDate birthDate = LocalDate.of(1990, 5, 20);
+            HashMap<String, Object> binderParams = new HashMap<>();
+            binderParams.put("username", "np_binder");
+            binderParams.put("birthDate", birthDate);
             int rows = namedExecutor.update(conn,
                     "INSERT INTO users (username, birth_date) VALUES (#{username}, #{birthDate})",
-                    Map.of("username", "np_binder", "birthDate", birthDate));
+                    binderParams);
             assertEquals(1, rows);
 
             String stored = namedExecutor.queryValue(conn,
                     "SELECT birth_date FROM users WHERE username = #{username}",
-                    Map.of("username", "np_binder"), String.class).orElse(null);
+                    Collections.singletonMap("username", "np_binder"), String.class).orElse(null);
             assertEquals("1990-05-20", stored);
         }
 
@@ -777,14 +780,17 @@ class JdbcConfigTest extends BaseH2Test {
             NamedParamJdbcExecutor namedExecutor = new NamedParamJdbcExecutor(config);
 
             LocalDateTime dateTime = LocalDateTime.of(2024, 6, 15, 14, 30, 0);
+            HashMap<String, Object> javaTimeParams = new HashMap<>();
+            javaTimeParams.put("username", "np_java_time");
+            javaTimeParams.put("createdAt", dateTime);
             int rows = namedExecutor.update(conn,
                     "INSERT INTO users (username, created_at) VALUES (#{username}, #{createdAt})",
-                    Map.of("username", "np_java_time", "createdAt", dateTime));
+                    javaTimeParams);
             assertEquals(1, rows);
 
             LocalDateTime stored = namedExecutor.queryValue(conn,
                     "SELECT created_at FROM users WHERE username = #{username}",
-                    Map.of("username", "np_java_time"), LocalDateTime.class).orElse(null);
+                    Collections.singletonMap("username", "np_java_time"), LocalDateTime.class).orElse(null);
             assertEquals(dateTime, stored);
         }
     }
@@ -947,9 +953,12 @@ class JdbcConfigTest extends BaseH2Test {
                 ops.update(
                         "INSERT INTO users (username, age) VALUES (?, ?)",
                         new Object[]{"tx_mixed_pos", 20});
+                HashMap<String, Object> namedParams = new HashMap<>();
+                namedParams.put("username", "tx_mixed_np");
+                namedParams.put("age", 30);
                 namedOps.update(
                         "INSERT INTO users (username, age) VALUES (#{username}, #{age})",
-                        Map.of("username", "tx_mixed_np", "age", 30));
+                        namedParams);
             });
 
             Integer agePos = template.queryValue(

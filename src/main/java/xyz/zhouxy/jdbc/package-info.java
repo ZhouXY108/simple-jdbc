@@ -28,7 +28,7 @@
  *   <li>{@link xyz.zhouxy.jdbc.ParamBuilder} —— 参数构建工具</li>
  *   <li>{@link xyz.zhouxy.jdbc.JdbcOperationSupport} —— JDBC 底层操作支持类</li>
  *   <li>{@link xyz.zhouxy.jdbc.JdbcExecutor} —— 位置参数执行器，面向外部已持有 Connection 的场景</li>
- *   <li>{@link xyz.zhouxy.jdbc.NamedParamJdbcExecutor} —— 命名参数执行器，面向外部已持有 Connection 的场景</li>
+ *   <li>{@link xyz.zhouxy.jdbc.namedparam.NamedParamJdbcExecutor} —— 命名参数执行器，面向外部已持有 Connection 的场景</li>
  * </ul>
  *
  * <p>

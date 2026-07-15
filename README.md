@@ -51,8 +51,9 @@
 
 ### 3.3 基本用法
 
+SimpleJdbcTemplate：JDBC 操作模板
+
 ```java
-// ---- SimpleJdbcTemplate：内部管理连接，最常用 ----
 // 初始化
 SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
 // 查询列表
@@ -64,8 +65,11 @@ int updatedRows = jdbcTemplate.update("UPDATE account SET deleted = 1 WHERE id =
 // 批量更新
 BatchUpdateResult batchResult = jdbcTemplate.batchUpdate("INSERT INTO account (username, password, org_no) VALUES (?, ?, ?)",
     batchParams, 100);
+```
 
-// ---- TransactionTemplate：事务管理 ----
+TransactionTemplate：事务管理
+
+```java
 // 初始化
 TransactionTemplate tx = jdbcTemplate.transaction();
 // 自动提交/回滚
@@ -86,8 +90,11 @@ tx.commitIfTrue(ops -> {
         buildParams(100, 1));
     return rows > 0; // true → 提交；false 或抛异常 → 回滚
 });
+```
 
-// ---- JdbcExecutor：外部连接执行器，适用于 JTA / 容器托管等场景 ----
+JdbcExecutor：外部连接执行器，适用于 JTA / 容器托管等场景
+
+```java
 // 初始化（所有方法首参需传入 Connection）
 JdbcExecutor executor = new JdbcExecutor();
 // 查询列表
@@ -99,8 +106,11 @@ int extAffected = executor.update(conn, "UPDATE account SET deleted = 1 WHERE id
 // 批量更新
 BatchUpdateResult extBatchResult = executor.batchUpdate(conn, "INSERT INTO account (username, password, org_no) VALUES (?, ?, ?)",
     batchParams, 100);
+```
 
-// ---- NamedParamJdbcExecutor：命名参数外部连接执行器 ----
+NamedParamJdbcExecutor：命名参数外部连接执行器
+
+```java
 // 初始化
 NamedParamJdbcExecutor namedExecutor = new NamedParamJdbcExecutor();
 // 查询列表
@@ -114,9 +124,14 @@ BatchUpdateResult namedBatchResult = namedExecutor.batchUpdate(conn, "INSERT INT
     namedBatchParams, 100);
 ```
 
-> 💡 关于与数据库连接池（如 HikariCP、Druid、DBCP 2 等）的集成方式，请参见「[8. 连接池集成](#8-连接池集成)」章节。
->
-> 📖 查询详见「[4. 数据查询](#4-数据查询-query)」，更新与批量详见「[5. 数据更新](#5-数据更新-update)」，事务详见「[6. 事务管理](#6-事务管理-transaction)」。
+### 3.4 接下来
+
+了解各模块的介绍和详细 API：
+
+- [数据查询](#4-数据查询-query)
+- [数据更新](#5-数据更新-update)
+- [事务管理](#6-事务管理-transaction)
+- [连接池集成](#8-连接池集成)
 
 ---
 

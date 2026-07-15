@@ -24,7 +24,7 @@
 - 明确**不支持存储过程**：专注于基础 CRUD。
 - **不提供分页 API**：不同数据库的分页方言差异巨大，且实际业务中的分页查询往往不是简单的 `LIMIT OFFSET`（存在如游标分页、延迟关联等深度优化空间）。为了保持轻量与灵活，分页 SQL 交由开发者根据具体数据库与业务场景自行编写。
 - **不提供缓存支持**：数据缓存应当被视为一个独立的关注点，通常交由更高层的抽象模块来处理。
-- **有限但灵活的结果映射**：为应对多样化的数据处理需求，Simple JDBC 提供了 `ResultHandler` 与 `RowMapper` 两层抽象机制。前者负责整体结果集的统筹处理，后者专注于单行数据的解析与映射（详见 [4.2 结果映射策略](#42-结果映射策略)）。两者均设计为函数式接口，支持通过 Lambda 表达式快速定制映射逻辑。
+- **有限但灵活的结果映射**：为应对多样化的数据处理需求，Simple JDBC 提供了 `ResultHandler` 与 `RowMapper` 两层抽象机制。前者负责整体结果集的统筹处理，后者专注于单行数据的解析与映射（详见 [5.2 结果映射策略](#52-结果映射策略)）。两者均设计为函数式接口，支持通过 Lambda 表达式快速定制映射逻辑。
 
 ---
 
@@ -128,16 +128,82 @@ BatchUpdateResult namedBatchResult = namedExecutor.batchUpdate(conn, "INSERT INT
 
 了解各模块的介绍和详细 API：
 
-- [数据查询](#4-数据查询-query)
-- [数据更新](#5-数据更新-update)
-- [事务管理](#6-事务管理-transaction)
-- [连接池集成](#8-连接池集成)
+- [项目架构](#4-项目架构)
+- [数据查询](#5-数据查询-query)
+- [数据更新](#6-数据更新-update)
+- [事务管理](#7-事务管理-transaction)
+- [连接池集成](#9-连接池集成)
 
 ---
 
-## 4. 数据查询 (Query)
+## 4. 项目架构
 
-### 4.1 查询方法列表
+### 4.1 包结构
+
+| 包                            | 职责                                     |
+| :---------------------------- | :--------------------------------------- |
+| `xyz.zhouxy.jdbc`             | 核心：模板、执行器、参数构建、接口定义   |
+| `xyz.zhouxy.jdbc.namedparam`  | 命名参数：SQL 解析、预构建对象           |
+| `xyz.zhouxy.jdbc.function`    | 函数式接口：`ResultHandler`、`RowMapper` |
+
+### 4.2 核心类关系
+
+```plantuml
+@startuml
+skinparam classAttributeIconSize 0
+
+interface JdbcOperations
+interface NamedParamJdbcOperations
+
+class SimpleJdbcTemplate
+class TransactionTemplate
+class "TransactionJdbcExecutor" as TJE
+
+SimpleJdbcTemplate ..|> JdbcOperations
+SimpleJdbcTemplate ..|> NamedParamJdbcOperations
+
+TransactionTemplate *-- TJE
+TJE ..|> JdbcOperations
+TJE ..|> NamedParamJdbcOperations
+
+class JdbcExecutor
+class NamedParamJdbcExecutor
+
+note bottom of JdbcExecutor
+  方法签名同 JdbcOperations
+  首参额外接收 Connection
+end note
+
+note bottom of NamedParamJdbcExecutor
+  方法签名同 NamedParamJdbcOperations
+  首参额外接收 Connection
+end note
+@enduml
+```
+
+- **JdbcOperations**：位置参数（`?`）操作接口，定义了 `query`、`queryList`、`queryFirst`、`queryValues`、`queryValue`、`queryBoolean`、`update`、`updateAndReturnKeys`、`batchUpdate` 等核心方法。
+- **NamedParamJdbcOperations**：命名参数操作接口
+  - 方法与 `JdbcOperations` 一一对应
+  - SQL 中使用 `#{paramName}` 占位符，参数通过 `Map` 传递
+  - 三种传参模式：
+    - 直接传参（SQL + `Map`）：最简单，每次调用解析 SQL
+    - 模板传参（`NamedParamSql` + `Map`）：`NamedParamSql` 预解析 SQL，将 `#{paramName}` 转换为 `?`，后续调用只绑定参数值
+    - 预构建传参（`PreparedSql`）：通过链式 Builder 构建，SQL 与参数绑定为不可变对象，可跨方法传递
+- **SimpleJdbcTemplate**：项目入口，同时实现 `JdbcOperations` 与 `NamedParamJdbcOperations`，同一实例无缝混用两种参数风格。内部管理 `DataSource` 连接的获取与释放，无状态、线程安全。
+- **TransactionTemplate**：事务管理，通过 `SimpleJdbcTemplate.transaction()` 获取。内部持有私有嵌套类 `TransactionJdbcExecutor`（同时实现 `JdbcOperations` 与 `NamedParamJdbcOperations`），事务内所有操作通过该嵌套类执行，共享同一连接。支持三种回调模式：位置参数、命名参数、混用。
+- **JdbcExecutor / NamedParamJdbcExecutor**：纯执行器
+  - 方法签名分别与 `JdbcOperations` / `NamedParamJdbcOperations` 对应，但所有方法首参额外接收 `Connection`
+  - 不管理连接与事务，适用于 JTA / 容器托管等外部持有 `Connection` 的场景
+  - `NamedParamJdbcExecutor` 内部委托 `JdbcExecutor` 执行
+- **JdbcConfig**：`SimpleJdbcTemplate`、`TransactionTemplate`、`JdbcExecutor`、`NamedParamJdbcExecutor` 的实例级配置，用于自定义 `Statement` 参数（`fetchSize` / `maxRows` / `queryTimeout`）和 `ResultSet` 类型。
+- **ResultHandler / RowMapper**：结果映射的两层抽象。`ResultHandler` 处理完整 `ResultSet`，`RowMapper` 映射单行数据。
+- **ParamBuilder**：构建位置参数数组（`buildParams` / `buildBatchParams`），自动拆箱 `Optional`。
+
+---
+
+## 5. 数据查询 (Query)
+
+### 5.1 查询方法列表
 
 | 方法签名                                           | 说明                                                                  |
 | :------------------------------------------------- | :-------------------------------------------------------------------- |
@@ -153,9 +219,9 @@ BatchUpdateResult namedBatchResult = namedExecutor.batchUpdate(conn, "INSERT INT
 
 *💡 提示：以上方法均有省略 `params` 的重载（如 `queryList(sql, rowMapper)`），适用于不含占位符的 SQL 语句。`queryValues`、`queryValue`、`queryValueOrDefault` 同理。*
 
-*💡 命名参数：以上所有方法在 `SimpleJdbcTemplate` 上均有三种参数模式的重载：① 直接传参 — 直接传入 SQL 字符串 + `Map`（每次解析）；② 模板传参 — 先解析为 `NamedParamSql`，后续每次调用传入模板 + `Map`（解析一次、绑参多次）；③ 预构建传参 — 传入 `PreparedSql`（参数已绑死）。详见「[5.2.2 命名参数构建](#522-命名参数构建)」。*
+*💡 命名参数：以上所有方法在 `SimpleJdbcTemplate` 上均有三种参数模式的重载：① 直接传参 — 直接传入 SQL 字符串 + `Map`（每次解析）；② 模板传参 — 先解析为 `NamedParamSql`，后续每次调用传入模板 + `Map`（解析一次、绑参多次）；③ 预构建传参 — 传入 `PreparedSql`（参数已绑死）。详见「[6.2.2 命名参数构建](#622-命名参数构建)」。*
 
-### 4.2 结果映射策略
+### 5.2 结果映射策略
 
 - **`ResultHandler`**：处理完整的 `ResultSet`，允许自定义逻辑将结果集映射为任意类型（包括集合）。
 - **`RowMapper`**：将 `ResultSet` 中的单行数据映射为 Java 对象。内置以下实现：
@@ -171,7 +237,7 @@ BatchUpdateResult namedBatchResult = namedExecutor.batchUpdate(conn, "INSERT INT
 > - `RowMapper.beanRowMapper(Class)`：自动匹配 **属性名（小驼峰）↔ 列名（小写蛇形）**。
 > - `RowMapper.beanRowMapper(Class, Map<String, String>)`：通过 `Map` 自定义属性名与列名映射关系。
 
-### 4.3 查询操作
+### 5.3 查询操作
 
 ```java
 // 基础查询（使用 ResultHandler 处理全部结果）
@@ -313,11 +379,11 @@ List<Account> r2 = jdbcTemplate.queryList(queryTmpl,
 
 ---
 
-## 5. 数据更新 (Update)
+## 6. 数据更新 (Update)
 
 所有更新方法同样提供了无参重载。
 
-### 5.1 更新操作
+### 6.1 更新操作
 
 | 方法签名                                       | 说明                                                                  |
 | :--------------------------------------------- | :-------------------------------------------------------------------- |
@@ -378,9 +444,9 @@ jdbcTemplate.update(updateTmpl, Map.of("id", 1L));
 jdbcTemplate.update(updateTmpl, Map.of("id", 2L));
 ```
 
-### 5.2 批量更新操作
+### 6.2 批量更新操作
 
-#### 5.2.1 批量更新方法
+#### 6.2.1 批量更新方法
 
 | 方法签名                                       | 说明                                                                  |
 | :--------------------------------------------- | :-------------------------------------------------------------------- |
@@ -389,7 +455,7 @@ jdbcTemplate.update(updateTmpl, Map.of("id", 2L));
 
 *💡 命名参数：`batchUpdate` 有两种参数模式：① 直接传参（SQL + `List<Map>`）② 模板传参（`NamedParamSql` + `List<Map>`），无 `PreparedSql` 重载（不适用）。*
 
-#### 5.2.2 命名参数构建
+#### 6.2.2 命名参数构建
 
 命名参数 SQL 使用 `#{paramName}` 格式。`SimpleJdbcTemplate` 同时实现了 `JdbcOperations` 和 `NamedParamJdbcOperations`，因此可直接在同一实例上使用命名参数方法。
 
@@ -473,7 +539,7 @@ List<Account> result = jdbcTemplate.queryList(jdbcSql, args,
 
 > 💡 **工作原理**：`NamedParamSql` 仅解析 SQL（`#{paramName}` → `?`）并记录参数名顺序，不绑定值。参数值通过 `toArgs(Map)` 或 `PreparedSql` 的 Builder 延迟绑定，值会经过 `ParamBuilder.handleItem` 处理（Optional 拆箱等）。两者均构建后不可变，线程安全。
 
-#### 5.2.3 批量命名参数
+#### 6.2.3 批量命名参数
 
 使用 `NamedParamSql.toBatchArgs()` 将 `List<Map>` 转换为 `List<Object[]>`，配合位置参数 `batchUpdate`；或直接使用 `NamedParamJdbcOperations` 上的命名参数批量方法，其中包括模板传参重载。
 
@@ -497,7 +563,7 @@ List<Object[]> batchArgs = tmpl.toBatchArgs(batchParams);
 result = jdbcTemplate.batchUpdate(tmpl.getSql(), batchArgs, 100);
 ```
 
-#### 5.2.4 多态视图
+#### 6.2.4 多态视图
 
 `SimpleJdbcTemplate` 同时实现了两个接口，可以通过多态获取不同视图：
 
@@ -517,7 +583,7 @@ tmpl.update("UPDATE t SET x = ?", buildParams(1));          // 位置参数
 tmpl.update("UPDATE t SET x = #{val}", Map.of("val", 1));  // 命名参数
 ```
 
-#### 5.2.5 批量更新操作示例
+#### 6.2.5 批量更新操作示例
 
 **位置参数风格：**
 
@@ -583,7 +649,7 @@ List<Object[]> batchArgs = tmpl.toBatchArgs(batchParams);
 result = jdbcTemplate.batchUpdate(tmpl.getSql(), batchArgs, 100);
 ```
 
-#### 5.2.6 批量更新结果 (BatchUpdateResult)
+#### 6.2.6 批量更新结果 (BatchUpdateResult)
 
 `batchUpdate` 方法返回 `BatchUpdateResult` 对象，包含以下信息：
 
@@ -601,7 +667,7 @@ result = jdbcTemplate.batchUpdate(tmpl.getSql(), batchArgs, 100);
 
 ---
 
-## 6. 事务管理 (Transaction)
+## 7. 事务管理 (Transaction)
 
 通过 `TransactionTemplate` 管理事务，可直接实例化或通过 `SimpleJdbcTemplate.transaction()` 获取。
 
@@ -611,7 +677,7 @@ result = jdbcTemplate.batchUpdate(tmpl.getSql(), batchArgs, 100);
 - **自动提交管理**：进入事务时关闭连接的自动提交模式，事务结束后恢复原始状态。
 - **异常处理**：操作中抛出异常时自动执行回滚，并将原始异常包装为 `TransactionException` 抛出。
 
-### 6.1 获取事务模板
+### 7.1 获取事务模板
 
 ```java
 // 方式一：通过 SimpleJdbcTemplate 获取
@@ -621,7 +687,7 @@ TransactionTemplate tx = jdbcTemplate.transaction();
 TransactionTemplate tx = new TransactionTemplate(dataSource);
 ```
 
-### 6.2 事务方法
+### 7.2 事务方法
 
 下表列出所有事务执行方法，覆盖三种调用模式。
 
@@ -642,7 +708,7 @@ TransactionTemplate tx = new TransactionTemplate(dataSource);
 - `execute` 系列：若回调无异常抛出则自动提交，发生异常则回滚。
 - `commitIfTrue` 系列：回调返回 `true` 提交，返回 `false` 或抛出异常则回滚。
 
-### 6.3 事务操作示例
+### 7.3 事务操作示例
 
 ```java
 // 自动提交/回滚事务
@@ -717,11 +783,11 @@ jdbcTemplate.transaction().executeNamed(nops -> {
 
 ---
 
-## 7. 位置参数构建 (ParamBuilder)
+## 8. 位置参数构建 (ParamBuilder)
 
 使用 `ParamBuilder` 可以快速构建位置参数（`?`）所需的参数数组。
 
-### 7.1 构建单条参数列表（位置参数）
+### 8.1 构建单条参数列表（位置参数）
 
 为避免与 Varargs 产生数组歧义，`JdbcOperations` 的方法统一使用 `Object[]` 传参。使用 `ParamBuilder.buildParams(...)` 可以快速构建 `Object[]` 参数数组，该方法会自动将 `Optional` 值进行拆箱处理。
 
@@ -733,7 +799,7 @@ buildParams(Optional.of("hello"));       // 返回 Object[]{"hello"}
 buildParams(Optional.empty());           // 返回 Object[]{null}
 ```
 
-### 7.2 批量构建参数列表
+### 8.2 批量构建参数列表
 
 使用 `ParamBuilder.buildBatchParams(collection, func)` 将集合中的每个元素转换为 `Object[]`，最终返回 `List<Object[]>`。
 
@@ -750,11 +816,11 @@ List<Object[]> batchParams = buildBatchParams(accountList, account -> buildParam
 
 ---
 
-## 8. 连接池集成
+## 9. 连接池集成
 
 `SimpleJdbcTemplate` 仅依赖标准的 `javax.sql.DataSource` 接口，可与任何主流数据库连接池集成。以下为常用连接池的配置示例。
 
-### 8.1 使用 HikariCP
+### 9.1 使用 HikariCP
 
 > [HikariCP](https://github.com/brettwooldridge/HikariCP) 是目前性能最优的数据库连接池之一，推荐在新项目中优先使用。
 
@@ -782,7 +848,7 @@ DataSource dataSource = new HikariDataSource(config);
 SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
 ```
 
-### 8.2 使用 Druid
+### 9.2 使用 Druid
 
 > [Druid](https://github.com/alibaba/druid) 是阿里巴巴开源的数据库连接池，提供了内置的监控和扩展能力，在中文社区中广泛采用。
 
@@ -807,7 +873,7 @@ dataSource.setPassword("your_password");
 SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
 ```
 
-### 8.3 使用 DBCP 2
+### 9.3 使用 DBCP 2
 
 > [DBCP 2](https://commons.apache.org/proper/commons-dbcp/) 是 Apache Commons 提供的数据库连接池，适用于需要依赖轻量的场景。
 
@@ -834,7 +900,7 @@ SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
 
 ---
 
-## 9. 注意事项与适用场景
+## 10. 注意事项与适用场景
 
 1. **风险提示**：本项目定位为轻量级工具，相较于成熟的 ORM 框架（如 MyBatis、Hibernate），其功能覆盖面和生态相对有限。**在生产环境使用前，请务必进行充分的测试，使用风险自行承担。**
 2. **线程安全**：`SimpleJdbcTemplate` 本身无内部状态，是**线程安全**的。但请确保其底层依赖的 `DataSource`（如 HikariCP、Druid 等连接池）已正确配置并保证线程安全。
@@ -843,6 +909,6 @@ SimpleJdbcTemplate jdbcTemplate = new SimpleJdbcTemplate(dataSource);
 
 ---
 
-## 10. 致谢
+## 11. 致谢
 
 - **MyBatis** — 本项目的命名参数解析功能使用了 MyBatis（https://mybatis.org/）中的 `GenericTokenParser` 和 `TokenHandler` 实现（v3.6.0），遵循 Apache License 2.0 许可。这两个工具类属于稳定的底层基础设施，在 MyBatis 各版本间变动极小。项目将持续关注 MyBatis 发布说明（[Releases](https://github.com/mybatis/mybatis-3/releases)），如有相关安全修复或 bug 修复，将及时同步更新。详细声明请参见 [`NOTICE`](NOTICE)。

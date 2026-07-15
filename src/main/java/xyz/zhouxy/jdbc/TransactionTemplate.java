@@ -161,6 +161,7 @@ public class TransactionTemplate {
             Exception caught = null;
             try {
                 if (isolationLevel != null) {
+                    //noinspection MagicConstant
                     conn.setTransactionIsolation(isolationLevel.getLevel());
                 }
                 conn.setAutoCommit(false);
@@ -307,6 +308,7 @@ public class TransactionTemplate {
             Exception caught = null;
             try {
                 if (isolationLevel != null) {
+                    //noinspection MagicConstant
                     conn.setTransactionIsolation(isolationLevel.getLevel());
                 }
                 conn.setAutoCommit(false);
@@ -434,6 +436,7 @@ public class TransactionTemplate {
     private void restoreTransactionIsolationSilently(
             Connection conn, int srcTransactionIsolationLevel, @Nullable Exception e) throws SQLException {
         try {
+            //noinspection MagicConstant
             conn.setTransactionIsolation(srcTransactionIsolationLevel);
         }
         catch (SQLException ex) {

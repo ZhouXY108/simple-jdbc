@@ -405,6 +405,7 @@ class JdbcOperationSupport {
             @Nullable Object @Nullable [] params,
             JdbcConfig config)
             throws SQLException {
+        @SuppressWarnings("MagicConstant")
         final PreparedStatement stmt = conn.prepareStatement(sql, config.getResultSetType(), config.getResultSetConcurrency());
         applyConfig(stmt, config);
         fillStatement(stmt, params);
@@ -416,6 +417,7 @@ class JdbcOperationSupport {
      */
     private static Statement createStatement(Connection conn, JdbcConfig config)
             throws SQLException {
+        @SuppressWarnings("MagicConstant")
         Statement stmt = conn.createStatement(config.getResultSetType(), config.getResultSetConcurrency());
         applyConfig(stmt, config);
         return stmt;

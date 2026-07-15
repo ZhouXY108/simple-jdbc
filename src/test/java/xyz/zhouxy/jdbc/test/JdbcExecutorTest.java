@@ -250,6 +250,7 @@ class JdbcExecutorTest extends BaseH2Test {
     @Test
     @DisplayName("null Connection 抛出异常")
     void testNullConnection() {
+        //noinspection DataFlowIssue
         assertThrows(Exception.class, () ->
             executor.query(null, "SELECT 1", rs -> rs.getInt(1)));
     }
@@ -267,6 +268,7 @@ class JdbcExecutorTest extends BaseH2Test {
     @Test
     @DisplayName("null params 走 Statement 路径")
     void testNullParams() throws SQLException {
+        @SuppressWarnings("RedundantCast")
         int rows = executor.update(conn, "DELETE FROM users", (Object[]) null);
         assertEquals(5, rows);
     }

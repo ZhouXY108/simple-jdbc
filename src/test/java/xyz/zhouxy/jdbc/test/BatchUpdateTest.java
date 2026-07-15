@@ -68,7 +68,6 @@ class BatchUpdateTest extends BaseH2Test {
         assertEquals(0, result.getRemainingBatchCount());
 
         // 验证数据已插入
-        @SuppressWarnings("DataFlowIssue")
         int count = template.queryValueOrDefault("SELECT COUNT(*) FROM users", Integer.class, 0);
         assertEquals(8, count); // 5 初始 + 3
     }

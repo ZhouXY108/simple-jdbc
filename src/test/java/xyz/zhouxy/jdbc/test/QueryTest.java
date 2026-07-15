@@ -346,7 +346,6 @@ class QueryTest extends BaseH2Test {
     void testQueryValueOrDefaultCount() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        @SuppressWarnings("DataFlowIssue")
         long count = template.queryValueOrDefault(
                 "SELECT COUNT(*) FROM users",
                 new Object[0], Long.class, 0L);
@@ -359,7 +358,6 @@ class QueryTest extends BaseH2Test {
     void testQueryValueOrDefaultSum() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        @SuppressWarnings("DataFlowIssue")
         long totalBalance = template.queryValueOrDefault(
                 "SELECT SUM(balance) FROM users",
                 new Object[0], Long.class, 0L);
@@ -373,7 +371,6 @@ class QueryTest extends BaseH2Test {
     void testQueryValueOrDefaultNoParams() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        @SuppressWarnings("DataFlowIssue")
         long count = template.queryValueOrDefault(
                 "SELECT COUNT(*) FROM users",
                 Long.class, 0L);
@@ -386,7 +383,6 @@ class QueryTest extends BaseH2Test {
     void testQueryValueOrDefaultEmptyTable() throws SQLException {
         SimpleJdbcTemplate template = createTemplate();
 
-        @SuppressWarnings("DataFlowIssue")
         long count = template.queryValueOrDefault(
                 "SELECT COUNT(*) FROM users WHERE id = ?",
                 new Object[]{999}, Long.class, 0L);

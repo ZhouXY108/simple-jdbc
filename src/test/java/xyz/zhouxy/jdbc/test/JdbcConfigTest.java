@@ -56,6 +56,7 @@ class JdbcConfigTest {
     @Test
     @DisplayName("非法 resultSetType 抛出异常")
     void testInvalidResultSetType() {
+        //noinspection WriteOnlyObject
         assertThrows(IllegalArgumentException.class,
                 () -> JdbcConfig.builder().resultSetType(999));
     }
@@ -63,6 +64,7 @@ class JdbcConfigTest {
     @Test
     @DisplayName("非法 resultSetConcurrency 抛出异常")
     void testInvalidResultSetConcurrency() {
+        //noinspection WriteOnlyObject
         assertThrows(IllegalArgumentException.class,
                 () -> JdbcConfig.builder().resultSetConcurrency(999));
     }
@@ -70,6 +72,7 @@ class JdbcConfigTest {
     @Test
     @DisplayName("负值 fetchSize 抛出异常")
     void testNegativeFetchSize() {
+        //noinspection WriteOnlyObject
         assertThrows(IllegalArgumentException.class,
                 () -> JdbcConfig.builder().fetchSize(-1));
     }
@@ -77,6 +80,7 @@ class JdbcConfigTest {
     @Test
     @DisplayName("负值 maxRows 抛出异常")
     void testNegativeMaxRows() {
+        //noinspection WriteOnlyObject
         assertThrows(IllegalArgumentException.class,
                 () -> JdbcConfig.builder().maxRows(-1));
     }
@@ -84,6 +88,7 @@ class JdbcConfigTest {
     @Test
     @DisplayName("负值 queryTimeout 抛出异常")
     void testNegativeQueryTimeout() {
+        //noinspection WriteOnlyObject
         assertThrows(IllegalArgumentException.class,
                 () -> JdbcConfig.builder().queryTimeout(-1));
     }

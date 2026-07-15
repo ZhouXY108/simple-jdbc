@@ -373,6 +373,16 @@ class JdbcOperationSupport {
         }
     }
 
+    /**
+     * 执行查询，将查询结果的每一行数据按照指定逻辑进行处理，返回结果列表
+     *
+     * @param conn      数据库连接
+     * @param sql       SQL
+     * @param params    参数
+     * @param rowMapper {@link ResultSet} 中每一行的数据的处理逻辑
+     * @param config    JDBC 配置
+     * @return 查询结果列表
+     */
     private static <T extends @Nullable Object> List<T> queryListInternal(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
@@ -382,6 +392,16 @@ class JdbcOperationSupport {
         return queryInternal(conn, sql, params, ResultHandler.mapToList(rowMapper), config);
     }
 
+    /**
+     * 执行查询，将查询结果的第一行数据按照指定逻辑进行处理，返回映射结果
+     *
+     * @param conn      数据库连接
+     * @param sql       SQL
+     * @param params    参数
+     * @param rowMapper 行数据映射逻辑
+     * @param config    JDBC 配置
+     * @return 映射结果。如果查询结果为空，则返回 null
+     */
     private static <T> @Nullable T queryFirstInternal(
             Connection conn,
             String sql, @Nullable Object @Nullable [] params,
